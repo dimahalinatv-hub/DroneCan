@@ -56,7 +56,6 @@ public sealed partial class MainViewModel : ObservableObject
         RefreshPortsCommand = new Command(RefreshPorts, () => !IsConnected);
         ConnectCommand = new Command(async () => await ToggleConnectionAsync(), () => !_isBusy);
         ReadConfigCommand = new Command(() => _autoReadNodeId = null, () => IsConnected && !IsReading && SelectedConfigNode != null);
-        CancelReadCommand = new Command(() => _readCts?.Cancel(), () => IsReading);
         CopyReportCommand = new Command(async () => await CopyReportAsync(), () => _lastReport != null);
         ClearLogCommand = new Command(() => Log.Clear());
         InitSettings();
@@ -88,7 +87,6 @@ public sealed partial class MainViewModel : ObservableObject
     public ICommand RefreshPortsCommand { get; }
     public ICommand ConnectCommand { get; }
     public ICommand ReadConfigCommand { get; }
-    public ICommand CancelReadCommand { get; }
     public ICommand CopyReportCommand { get; }
     public ICommand ClearLogCommand { get; }
 
@@ -172,7 +170,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     private void RefreshCommands()
     {
-        foreach (var c in new[] { RefreshPortsCommand, ConnectCommand, ReadConfigCommand, CancelReadCommand, CopyReportCommand })
+        foreach (var c in new[] { RefreshPortsCommand, ConnectCommand, ReadConfigCommand, CopyReportCommand })
         {
             ((Command)c).ChangeCanExecute();
         }

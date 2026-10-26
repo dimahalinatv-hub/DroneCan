@@ -55,8 +55,7 @@ public sealed partial class MainViewModel
 
     public IReadOnlyList<Option> CanBaudOptions { get; } = HwSetBaud.Options.Select(o => new Option(o.Code, o.Name)).ToList();
 
-    public ICommand ShowReportCommand { get; private set; } = null!;
-    public ICommand ShowSettingsCommand { get; private set; } = null!;
+    public ICommand ToggleViewCommand { get; private set; } = null!;
     public ICommand SetThrottleSourceCommand { get; private set; } = null!;
     public ICommand SetDirectionCommand { get; private set; } = null!;
     public ICommand SetRateCommand { get; private set; } = null!;
@@ -73,11 +72,15 @@ public sealed partial class MainViewModel
             if (SetProperty(ref _showSettings, value))
             {
                 OnPropertyChanged(nameof(ShowReport));
+                OnPropertyChanged(nameof(ToggleViewText));
             }
         }
     }
 
     public bool ShowReport => !ShowSettings;
+
+    /// <summary>The view the toggle button switches to.</summary>
+    public string ToggleViewText => ShowSettings ? "Report" : "Edit";
 
     public bool IsWriting
     {
@@ -120,11 +123,13 @@ public sealed partial class MainViewModel
 
     private void InitSettings()
     {
-        ShowReportCommand = new Command(() => ShowSettings = false);
-        ShowSettingsCommand = new Command(() =>
+        ToggleViewCommand = new Command(() =>
         {
-            ShowSettings = true;
-            LoadSettingsFromNode();
+            ShowSettings = !ShowSettings;
+            if (ShowSettings)
+            {
+                LoadSettingsFromNode();
+            }
         });
 
         SetThrottleSourceCommand = new Command(async () => await WriteAsync(

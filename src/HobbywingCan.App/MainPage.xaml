@@ -222,8 +222,11 @@
                 <!-- FlexLayout rows wrap instead of pushing the page wider than the window -->
                 <FlexLayout Grid.Row="0" Wrap="Wrap" AlignItems="Center">
                     <Label Text="ESC configuration" Style="{StaticResource Section}" Margin="0,8,8,4" />
-                    <Button Text="Report" Command="{Binding ShowReportCommand}" Margin="0,0,6,0" />
-                    <Button Text="Settings" Command="{Binding ShowSettingsCommand}" />
+                    <Button Text="↻" Command="{Binding ReadConfigCommand}" Margin="0,0,6,0"
+                            ToolTipProperties.Text="Read again (the configuration is read automatically when a node is selected)" />
+                    <Button Text="Copy report" Command="{Binding CopyReportCommand}" Margin="0,0,6,0" />
+                    <Button Text="{Binding ToggleViewText}" Command="{Binding ToggleViewCommand}"
+                            ToolTipProperties.Text="Switch between the read-only report and the settings editor" />
                 </FlexLayout>
                 <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
                     <Label Text="Node" />
@@ -232,20 +235,14 @@
                 </Grid>
 
                 <!-- Read-only report -->
-                <Grid Grid.Row="2" RowDefinitions="Auto,Auto,*" RowSpacing="6" IsVisible="{Binding ShowReport}">
-                    <HorizontalStackLayout Grid.Row="0" Spacing="8">
-                        <Button Text="↻" Command="{Binding ReadConfigCommand}"
-                                ToolTipProperties.Text="Read again (the configuration is read automatically when a node is selected)" />
-                        <Button Text="Cancel" Command="{Binding CancelReadCommand}" />
-                        <Button Text="Copy report" Command="{Binding CopyReportCommand}" />
-                    </HorizontalStackLayout>
-                    <HorizontalStackLayout Grid.Row="1" Spacing="6">
+                <Grid Grid.Row="2" RowDefinitions="Auto,*" RowSpacing="6" IsVisible="{Binding ShowReport}">
+                    <HorizontalStackLayout Grid.Row="0" Spacing="6">
                         <CheckBox IsChecked="{Binding IncludeParameters}" />
                         <Label Text="Include params" ToolTipProperties.Text="Also enumerate uavcan.protocol.param.GetSet parameters" />
                         <ActivityIndicator IsRunning="{Binding IsReading}" HeightRequest="20" WidthRequest="20" />
                         <Label Text="{Binding ConfigProgress}" />
                     </HorizontalStackLayout>
-                    <ScrollView Grid.Row="2">
+                    <ScrollView Grid.Row="1">
                         <VerticalStackLayout BindableLayout.ItemsSource="{Binding ConfigItems}">
                             <BindableLayout.EmptyView>
                                 <Label Text="The configuration of the selected ESC node (not the autopilot, usually node 10) is read automatically. The vehicle must be disarmed."
@@ -277,50 +274,49 @@
                                    ToolTipProperties.Text="There is no read-only query for throttle source and LED other than GetMajorConfig (242)" />
                         </VerticalStackLayout>
 
-                        <Label Grid.Row="1" Text="Node ID" />
-                        <Entry Grid.Row="1" Grid.Column="1" Text="{Binding NewNodeIdText}" Keyboard="Numeric" />
-                        <Button Grid.Row="1" Grid.Column="2" Text="Set" Command="{Binding SetNodeIdCommand}" />
+                        <Label Grid.Row="1" Text="CAN speed"
+                               ToolTipProperties.Text="ESC CAN bit rate (SetBaud). Cannot be read back; must match the flight controller's CAN_Px_BITRATE" />
+                        <Picker Grid.Row="1" Grid.Column="1" ItemsSource="{Binding CanBaudOptions}" SelectedItem="{Binding SelectedCanBaud}" />
+                        <Button Grid.Row="1" Grid.Column="2" Text="Set" Command="{Binding SetCanBaudCommand}" />
 
-                        <Label Grid.Row="2" Text="Throttle channel" ToolTipProperties.Text="Motor output number ArduPilot uses for this ESC" />
-                        <Entry Grid.Row="2" Grid.Column="1" Text="{Binding ThrottleChannelText}" Keyboard="Numeric" />
-                        <Button Grid.Row="2" Grid.Column="2" Text="Set" Command="{Binding SetThrottleChannelCommand}" />
+                        <Label Grid.Row="2" Text="Node ID" />
+                        <Entry Grid.Row="2" Grid.Column="1" Text="{Binding NewNodeIdText}" Keyboard="Numeric" />
+                        <Button Grid.Row="2" Grid.Column="2" Text="Set" Command="{Binding SetNodeIdCommand}" />
 
-                        <Label Grid.Row="3" Text="Throttle source" />
-                        <Picker Grid.Row="3" Grid.Column="1" ItemsSource="{Binding ThrottleSourceOptions}" SelectedItem="{Binding SelectedThrottleSource}" />
-                        <Button Grid.Row="3" Grid.Column="2" Text="Set" Command="{Binding SetThrottleSourceCommand}" />
+                        <Label Grid.Row="3" Text="Throttle channel" ToolTipProperties.Text="Motor output number ArduPilot uses for this ESC" />
+                        <Entry Grid.Row="3" Grid.Column="1" Text="{Binding ThrottleChannelText}" Keyboard="Numeric" />
+                        <Button Grid.Row="3" Grid.Column="2" Text="Set" Command="{Binding SetThrottleChannelCommand}" />
 
-                        <Label Grid.Row="4" Text="StatusMsg1 rate" ToolTipProperties.Text="RPM, PWM, status" />
-                        <Picker Grid.Row="4" Grid.Column="1" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding SelectedMsg1Rate}" />
-                        <Button Grid.Row="4" Grid.Column="2" Text="Set" Command="{Binding SetRateCommand}" CommandParameter="1" />
+                        <Label Grid.Row="4" Text="Throttle source" />
+                        <Picker Grid.Row="4" Grid.Column="1" ItemsSource="{Binding ThrottleSourceOptions}" SelectedItem="{Binding SelectedThrottleSource}" />
+                        <Button Grid.Row="4" Grid.Column="2" Text="Set" Command="{Binding SetThrottleSourceCommand}" />
 
-                        <Label Grid.Row="5" Text="StatusMsg2 rate" ToolTipProperties.Text="Voltage, current, temperature" />
-                        <Picker Grid.Row="5" Grid.Column="1" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding SelectedMsg2Rate}" />
-                        <Button Grid.Row="5" Grid.Column="2" Text="Set" Command="{Binding SetRateCommand}" CommandParameter="2" />
+                        <Label Grid.Row="5" Text="StatusMsg1 rate" ToolTipProperties.Text="RPM, PWM, status" />
+                        <Picker Grid.Row="5" Grid.Column="1" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding SelectedMsg1Rate}" />
+                        <Button Grid.Row="5" Grid.Column="2" Text="Set" Command="{Binding SetRateCommand}" CommandParameter="1" />
 
-                        <Label Grid.Row="6" Text="StatusMsg3 rate" ToolTipProperties.Text="MOSFET / capacitor / motor temperatures" />
-                        <Picker Grid.Row="6" Grid.Column="1" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding SelectedMsg3Rate}" />
-                        <Button Grid.Row="6" Grid.Column="2" Text="Set" Command="{Binding SetRateCommand}" CommandParameter="3" />
+                        <Label Grid.Row="6" Text="StatusMsg2 rate" ToolTipProperties.Text="Voltage, current, temperature" />
+                        <Picker Grid.Row="6" Grid.Column="1" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding SelectedMsg2Rate}" />
+                        <Button Grid.Row="6" Grid.Column="2" Text="Set" Command="{Binding SetRateCommand}" CommandParameter="2" />
 
-                        <Label Grid.Row="7" Text="LED color" />
-                        <Picker Grid.Row="7" Grid.Column="1" ItemsSource="{Binding LedColorOptions}" SelectedItem="{Binding SelectedLedColor}" />
+                        <Label Grid.Row="7" Text="StatusMsg3 rate" ToolTipProperties.Text="MOSFET / capacitor / motor temperatures" />
+                        <Picker Grid.Row="7" Grid.Column="1" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding SelectedMsg3Rate}" />
+                        <Button Grid.Row="7" Grid.Column="2" Text="Set" Command="{Binding SetRateCommand}" CommandParameter="3" />
 
-                        <Label Grid.Row="8" Text="LED mode" />
-                        <HorizontalStackLayout Grid.Row="8" Grid.Column="1" Spacing="6">
+                        <Label Grid.Row="8" Text="LED color" />
+                        <Picker Grid.Row="8" Grid.Column="1" ItemsSource="{Binding LedColorOptions}" SelectedItem="{Binding SelectedLedColor}" />
+
+                        <Label Grid.Row="9" Text="LED mode" />
+                        <HorizontalStackLayout Grid.Row="9" Grid.Column="1" Spacing="6">
                             <Picker ItemsSource="{Binding LedBlinkOptions}" SelectedItem="{Binding SelectedLedBlink}" WidthRequest="120" />
                             <CheckBox IsChecked="{Binding LedSave}" />
                             <Label Text="Save" />
                         </HorizontalStackLayout>
-                        <Button Grid.Row="8" Grid.Column="2" Text="Set" Command="{Binding SetLedCommand}" />
+                        <Button Grid.Row="9" Grid.Column="2" Text="Set" Command="{Binding SetLedCommand}" />
 
-                        <Label Grid.Row="9" Text="Direction" />
-                        <Picker Grid.Row="9" Grid.Column="1" ItemsSource="{Binding DirectionOptions}" SelectedItem="{Binding SelectedDirection}" />
-                        <Button Grid.Row="9" Grid.Column="2" Text="Set" Command="{Binding SetDirectionCommand}" />
-
-                        <Label Grid.Row="10" Text="CAN speed"
-                               ToolTipProperties.Text="ESC CAN bit rate (SetBaud). Cannot be read back; must match the flight controller's CAN_Px_BITRATE" />
-                        <Picker Grid.Row="10" Grid.Column="1" ItemsSource="{Binding CanBaudOptions}" SelectedItem="{Binding SelectedCanBaud}" />
-                        <Button Grid.Row="10" Grid.Column="2" Text="Set" Command="{Binding SetCanBaudCommand}" />
-                    </Grid>
+                        <Label Grid.Row="10" Text="Direction" />
+                        <Picker Grid.Row="10" Grid.Column="1" ItemsSource="{Binding DirectionOptions}" SelectedItem="{Binding SelectedDirection}" />
+                        <Button Grid.Row="10" Grid.Column="2" Text="Set" Command="{Binding SetDirectionCommand}" />                    </Grid>
                 </ScrollView>
             </Grid>
         </Grid>

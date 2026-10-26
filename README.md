@@ -69,16 +69,17 @@
 
 Ці налаштування застосунок читає автоматично для кожного Hobbywing ESC (тільки поки апарат роззброєний).
 
-## Зміна налаштувань (кнопка «Settings»)
+## Зміна налаштувань (кнопка «Edit», назад — «Report»)
 
 | Налаштування | Сервіс | Примітка |
 |---|---|---|
-| Throttle source CAN / PWM | `SetThrottleSource` (215) | у режимі PWM ESC **ігнорує газ з ArduPilot по CAN** |
-| Direction CW / CCW | `SetDirection` (213) | |
-| StatusMsg1 / 2 / 3 rate | `SetReportingFrequency` (214), `OPTION_WRITE` | 500…1 Гц або Off; Msg1 (RPM) використовується ArduPilot, зокрема для RPM-notch |
-| Throttle channel | `SetID` (210) | node ID лишається тим самим |
-| LED color / mode | `SetLED` (212) | «Save» — зберегти в ESC |
+| CAN speed | `SetBaud` (211) | див. нижче: помилкова швидкість обриває зв'язок з ESC |
 | Node ID | `SetID` (210) | throttle-канал лишається тим самим; ESC з'явиться як новий вузол |
+| Throttle channel | `SetID` (210) | node ID лишається тим самим |
+| Throttle source CAN / PWM | `SetThrottleSource` (215) | у режимі PWM ESC **ігнорує газ з ArduPilot по CAN** |
+| StatusMsg1 / 2 / 3 rate | `SetReportingFrequency` (214), `OPTION_WRITE` | 500…1 Гц або Off; Msg1 (RPM) використовується ArduPilot, зокрема для RPM-notch |
+| LED color / mode | `SetLED` (212) | «Save» — зберегти в ESC |
+| Direction CW / CCW | `SetDirection` (213) | |
 
 ### ⚠ X8 G2: SetID діє на всі ESC на шині
 
@@ -97,7 +98,7 @@
 **Як виправити ESC, яким уже записали однаковий ID / канал:**
 
 1. Від'єднайте CAN (або живлення) всіх ESC, крім одного.
-2. Зачекайте, поки інші зникнуть з таблиці; у Settings виставте цьому ESC його throttle channel
+2. Зачекайте, поки інші зникнуть з таблиці; в Edit виставте цьому ESC його throttle channel
    (= номер виходу мотора в ArduPilot) і унікальний node ID.
 3. Від'єднайте його, підключіть наступний ESC і повторіть. Наприкінці підключіть усі.
 
