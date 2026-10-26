@@ -139,10 +139,10 @@
             </VerticalStackLayout>
         </ScrollView>
 
-        <!-- Bottom: autopilot telemetry + log | bus traffic | configuration -->
+        <!-- Bottom: configuration | autopilot telemetry + log | bus traffic -->
         <Grid Grid.Row="5" ColumnDefinitions="*,*,*" ColumnSpacing="16">
 
-            <Grid Grid.Column="0" RowDefinitions="Auto,Auto,Auto,Auto,*">
+            <Grid Grid.Column="1" RowDefinitions="Auto,Auto,Auto,Auto,*">
                 <Label Grid.Row="0" Text="ArduPilot ESC telemetry" Style="{StaticResource Section}"
                        ToolTipProperties.Text="ESC_TELEMETRY_x_TO_y as reported by the autopilot itself" />
                 <Grid Grid.Row="1" ColumnDefinitions="50,55,70,65,50,70,*" Style="{StaticResource HeaderRow}">
@@ -187,7 +187,7 @@
                 </ScrollView>
             </Grid>
 
-            <Grid Grid.Column="1" RowDefinitions="Auto,Auto,*">
+            <Grid Grid.Column="2" RowDefinitions="Auto,Auto,*">
                 <Label Grid.Row="0" Text="Bus traffic (transfers per node and type)" Style="{StaticResource Section}" />
                 <Grid Grid.Row="1" ColumnDefinitions="40,40,*,65,70,40" Style="{StaticResource HeaderRow}">
                     <Label Grid.Column="0" Text="Node" Style="{StaticResource Header}" />
@@ -218,7 +218,7 @@
                 </ScrollView>
             </Grid>
 
-            <Grid Grid.Column="2" RowDefinitions="Auto,Auto,*" RowSpacing="6">
+            <Grid Grid.Column="0" RowDefinitions="Auto,Auto,*" RowSpacing="6">
                 <!-- FlexLayout rows wrap instead of pushing the page wider than the window -->
                 <FlexLayout Grid.Row="0" Wrap="Wrap" AlignItems="Center">
                     <Label Text="ESC configuration" Style="{StaticResource Section}" Margin="0,8,8,4" />
@@ -277,29 +277,29 @@
                                    ToolTipProperties.Text="There is no read-only query for throttle source and LED other than GetMajorConfig (242)" />
                         </VerticalStackLayout>
 
-                        <Label Grid.Row="1" Text="Throttle source" />
-                        <Picker Grid.Row="1" Grid.Column="1" ItemsSource="{Binding ThrottleSourceOptions}" SelectedItem="{Binding SelectedThrottleSource}" />
-                        <Button Grid.Row="1" Grid.Column="2" Text="Set" Command="{Binding SetThrottleSourceCommand}" />
+                        <Label Grid.Row="1" Text="Node ID" />
+                        <Entry Grid.Row="1" Grid.Column="1" Text="{Binding NewNodeIdText}" Keyboard="Numeric" />
+                        <Button Grid.Row="1" Grid.Column="2" Text="Set" Command="{Binding SetNodeIdCommand}" />
 
-                        <Label Grid.Row="2" Text="Direction" />
-                        <Picker Grid.Row="2" Grid.Column="1" ItemsSource="{Binding DirectionOptions}" SelectedItem="{Binding SelectedDirection}" />
-                        <Button Grid.Row="2" Grid.Column="2" Text="Set" Command="{Binding SetDirectionCommand}" />
+                        <Label Grid.Row="2" Text="Throttle channel" ToolTipProperties.Text="Motor output number ArduPilot uses for this ESC" />
+                        <Entry Grid.Row="2" Grid.Column="1" Text="{Binding ThrottleChannelText}" Keyboard="Numeric" />
+                        <Button Grid.Row="2" Grid.Column="2" Text="Set" Command="{Binding SetThrottleChannelCommand}" />
 
-                        <Label Grid.Row="3" Text="StatusMsg1 rate" ToolTipProperties.Text="RPM, PWM, status" />
-                        <Picker Grid.Row="3" Grid.Column="1" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding SelectedMsg1Rate}" />
-                        <Button Grid.Row="3" Grid.Column="2" Text="Set" Command="{Binding SetRateCommand}" CommandParameter="1" />
+                        <Label Grid.Row="3" Text="Throttle source" />
+                        <Picker Grid.Row="3" Grid.Column="1" ItemsSource="{Binding ThrottleSourceOptions}" SelectedItem="{Binding SelectedThrottleSource}" />
+                        <Button Grid.Row="3" Grid.Column="2" Text="Set" Command="{Binding SetThrottleSourceCommand}" />
 
-                        <Label Grid.Row="4" Text="StatusMsg2 rate" ToolTipProperties.Text="Voltage, current, temperature" />
-                        <Picker Grid.Row="4" Grid.Column="1" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding SelectedMsg2Rate}" />
-                        <Button Grid.Row="4" Grid.Column="2" Text="Set" Command="{Binding SetRateCommand}" CommandParameter="2" />
+                        <Label Grid.Row="4" Text="StatusMsg1 rate" ToolTipProperties.Text="RPM, PWM, status" />
+                        <Picker Grid.Row="4" Grid.Column="1" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding SelectedMsg1Rate}" />
+                        <Button Grid.Row="4" Grid.Column="2" Text="Set" Command="{Binding SetRateCommand}" CommandParameter="1" />
 
-                        <Label Grid.Row="5" Text="StatusMsg3 rate" ToolTipProperties.Text="MOSFET / capacitor / motor temperatures" />
-                        <Picker Grid.Row="5" Grid.Column="1" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding SelectedMsg3Rate}" />
-                        <Button Grid.Row="5" Grid.Column="2" Text="Set" Command="{Binding SetRateCommand}" CommandParameter="3" />
+                        <Label Grid.Row="5" Text="StatusMsg2 rate" ToolTipProperties.Text="Voltage, current, temperature" />
+                        <Picker Grid.Row="5" Grid.Column="1" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding SelectedMsg2Rate}" />
+                        <Button Grid.Row="5" Grid.Column="2" Text="Set" Command="{Binding SetRateCommand}" CommandParameter="2" />
 
-                        <Label Grid.Row="6" Text="Throttle channel" ToolTipProperties.Text="Motor output number ArduPilot uses for this ESC" />
-                        <Entry Grid.Row="6" Grid.Column="1" Text="{Binding ThrottleChannelText}" Keyboard="Numeric" />
-                        <Button Grid.Row="6" Grid.Column="2" Text="Set" Command="{Binding SetThrottleChannelCommand}" />
+                        <Label Grid.Row="6" Text="StatusMsg3 rate" ToolTipProperties.Text="MOSFET / capacitor / motor temperatures" />
+                        <Picker Grid.Row="6" Grid.Column="1" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding SelectedMsg3Rate}" />
+                        <Button Grid.Row="6" Grid.Column="2" Text="Set" Command="{Binding SetRateCommand}" CommandParameter="3" />
 
                         <Label Grid.Row="7" Text="LED color" />
                         <Picker Grid.Row="7" Grid.Column="1" ItemsSource="{Binding LedColorOptions}" SelectedItem="{Binding SelectedLedColor}" />
@@ -312,9 +312,9 @@
                         </HorizontalStackLayout>
                         <Button Grid.Row="8" Grid.Column="2" Text="Set" Command="{Binding SetLedCommand}" />
 
-                        <Label Grid.Row="9" Text="Node ID" />
-                        <Entry Grid.Row="9" Grid.Column="1" Text="{Binding NewNodeIdText}" Keyboard="Numeric" />
-                        <Button Grid.Row="9" Grid.Column="2" Text="Set" Command="{Binding SetNodeIdCommand}" />
+                        <Label Grid.Row="9" Text="Direction" />
+                        <Picker Grid.Row="9" Grid.Column="1" ItemsSource="{Binding DirectionOptions}" SelectedItem="{Binding SelectedDirection}" />
+                        <Button Grid.Row="9" Grid.Column="2" Text="Set" Command="{Binding SetDirectionCommand}" />
                     </Grid>
                 </ScrollView>
             </Grid>

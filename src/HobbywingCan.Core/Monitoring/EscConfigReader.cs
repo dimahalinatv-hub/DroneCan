@@ -28,7 +28,9 @@ public sealed class EscConfigReport
 
     public IReadOnlyList<ConfigItem> ToItems(bool includeErrors = true)
     {
-        var items = new List<ConfigItem>();
+        // same order as the settings editor: node ID, throttle, message rates, LED, then the rest
+        var items = new List<ConfigItem> { new("Node", "Node ID", NodeId.ToString()) };
+        var major = MajorConfig;
         if (Info != null)
         {
             items.Add(new("Node", "Name", Info.Name));
@@ -39,38 +41,41 @@ public sealed class EscConfigReport
             items.Add(new("Node", "Uptime", TimeSpan.FromSeconds(Info.Status.UptimeSec).ToString()));
             items.Add(new("Node", "Vendor status", $"0x{Info.Status.VendorSpecificStatusCode:X4}"));
         }
-        if (MajorConfig is { } c)
+        // only GetMajorConfig reports throttle source and LED; a write answer is the next best thing, otherwise they are left out
+        if (major != null)
         {
-            items.Add(new("Major config", "Direction", c.DirectionText));
-            items.Add(new("Major config", "Throttle source", c.ThrottleSourceText));
-            items.Add(new("Major config", "Throttle channel", c.ThrottleChannel.ToString()));
-            items.Add(new("Major config", "LED color", c.LedColorText));
-            items.Add(new("Major config", "LED mode", c.LedModeText));
-            items.Add(new("Major config", "StatusMsg1 rate", HwRate.ToText(c.Msg1RateCode)));
-            items.Add(new("Major config", "StatusMsg2 rate", HwRate.ToText(c.Msg2RateCode)));
-            items.Add(new("Major config", "Positioning angle", c.PositioningAngle.ToString()));
-            items.Add(new("Major config", "Reserved", Convert.ToHexString(c.Reserved)));
+            items.Add(new("Major config", "Throttle channel", major.ThrottleChannel.ToString()));
+            items.Add(new("Major config", "Throttle source", major.ThrottleSourceText));
+            items.Add(new("Major config", "StatusMsg1 rate", HwRate.ToText(major.Msg1RateCode)));
+            items.Add(new("Major config", "StatusMsg2 rate", HwRate.ToText(major.Msg2RateCode)));
         }
-        else
+        else if (LastSetThrottleSource is { } s)
         {
-            // only GetMajorConfig reports these; a write answer is the next best thing, otherwise they are left out
-            if (LastSetThrottleSource is { } s)
-            {
-                items.Add(new("Major config", "Throttle source", $"{HwSetThrottleSource.ToText(s)} (last set)"));
-            }
-            if (LastSetLed is { } led)
-            {
-                items.Add(new("Major config", "LED color", $"{HwSetLed.ColorName(led.Color)} (last set)"));
-                items.Add(new("Major config", "LED mode", $"{HwSetLed.BlinkName(led.Blink)} (last set)"));
-            }
-        }
-        if (Direction is { } d)
-        {
-            items.Add(new("Direction query", "Direction", HwSetDirection.ToText(d)));
+            items.Add(new("Major config", "Throttle source", $"{HwSetThrottleSource.ToText(s)} (last set)"));
         }
         foreach (var (msgId, rate) in ReportingRates.OrderBy(kv => kv.Key))
         {
             items.Add(new("Reporting rate", $"StatusMsg{msgId - 20049} ({msgId})", HwRate.ToText(rate.RateCode)));
+        }
+        if (major != null)
+        {
+            items.Add(new("Major config", "LED color", major.LedColorText));
+            items.Add(new("Major config", "LED mode", major.LedModeText));
+        }
+        else if (LastSetLed is { } led)
+        {
+            items.Add(new("Major config", "LED color", $"{HwSetLed.ColorName(led.Color)} (last set)"));
+            items.Add(new("Major config", "LED mode", $"{HwSetLed.BlinkName(led.Blink)} (last set)"));
+        }
+        if (major != null)
+        {
+            items.Add(new("Major config", "Direction", major.DirectionText));
+            items.Add(new("Major config", "Positioning angle", major.PositioningAngle.ToString()));
+            items.Add(new("Major config", "Reserved", Convert.ToHexString(major.Reserved)));
+        }
+        if (Direction is { } d)
+        {
+            items.Add(new("Direction query", "Direction", HwSetDirection.ToText(d)));
         }
         if (Maintenance is { } m)
         {
