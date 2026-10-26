@@ -59,6 +59,7 @@ public sealed partial class MainViewModel : ObservableObject
         CopyReportCommand = new Command(async () => await CopyReportAsync(), () => _lastReport != null);
         ClearLogCommand = new Command(() => Log.Clear());
         InitSettings();
+        InitPresets();
 
         RefreshPorts();
 

@@ -225,8 +225,10 @@
                     <Button Text="↻" Command="{Binding ReadConfigCommand}" Margin="0,0,6,0"
                             ToolTipProperties.Text="Read again (the configuration is read automatically when a node is selected)" />
                     <Button Text="Copy report" Command="{Binding CopyReportCommand}" Margin="0,0,6,0" />
-                    <Button Text="{Binding ToggleViewText}" Command="{Binding ToggleViewCommand}"
+                    <Button Text="{Binding ToggleViewText}" Command="{Binding ToggleViewCommand}" Margin="0,0,6,0"
                             ToolTipProperties.Text="Switch between the read-only report and the settings editor" />
+                    <Button Text="Presets…" Command="{Binding OpenPresetsCommand}"
+                            ToolTipProperties.Text="Save the settings as a preset, or write a saved preset to this ESC" />
                 </FlexLayout>
                 <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
                     <Label Text="Node" />
@@ -331,6 +333,61 @@
                     </Grid>
                 </ScrollView>
             </Grid>
+        </Grid>
+
+        <!-- Presets popup: an overlay over the whole page, no extra package needed -->
+        <Grid Grid.RowSpan="6" Margin="-12" ZIndex="10" BackgroundColor="#99000000" IsVisible="{Binding ShowPresets}">
+            <Border WidthRequest="480" MaximumHeightRequest="640" HorizontalOptions="Center" VerticalOptions="Center" Padding="16"
+                    StrokeThickness="1" Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <ScrollView>
+                    <VerticalStackLayout Spacing="8">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="Settings presets" Style="{StaticResource Section}" Margin="0" />
+                            <Button Grid.Column="1" Text="Close" Command="{Binding ClosePresetsCommand}" />
+                        </Grid>
+
+                        <Label Text="Apply" FontAttributes="Bold" />
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                            <Label Text="ESC" />
+                            <Label Grid.Column="1" Text="{Binding SelectedConfigNode.Display, FallbackValue='no node selected'}" FontAttributes="Bold" />
+                        </Grid>
+                        <Picker ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" Title="Choose a preset" />
+                        <Label Text="{Binding PresetSummary}" FontFamily="Consolas" FontSize="12" LineBreakMode="WordWrap" Margin="4,0" />
+                        <Label Style="{StaticResource Empty}" Margin="0"
+                               Text="Apply = one confirmation, then every field of the preset is written in turn (disarmed only). Fields the ESC already reports with that value are skipped; it stops at the first failed write." />
+                        <HorizontalStackLayout Spacing="8">
+                            <Button Text="Apply to ESC" Command="{Binding ApplyPresetCommand}" />
+                            <Button Text="Delete" Command="{Binding DeletePresetCommand}" />
+                        </HorizontalStackLayout>
+
+                        <BoxView HeightRequest="1" Margin="0,6" Color="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}" />
+
+                        <Label Text="Save the current settings" FontAttributes="Bold" />
+                        <Label Style="{StaticResource Empty}" Margin="0"
+                               Text="Values as they are in the settings editor now. Ticked fields without a value are not saved." />
+                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding PresetFields}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="vm:PresetFieldRow">
+                                    <Grid ColumnDefinitions="Auto,130,*" ColumnSpacing="6">
+                                        <CheckBox IsChecked="{Binding Include}" />
+                                        <Label Grid.Column="1" Text="{Binding Title}" />
+                                        <Label Grid.Column="2" Text="{Binding CurrentText}" FontFamily="Consolas" />
+                                    </Grid>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                            <Label Text="Name" />
+                            <Entry Grid.Column="1" Text="{Binding PresetName}" Placeholder="e.g. Quad X, 200 Hz" />
+                            <Button Grid.Column="2" Text="Save" Command="{Binding SavePresetCommand}" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </ScrollView>
+            </Border>
         </Grid>
     </Grid>
 </ContentPage>

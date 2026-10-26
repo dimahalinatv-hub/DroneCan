@@ -11,6 +11,7 @@ public partial class MainPage : ContentPage
         {
             Confirm = (title, message) => DisplayAlertAsync(title, message, "Write", "Cancel"),
             Alert = (title, message) => DisplayAlertAsync(title, message, "OK"),
+            Ask = (title, message, accept) => DisplayAlertAsync(title, message, accept, "Cancel"),
         };
     }
 }

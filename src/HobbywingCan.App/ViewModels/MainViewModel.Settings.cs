@@ -106,7 +106,17 @@ public sealed partial class MainViewModel
     public string NewNodeIdText { get => _newNodeIdText; set => SetField(ref _newNodeIdText, value); }
     public Option? SelectedLedColor { get => _selectedLedColor; set => SetField(ref _selectedLedColor, value); }
     public Option? SelectedLedBlink { get => _selectedLedBlink; set => SetField(ref _selectedLedBlink, value); }
-    public bool LedSave { get => _ledSave; set => SetProperty(ref _ledSave, value); }
+    public bool LedSave
+    {
+        get => _ledSave;
+        set
+        {
+            if (SetProperty(ref _ledSave, value))
+            {
+                RefreshPresetFields();
+            }
+        }
+    }
     public Option? SelectedCanBaud { get => _selectedCanBaud; set => SetField(ref _selectedCanBaud, value); }
 
     /// <summary>Highlight per settings field (edited / written), bound as Marks[PropertyName].</summary>
@@ -132,6 +142,7 @@ public sealed partial class MainViewModel
         if (SetProperty(ref field, value, propertyName))
         {
             Marks.Changed();
+            RefreshPresetFields();
         }
     }
 
@@ -163,14 +174,12 @@ public sealed partial class MainViewModel
 
         SetThrottleSourceCommand = new Command(async () => await WriteAsync(
             [nameof(SelectedThrottleSource)], SelectedThrottleSource, o => $"Set throttle source to {o.Text}",
-            o => o.Value == HwSetThrottleSource.Pwm
-                ? "With PWM the ESC ignores DroneCAN throttle from ArduPilot and only follows the PWM signal wire. The motor will not respond to the flight controller over CAN."
-                : "The ESC will take throttle from DroneCAN (ArduPilot) again.",
+            o => ThrottleSourceWarning(o.Value),
             (w, node, o) => w.SetThrottleSourceAsync(node, o.Value)), CanWrite);
 
         SetDirectionCommand = new Command(async () => await WriteAsync(
             [nameof(SelectedDirection)], SelectedDirection, o => $"Set rotation direction to {o.Text}",
-            _ => "The motor will spin the other way. Check the frame's motor order and propellers before flying.",
+            _ => DirectionWarning,
             (w, node, o) => w.SetDirectionAsync(node, o.Value)), CanWrite);
 
         SetRateCommand = new Command<string>(async msg => await SetRateAsync(msg), _ => CanWrite());
@@ -179,25 +188,52 @@ public sealed partial class MainViewModel
         SetNodeIdCommand = new Command(async () => await SetNodeIdAsync(), CanWrite);
 
         SetLedCommand = new Command(async () => await WriteAsync(
-            [nameof(SelectedLedColor), nameof(SelectedLedBlink)], SelectedLedColor, o => $"Set LED to {o.Text}, {SelectedLedBlink?.Text ?? "steady"}{(LedSave ? " (saved)" : "")}",
-            _ => "Only changes the ESC's status LED.",
+            [nameof(SelectedLedColor), nameof(SelectedLedBlink)], SelectedLedColor, o => $"Set LED to {LedText(o, SelectedLedBlink, LedSave)}",
+            _ => LedWarning,
             (w, node, o) => w.SetLedAsync(node, o.Value, SelectedLedBlink?.Value ?? 0, LedSave)), CanWrite);
 
         // no read exists, and after the change the ESC is off this bus until the FC runs at the same speed
         SetCanBaudCommand = new Command(async () => await WriteAsync(
             [nameof(SelectedCanBaud)], SelectedCanBaud, o => $"Set CAN speed to {o.Text}",
-            o => $"The ESC will only talk at {o.Text}. Unless the flight controller's CAN_Px_BITRATE is set to the same speed, " +
-                "the ESC drops off the bus: no throttle, no telemetry, and this app cannot reach it to change it back. " +
-                "Some ESCs apply it only after a power cycle.",
+            o => CanBaudWarning(o),
             (w, node, o) => w.SetBaudAsync(node, o.Value),
             refreshAfter: false), CanWrite);
     }
+
+    private const string DirectionWarning = "The motor will spin the other way. Check the frame's motor order and propellers before flying.";
+    private const string LedWarning = "Only changes the ESC's status LED.";
+    private const string ThrottleChannelWarning =
+        "ArduPilot maps Hobbywing ESCs by throttle channel (= motor output number). A wrong channel makes this ESC follow another motor's throttle.";
+    private const string NodeIdWarning =
+        "The ESC will answer on the new node ID and show up as a new row; the old row goes stale. Some ESCs need a power cycle.";
+
+    private static string ThrottleSourceWarning(byte source) => source == HwSetThrottleSource.Pwm
+        ? "With PWM the ESC ignores DroneCAN throttle from ArduPilot and only follows the PWM signal wire. The motor will not respond to the flight controller over CAN."
+        : "The ESC will take throttle from DroneCAN (ArduPilot) again.";
+
+    private static string CanBaudWarning(Option baud) =>
+        $"The ESC will only talk at {baud.Text}. Unless the flight controller's CAN_Px_BITRATE is set to the same speed, " +
+        "the ESC drops off the bus: no throttle, no telemetry, and this app cannot reach it to change it back. " +
+        "Some ESCs apply it only after a power cycle.";
+
+    /// <param name="message">"1", "2" or "3"</param>
+    private static (ushort MessageId, string Field, string Use) RateInfo(string? message) => message switch
+    {
+        "1" => (DataTypes.HwStatusMsg1.Id, nameof(SelectedMsg1Rate),
+            "StatusMsg1 carries RPM. ArduPilot uses it for ESC RPM telemetry and the RPM-based harmonic notch; a low rate or Off degrades that."),
+        "2" => (DataTypes.HwStatusMsg2.Id, nameof(SelectedMsg2Rate),
+            "StatusMsg2 carries voltage, current and temperature used by ArduPilot's ESC telemetry."),
+        _ => (DataTypes.HwStatusMsg3.Id, nameof(SelectedMsg3Rate),
+            "StatusMsg3 carries MOSFET / capacitor / motor temperatures (ArduPilot does not use it)."),
+    };
+
+    private static string LedText(Option color, Option? blink, bool save) => $"{color.Text}, {blink?.Text ?? "steady"}{(save ? " (saved)" : "")}";
 
     private bool CanWrite() => IsConnected && SelectedConfigNode != null && !IsReading && !IsWriting;
 
     private void RefreshSettingsCommands()
     {
-        foreach (var c in new[] { SetThrottleSourceCommand, SetDirectionCommand, SetThrottleChannelCommand, SetNodeIdCommand, SetLedCommand, SetCanBaudCommand })
+        foreach (var c in new[] { SetThrottleSourceCommand, SetDirectionCommand, SetThrottleChannelCommand, SetNodeIdCommand, SetLedCommand, SetCanBaudCommand, ApplyPresetCommand })
         {
             ((Command?)c)?.ChangeCanExecute();
         }
@@ -309,7 +345,8 @@ public sealed partial class MainViewModel
     /// <summary>Reload the editors when a new config for the selected ESC arrives (first auto-read, after a write).</summary>
     private void SyncSettingsEditors()
     {
-        if (SelectedConfigNode == null || _monitor?.Get(SelectedConfigNode.NodeId) is not { } state)
+        // not while writing: the fields still to be written (a preset) would get the ESC's old values back
+        if (IsWriting || SelectedConfigNode == null || _monitor?.Get(SelectedConfigNode.NodeId) is not { } state)
         {
             return;
         }
@@ -335,15 +372,8 @@ public sealed partial class MainViewModel
 
     private async Task SetRateAsync(string? message)
     {
-        var (messageId, field, option, use) = message switch
-        {
-            "1" => (DataTypes.HwStatusMsg1.Id, nameof(SelectedMsg1Rate), SelectedMsg1Rate,
-                "StatusMsg1 carries RPM. ArduPilot uses it for ESC RPM telemetry and the RPM-based harmonic notch; a low rate or Off degrades that."),
-            "2" => (DataTypes.HwStatusMsg2.Id, nameof(SelectedMsg2Rate), SelectedMsg2Rate,
-                "StatusMsg2 carries voltage, current and temperature used by ArduPilot's ESC telemetry."),
-            _ => (DataTypes.HwStatusMsg3.Id, nameof(SelectedMsg3Rate), SelectedMsg3Rate,
-                "StatusMsg3 carries MOSFET / capacitor / motor temperatures (ArduPilot does not use it)."),
-        };
+        var (messageId, field, use) = RateInfo(message);
+        var option = message switch { "1" => SelectedMsg1Rate, "2" => SelectedMsg2Rate, _ => SelectedMsg3Rate };
         await WriteAsync([field], option, o => $"Set StatusMsg{message} rate to {o.Text}", _ => use,
             (w, node, o) => w.SetReportingRateAsync(node, messageId, o.Value));
     }
@@ -357,7 +387,7 @@ public sealed partial class MainViewModel
         }
         var option = new Option(channel, channel.ToString(CultureInfo.InvariantCulture));
         await WriteAsync([nameof(ThrottleChannelText)], option, o => $"Set throttle channel to {o.Text}",
-            _ => "ArduPilot maps Hobbywing ESCs by throttle channel (= motor output number). A wrong channel makes this ESC follow another motor's throttle.",
+            _ => ThrottleChannelWarning,
             (w, node, o) => w.SetIdAsync(node, node, o.Value),
             setsId: true);
     }
@@ -374,18 +404,28 @@ public sealed partial class MainViewModel
             AddLog("Throttle channel of this ESC is unknown (enable Poll GetEscID or wait for the configuration read) — SetID needs it to keep it unchanged");
             return;
         }
+        if (!await ConfirmNodeIdFreeAsync(newId))
+        {
+            return;
+        }
+        var option = new Option(newId, newId.ToString(CultureInfo.InvariantCulture));
+        await WriteAsync([nameof(NewNodeIdText)], option, o => $"Change node ID to {o.Text}",
+            _ => NodeIdWarning,
+            (w, node, o) => w.SetIdAsync(node, o.Value, _monitor!.Get(node)!.ThrottleChannel!.Value),
+            refreshAfter: false, setsId: true, newNodeId: newId);
+    }
+
+    /// <summary>Lets the user stop before giving the selected ESC a node ID another node already uses.</summary>
+    private async Task<bool> ConfirmNodeIdFreeAsync(byte newId)
+    {
         if (_monitor?.Get(newId) != null && newId != SelectedConfigNode?.NodeId && Confirm != null &&
             !await Confirm($"Node ID {newId} is already used on the bus. Continue?",
                 "Two ESCs with the same node ID cannot be told apart: they show as one row and both take every request sent to that ID."))
         {
             AddLog($"Cancelled: node ID {newId} is already used on the bus");
-            return;
+            return false;
         }
-        var option = new Option(newId, newId.ToString(CultureInfo.InvariantCulture));
-        await WriteAsync([nameof(NewNodeIdText)], option, o => $"Change node ID to {o.Text}",
-            _ => "The ESC will answer on the new node ID and show up as a new row; the old row goes stale. Some ESCs need a power cycle.",
-            (w, node, o) => w.SetIdAsync(node, o.Value, _monitor!.Get(node)!.ThrottleChannel!.Value),
-            refreshAfter: false, setsId: true);
+        return true;
     }
 
     private bool EnsureDisarmed()
@@ -428,17 +468,33 @@ public sealed partial class MainViewModel
 
     private Task ShowAlert(string title, string message) => Alert?.Invoke(title, message) ?? Task.CompletedTask;
 
-    /// <param name="fields">settings fields this write stores, marked as written on success</param>
+    /// <summary>One Set* request of a write.</summary>
+    /// <param name="Fields">settings fields this write stores, marked as written on success</param>
+    /// <param name="Write">gets the node the ESC answers on at that point</param>
+    /// <param name="NewNodeId">node ID the ESC answers on after this step, when it changes it</param>
+    private sealed record WriteStep(string[] Fields, string Description, string Warning,
+        Func<EscConfigWriter, byte, Task<WriteResult>> Write, bool RefreshAfter = true, bool SetsId = false, byte? NewNodeId = null);
+
     private async Task WriteAsync(string[] fields, Option? value, Func<Option, string> describe, Func<Option, string> warning,
-        Func<EscConfigWriter, byte, Option, Task<WriteResult>> write, bool refreshAfter = true, bool setsId = false)
+        Func<EscConfigWriter, byte, Option, Task<WriteResult>> write, bool refreshAfter = true, bool setsId = false, byte? newNodeId = null)
     {
-        if (_writer == null || _node == null || _monitor == null || SelectedConfigNode is not { } target)
-        {
-            return;
-        }
         if (value == null)
         {
             AddLog("Choose a value first");
+            return;
+        }
+        await WriteStepsAsync(describe(value),
+            [new WriteStep(fields, describe(value), warning(value), (w, node) => write(w, node, value), refreshAfter, setsId, newNodeId)]);
+    }
+
+    /// <summary>
+    /// Writes <paramref name="steps"/> in order to the selected ESC after one confirmation; stops at the first that fails.
+    /// </summary>
+    /// <param name="action">what the whole write does, for the confirmation and the log</param>
+    private async Task WriteStepsAsync(string action, IReadOnlyList<WriteStep> steps)
+    {
+        if (_writer == null || _node == null || _monitor == null || SelectedConfigNode is not { } target || steps.Count == 0)
+        {
             return;
         }
         if (!EnsureDisarmed())
@@ -462,7 +518,7 @@ public sealed partial class MainViewModel
 
             // writing to several ESCs at once is allowed, but only knowingly
             var reach = new List<string>();
-            if (setsId && SetIdReachWarning(target.NodeId) is { } idWarning)
+            if (steps.Any(s => s.SetsId) && SetIdReachWarning(target.NodeId) is { } idWarning)
             {
                 reach.Add(idWarning);
             }
@@ -476,19 +532,19 @@ public sealed partial class MainViewModel
             }
 
             string title = reach.Count == 0
-                ? $"{describe(value)} on node {target.NodeId}?"
-                : $"{describe(value)} — this will affect SEVERAL ESCs. Continue?";
+                ? $"{action} on node {target.NodeId}?"
+                : $"{action} — this will affect SEVERAL ESCs. Continue?";
             var notes = reach.Select(r => $"⚠ {r}").ToList();
             if (unverified != null)
             {
                 notes.Add($"ℹ {unverified}");
             }
-            string message = notes.Count == 0
-                ? warning(value)
-                : $"{string.Join("\n\n", notes)}\n\n{warning(value)}";
-            if (Confirm != null && !await Confirm(title, message))
+            notes.AddRange(steps is [var single] && single.Description == action
+                ? [single.Warning]
+                : steps.Select((s, i) => $"{i + 1}. {s.Description}. {s.Warning}"));
+            if (Confirm != null && !await Confirm(title, string.Join("\n\n", notes)))
             {
-                AddLog($"Cancelled: {describe(value)}");
+                AddLog($"Cancelled: {action}");
                 return;
             }
             if (reach.Count > 0)
@@ -496,28 +552,48 @@ public sealed partial class MainViewModel
                 AddLog($"Writing to several ESCs on purpose: {string.Join(" ", reach)}");
             }
 
-            var result = await write(_writer, target.NodeId, value);
-            AddLog(result.Message);
-            if (result.Success)
+            byte nodeId = target.NodeId;
+            bool anyWritten = false;
+            bool refresh = true;
+            bool alerted = false;
+            for (int i = 0; i < steps.Count; i++)
             {
-                // before the reload, so it keeps the mark when the ESC reports the written value
-                foreach (var field in fields)
+                var step = steps[i];
+                var result = await step.Write(_writer, nodeId);
+                AddLog(result.Message);
+                if (result.Success)
                 {
-                    Marks.MarkWritten(field);
+                    anyWritten = true;
+                    refresh &= step.RefreshAfter;
+                    nodeId = step.NewNodeId ?? nodeId;
+                    // before the reload, so it keeps the mark when the ESC reports the written value
+                    foreach (var field in step.Fields)
+                    {
+                        Marks.MarkWritten(field);
+                    }
+                }
+                if (result.AffectedOthers && reach.Count == 0 && !alerted)
+                {
+                    // nothing suggested this beforehand, so make sure it is noticed
+                    alerted = true;
+                    await ShowAlert("Other ESCs changed too",
+                        $"{result.Message}\n\nCheck every ESC in the table (Report) before flying.");
+                }
+                if (!result.Success)
+                {
+                    if (i < steps.Count - 1)
+                    {
+                        AddLog($"{action}: stopped, {steps.Count - i - 1} later step(s) not written");
+                    }
+                    break;
                 }
             }
-            if (result.AffectedOthers && reach.Count == 0)
-            {
-                // nothing suggested this beforehand, so make sure it is noticed
-                await ShowAlert("Other ESCs changed too",
-                    $"{result.Message}\n\nCheck every ESC in the table (Report) before flying.");
-            }
-            if (result.Success && refreshAfter)
+            if (anyWritten && refresh)
             {
                 await RefreshNodeSettingsAsync(_node, target.NodeId);
                 LoadSettingsFromNode();
             }
-            if (result.Success)
+            if (anyWritten)
             {
                 // the report shows the old values now; read it again
                 _autoReadNodeId = null;
