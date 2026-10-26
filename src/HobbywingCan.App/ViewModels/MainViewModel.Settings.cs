@@ -53,7 +53,6 @@ public sealed partial class MainViewModel
 
     public ICommand ShowReportCommand { get; private set; } = null!;
     public ICommand ShowSettingsCommand { get; private set; } = null!;
-    public ICommand LoadSettingsCommand { get; private set; } = null!;
     public ICommand SetThrottleSourceCommand { get; private set; } = null!;
     public ICommand SetDirectionCommand { get; private set; } = null!;
     public ICommand SetRateCommand { get; private set; } = null!;
@@ -106,7 +105,6 @@ public sealed partial class MainViewModel
             ShowSettings = true;
             LoadSettingsFromNode();
         });
-        LoadSettingsCommand = new Command(async () => await ReloadSettingsAsync(), CanWrite);
 
         SetThrottleSourceCommand = new Command(async () => await WriteAsync(
             SelectedThrottleSource, o => $"Set throttle source to {o.Text}",
@@ -135,7 +133,7 @@ public sealed partial class MainViewModel
 
     private void RefreshSettingsCommands()
     {
-        foreach (var c in new[] { LoadSettingsCommand, SetThrottleSourceCommand, SetDirectionCommand, SetThrottleChannelCommand, SetNodeIdCommand, SetLedCommand })
+        foreach (var c in new[] { SetThrottleSourceCommand, SetDirectionCommand, SetThrottleChannelCommand, SetNodeIdCommand, SetLedCommand })
         {
             ((Command?)c)?.ChangeCanExecute();
         }
@@ -199,25 +197,6 @@ public sealed partial class MainViewModel
     }
 
     /// <summary>Re-read the settings that GetMajorConfig does not cover; the monitor stores the responses.</summary>
-    private async Task ReloadSettingsAsync()
-    {
-        if (_node == null || SelectedConfigNode is not { } target || !EnsureDisarmed())
-        {
-            return;
-        }
-        IsWriting = true;
-        try
-        {
-            await RefreshNodeSettingsAsync(_node, target.NodeId);
-            LoadSettingsFromNode();
-            AddLog($"Node {target.NodeId}: current settings loaded");
-        }
-        finally
-        {
-            IsWriting = false;
-        }
-    }
-
     private static async Task RefreshNodeSettingsAsync(DroneCanNode node, byte nodeId)
     {
         var timeout = TimeSpan.FromMilliseconds(400);
@@ -266,7 +245,7 @@ public sealed partial class MainViewModel
         }
         if (SelectedConfigNode is { } target && _monitor?.Get(target.NodeId)?.ThrottleChannel is not { } channel)
         {
-            AddLog("Throttle channel of this ESC is unknown (enable Poll GetEscID or press Load current) — SetID needs it to keep it unchanged");
+            AddLog("Throttle channel of this ESC is unknown (enable Poll GetEscID or wait for the configuration read) — SetID needs it to keep it unchanged");
             return;
         }
         if (_monitor?.Get(newId) != null && newId != SelectedConfigNode?.NodeId && Confirm != null &&
@@ -396,12 +375,17 @@ public sealed partial class MainViewModel
             {
                 // nothing suggested this beforehand, so make sure it is noticed
                 await ShowAlert("Other ESCs changed too",
-                    $"{result.Message}\n\nCheck every ESC in the table (Load current values / Report) before flying.");
+                    $"{result.Message}\n\nCheck every ESC in the table (Report) before flying.");
             }
             if (result.Success && refreshAfter)
             {
                 await RefreshNodeSettingsAsync(_node, target.NodeId);
                 LoadSettingsFromNode();
+            }
+            if (result.Success)
+            {
+                // the report shows the old values now; read it again
+                _autoReadNodeId = null;
             }
         }
         finally
