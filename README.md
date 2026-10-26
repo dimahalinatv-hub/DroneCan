@@ -74,12 +74,12 @@
 | Налаштування | Сервіс | Примітка |
 |---|---|---|
 | CAN speed | `SetBaud` (211) | див. нижче: помилкова швидкість обриває зв'язок з ESC |
+| Node ID | `SetID` (210) | throttle-канал лишається тим самим; ESC з'явиться як новий вузол |
+| Throttle channel | `SetID` (210) | node ID лишається тим самим |
 | Throttle source CAN / PWM | `SetThrottleSource` (215) | у режимі PWM ESC **ігнорує газ з ArduPilot по CAN** |
 | StatusMsg1 / 2 / 3 rate | `SetReportingFrequency` (214), `OPTION_WRITE` | 500…1 Гц або Off; Msg1 (RPM) використовується ArduPilot, зокрема для RPM-notch |
 | LED color / mode | `SetLED` (212) | «Save» — зберегти в ESC |
 | Direction CW / CCW | `SetDirection` (213) | |
-| Throttle channel | `SetID` (210) | node ID лишається тим самим |
-| Node ID | `SetID` (210) | throttle-канал лишається тим самим; ESC з'явиться як новий вузол |
 
 ### ⚠ X8 G2: SetID діє на всі ESC на шині
 
@@ -123,7 +123,7 @@ ESC зникає з шини (ні газу, ні телеметрії), і по
 - **Apply to ESC**: записує позначені поля такими, як вони зараз у попапі (зберігати перед цим не обов'язково).
   Значення підставляються в поля редактора, далі **одне** підтвердження з переліком
   усіх записів і попереджень, і записи йдуть по черзі: throttle source → StatusMsg1/2/3 → LED → direction →
-  `SetID` (node ID і throttle channel одним запитом) → CAN speed останнім. Поля, які ESC уже повідомив з тим
+  throttle channel → node ID (два окремі `SetID`) → CAN speed останнім (після нього ESC може зникнути з шини). Поля, які ESC уже повідомив з тим
   самим значенням, не записуються; на першому невдалому записі решта не виконується. Після зміни node ID
   CAN speed пишеться вже на новий ID.
 - Пресети зберігаються у `presets.json` у теці даних застосунку (`FileSystem.AppDataDirectory`).

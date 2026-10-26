@@ -183,14 +183,14 @@ public sealed partial class MainViewModel
             }
         }
         Check(d.IncludeCanBaud, d.CanBaud, "CAN speed");
+        Check(d.IncludeNodeId, d.NodeIdText.Trim(), "Node ID");
+        Check(d.IncludeThrottleChannel, d.ThrottleChannelText.Trim(), "Throttle channel");
         Check(d.IncludeThrottleSource, d.ThrottleSource, "Throttle source");
         Check(d.IncludeMsg1Rate, d.Msg1Rate, "StatusMsg1 rate");
         Check(d.IncludeMsg2Rate, d.Msg2Rate, "StatusMsg2 rate");
         Check(d.IncludeMsg3Rate, d.Msg3Rate, "StatusMsg3 rate");
         Check(d.IncludeLed, d.LedColor, "LED");
         Check(d.IncludeDirection, d.Direction, "Direction");
-        Check(d.IncludeThrottleChannel, d.ThrottleChannelText.Trim(), "Throttle channel");
-        Check(d.IncludeNodeId, d.NodeIdText.Trim(), "Node ID");
 
         byte? nodeId = null;
         if (d.IncludeNodeId && d.NodeIdText.Trim().Length > 0)
@@ -244,6 +244,14 @@ public sealed partial class MainViewModel
             }
         }
         Add("CAN speed", Opt(CanBaudOptions, p.CanBaud));
+        if (p.NodeId is { } id)
+        {
+            parts.Add($"Node ID: {id}");
+        }
+        if (p.ThrottleChannel is { } channel)
+        {
+            parts.Add($"Throttle channel: {channel}");
+        }
         Add("Throttle source", Opt(ThrottleSourceOptions, p.ThrottleSource));
         Add("StatusMsg1 rate", Opt(RateOptions, p.Msg1Rate));
         Add("StatusMsg2 rate", Opt(RateOptions, p.Msg2Rate));
@@ -253,14 +261,6 @@ public sealed partial class MainViewModel
             parts.Add($"LED: {LedText(color, Opt(LedBlinkOptions, p.LedBlink), p.LedSave)}");
         }
         Add("Direction", Opt(DirectionOptions, p.Direction));
-        if (p.ThrottleChannel is { } channel)
-        {
-            parts.Add($"Throttle channel: {channel}");
-        }
-        if (p.NodeId is { } id)
-        {
-            parts.Add($"Node ID: {id}");
-        }
         return string.Join(separator, parts);
     }
 
@@ -436,7 +436,8 @@ public sealed partial class MainViewModel
             }
         }
 
-        // SetID carries both, so one request; it moves the ESC to the new node ID, so only CAN speed comes after it
+        // the ESC's identity last of the settings: throttle channel, then node ID, which moves the ESC to another node;
+        // SetID always carries both, so each write keeps the other one as it is by then; only CAN speed comes after
         if (preset.NodeId != null || preset.ThrottleChannel != null)
         {
             byte newId = preset.NodeId ?? target.NodeId;
@@ -453,34 +454,35 @@ public sealed partial class MainViewModel
                 AddLog("Throttle channel of this ESC is unknown (enable Poll GetEscID or wait for the configuration read) — SetID needs it to keep it unchanged");
                 return;
             }
-            bool idChanges = newId != target.NodeId;
-            bool channelChanges = channel != state?.ThrottleChannel;
-            if (!idChanges && !channelChanges)
+            if (preset.ThrottleChannel != null)
             {
-                same.Add(preset.NodeId != null && preset.ThrottleChannel != null ? "node ID and throttle channel"
-                    : preset.NodeId != null ? "node ID" : "throttle channel");
+                if (channel == state?.ThrottleChannel)
+                {
+                    same.Add("throttle channel");
+                }
+                else
+                {
+                    // the node ID stays, so the ESC is still on the same node for the next step
+                    steps.Add(new([nameof(ThrottleChannelText)], $"Set throttle channel to {channel}", ThrottleChannelWarning,
+                        (w, node) => w.SetIdAsync(node, node, channel), SetsId: true));
+                }
             }
-            else
+            if (preset.NodeId != null)
             {
-                if (idChanges && !await ConfirmNodeIdFreeAsync(newId))
+                if (newId == target.NodeId)
                 {
-                    return;
+                    same.Add("node ID");
                 }
-                var fields = new List<string>();
-                var warnings = new List<string>();
-                if (idChanges)
+                else
                 {
-                    fields.Add(nameof(NewNodeIdText));
-                    warnings.Add(NodeIdWarning);
+                    if (!await ConfirmNodeIdFreeAsync(newId))
+                    {
+                        return;
+                    }
+                    steps.Add(new([nameof(NewNodeIdText)], $"Change node ID to {newId}", NodeIdWarning,
+                        (w, node) => w.SetIdAsync(node, newId, channel),
+                        RefreshAfter: false, SetsId: true, NewNodeId: newId));
                 }
-                if (channelChanges)
-                {
-                    fields.Add(nameof(ThrottleChannelText));
-                    warnings.Add(ThrottleChannelWarning);
-                }
-                steps.Add(new(fields.ToArray(), $"Set node ID {newId}, throttle channel {channel}", string.Join(" ", warnings),
-                    (w, node) => w.SetIdAsync(node, newId, channel),
-                    RefreshAfter: !idChanges, SetsId: true, NewNodeId: idChanges ? newId : null));
             }
         }
 

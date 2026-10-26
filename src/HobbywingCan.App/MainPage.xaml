@@ -283,53 +283,53 @@
                         <Picker Grid.Row="1" Grid.Column="1" ItemsSource="{Binding CanBaudOptions}" SelectedItem="{Binding SelectedCanBaud}" />
                         <Button Grid.Row="1" Grid.Column="2" Text="Set" Command="{Binding SetCanBaudCommand}" />
 
-                        <BoxView Grid.Row="2" Grid.ColumnSpan="2" Color="{Binding Marks[SelectedThrottleSource]}" CornerRadius="4" Margin="-4,-2" />
-                        <Label Grid.Row="2" Text="Throttle source" />
-                        <Picker Grid.Row="2" Grid.Column="1" ItemsSource="{Binding ThrottleSourceOptions}" SelectedItem="{Binding SelectedThrottleSource}" />
-                        <Button Grid.Row="2" Grid.Column="2" Text="Set" Command="{Binding SetThrottleSourceCommand}" />
+                        <BoxView Grid.Row="2" Grid.ColumnSpan="2" Color="{Binding Marks[NewNodeIdText]}" CornerRadius="4" Margin="-4,-2" />
+                        <Label Grid.Row="2" Text="Node ID" />
+                        <Entry Grid.Row="2" Grid.Column="1" Text="{Binding NewNodeIdText}" Keyboard="Numeric" />
+                        <Button Grid.Row="2" Grid.Column="2" Text="Set" Command="{Binding SetNodeIdCommand}" />
 
-                        <BoxView Grid.Row="3" Grid.ColumnSpan="2" Color="{Binding Marks[SelectedMsg1Rate]}" CornerRadius="4" Margin="-4,-2" />
-                        <Label Grid.Row="3" Text="StatusMsg1 rate" ToolTipProperties.Text="RPM, PWM, status" />
-                        <Picker Grid.Row="3" Grid.Column="1" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding SelectedMsg1Rate}" />
-                        <Button Grid.Row="3" Grid.Column="2" Text="Set" Command="{Binding SetRateCommand}" CommandParameter="1" />
+                        <BoxView Grid.Row="3" Grid.ColumnSpan="2" Color="{Binding Marks[ThrottleChannelText]}" CornerRadius="4" Margin="-4,-2" />
+                        <Label Grid.Row="3" Text="Throttle channel" ToolTipProperties.Text="Motor output number ArduPilot uses for this ESC" />
+                        <Entry Grid.Row="3" Grid.Column="1" Text="{Binding ThrottleChannelText}" Keyboard="Numeric" />
+                        <Button Grid.Row="3" Grid.Column="2" Text="Set" Command="{Binding SetThrottleChannelCommand}" />
 
-                        <BoxView Grid.Row="4" Grid.ColumnSpan="2" Color="{Binding Marks[SelectedMsg2Rate]}" CornerRadius="4" Margin="-4,-2" />
-                        <Label Grid.Row="4" Text="StatusMsg2 rate" ToolTipProperties.Text="Voltage, current, temperature" />
-                        <Picker Grid.Row="4" Grid.Column="1" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding SelectedMsg2Rate}" />
-                        <Button Grid.Row="4" Grid.Column="2" Text="Set" Command="{Binding SetRateCommand}" CommandParameter="2" />
+                        <BoxView Grid.Row="4" Grid.ColumnSpan="2" Color="{Binding Marks[SelectedThrottleSource]}" CornerRadius="4" Margin="-4,-2" />
+                        <Label Grid.Row="4" Text="Throttle source" />
+                        <Picker Grid.Row="4" Grid.Column="1" ItemsSource="{Binding ThrottleSourceOptions}" SelectedItem="{Binding SelectedThrottleSource}" />
+                        <Button Grid.Row="4" Grid.Column="2" Text="Set" Command="{Binding SetThrottleSourceCommand}" />
 
-                        <BoxView Grid.Row="5" Grid.ColumnSpan="2" Color="{Binding Marks[SelectedMsg3Rate]}" CornerRadius="4" Margin="-4,-2" />
-                        <Label Grid.Row="5" Text="StatusMsg3 rate" ToolTipProperties.Text="MOSFET / capacitor / motor temperatures" />
-                        <Picker Grid.Row="5" Grid.Column="1" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding SelectedMsg3Rate}" />
-                        <Button Grid.Row="5" Grid.Column="2" Text="Set" Command="{Binding SetRateCommand}" CommandParameter="3" />
+                        <BoxView Grid.Row="5" Grid.ColumnSpan="2" Color="{Binding Marks[SelectedMsg1Rate]}" CornerRadius="4" Margin="-4,-2" />
+                        <Label Grid.Row="5" Text="StatusMsg1 rate" ToolTipProperties.Text="RPM, PWM, status" />
+                        <Picker Grid.Row="5" Grid.Column="1" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding SelectedMsg1Rate}" />
+                        <Button Grid.Row="5" Grid.Column="2" Text="Set" Command="{Binding SetRateCommand}" CommandParameter="1" />
 
-                        <BoxView Grid.Row="6" Grid.ColumnSpan="2" Color="{Binding Marks[SelectedLedColor]}" CornerRadius="4" Margin="-4,-2" />
-                        <Label Grid.Row="6" Text="LED color" />
-                        <Picker Grid.Row="6" Grid.Column="1" ItemsSource="{Binding LedColorOptions}" SelectedItem="{Binding SelectedLedColor}" />
+                        <BoxView Grid.Row="6" Grid.ColumnSpan="2" Color="{Binding Marks[SelectedMsg2Rate]}" CornerRadius="4" Margin="-4,-2" />
+                        <Label Grid.Row="6" Text="StatusMsg2 rate" ToolTipProperties.Text="Voltage, current, temperature" />
+                        <Picker Grid.Row="6" Grid.Column="1" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding SelectedMsg2Rate}" />
+                        <Button Grid.Row="6" Grid.Column="2" Text="Set" Command="{Binding SetRateCommand}" CommandParameter="2" />
 
-                        <BoxView Grid.Row="7" Grid.ColumnSpan="2" Color="{Binding Marks[SelectedLedBlink]}" CornerRadius="4" Margin="-4,-2" />
-                        <Label Grid.Row="7" Text="LED mode" />
-                        <HorizontalStackLayout Grid.Row="7" Grid.Column="1" Spacing="6">
+                        <BoxView Grid.Row="7" Grid.ColumnSpan="2" Color="{Binding Marks[SelectedMsg3Rate]}" CornerRadius="4" Margin="-4,-2" />
+                        <Label Grid.Row="7" Text="StatusMsg3 rate" ToolTipProperties.Text="MOSFET / capacitor / motor temperatures" />
+                        <Picker Grid.Row="7" Grid.Column="1" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding SelectedMsg3Rate}" />
+                        <Button Grid.Row="7" Grid.Column="2" Text="Set" Command="{Binding SetRateCommand}" CommandParameter="3" />
+
+                        <BoxView Grid.Row="8" Grid.ColumnSpan="2" Color="{Binding Marks[SelectedLedColor]}" CornerRadius="4" Margin="-4,-2" />
+                        <Label Grid.Row="8" Text="LED color" />
+                        <Picker Grid.Row="8" Grid.Column="1" ItemsSource="{Binding LedColorOptions}" SelectedItem="{Binding SelectedLedColor}" />
+
+                        <BoxView Grid.Row="9" Grid.ColumnSpan="2" Color="{Binding Marks[SelectedLedBlink]}" CornerRadius="4" Margin="-4,-2" />
+                        <Label Grid.Row="9" Text="LED mode" />
+                        <HorizontalStackLayout Grid.Row="9" Grid.Column="1" Spacing="6">
                             <Picker ItemsSource="{Binding LedBlinkOptions}" SelectedItem="{Binding SelectedLedBlink}" WidthRequest="120" />
                             <CheckBox IsChecked="{Binding LedSave}" />
                             <Label Text="Save" />
                         </HorizontalStackLayout>
-                        <Button Grid.Row="7" Grid.Column="2" Text="Set" Command="{Binding SetLedCommand}" />
+                        <Button Grid.Row="9" Grid.Column="2" Text="Set" Command="{Binding SetLedCommand}" />
 
-                        <BoxView Grid.Row="8" Grid.ColumnSpan="2" Color="{Binding Marks[SelectedDirection]}" CornerRadius="4" Margin="-4,-2" />
-                        <Label Grid.Row="8" Text="Direction" />
-                        <Picker Grid.Row="8" Grid.Column="1" ItemsSource="{Binding DirectionOptions}" SelectedItem="{Binding SelectedDirection}" />
-                        <Button Grid.Row="8" Grid.Column="2" Text="Set" Command="{Binding SetDirectionCommand}" />
-
-                        <BoxView Grid.Row="9" Grid.ColumnSpan="2" Color="{Binding Marks[ThrottleChannelText]}" CornerRadius="4" Margin="-4,-2" />
-                        <Label Grid.Row="9" Text="Throttle channel" ToolTipProperties.Text="Motor output number ArduPilot uses for this ESC" />
-                        <Entry Grid.Row="9" Grid.Column="1" Text="{Binding ThrottleChannelText}" Keyboard="Numeric" />
-                        <Button Grid.Row="9" Grid.Column="2" Text="Set" Command="{Binding SetThrottleChannelCommand}" />
-
-                        <BoxView Grid.Row="10" Grid.ColumnSpan="2" Color="{Binding Marks[NewNodeIdText]}" CornerRadius="4" Margin="-4,-2" />
-                        <Label Grid.Row="10" Text="Node ID" />
-                        <Entry Grid.Row="10" Grid.Column="1" Text="{Binding NewNodeIdText}" Keyboard="Numeric" />
-                        <Button Grid.Row="10" Grid.Column="2" Text="Set" Command="{Binding SetNodeIdCommand}" />
+                        <BoxView Grid.Row="10" Grid.ColumnSpan="2" Color="{Binding Marks[SelectedDirection]}" CornerRadius="4" Margin="-4,-2" />
+                        <Label Grid.Row="10" Text="Direction" />
+                        <Picker Grid.Row="10" Grid.Column="1" ItemsSource="{Binding DirectionOptions}" SelectedItem="{Binding SelectedDirection}" />
+                        <Button Grid.Row="10" Grid.Column="2" Text="Set" Command="{Binding SetDirectionCommand}" />
                     </Grid>
                 </ScrollView>
             </Grid>
@@ -370,45 +370,45 @@
                             <Label Grid.Row="0" Grid.Column="1" Text="CAN speed" ToolTipProperties.Text="Must match the flight controller's CAN_Px_BITRATE" />
                             <Picker Grid.Row="0" Grid.Column="2" ItemsSource="{Binding CanBaudOptions}" SelectedItem="{Binding Draft.CanBaud}" />
 
-                            <CheckBox Grid.Row="1" IsChecked="{Binding Draft.IncludeThrottleSource}" />
-                            <Label Grid.Row="1" Grid.Column="1" Text="Throttle source" />
-                            <Picker Grid.Row="1" Grid.Column="2" ItemsSource="{Binding ThrottleSourceOptions}" SelectedItem="{Binding Draft.ThrottleSource}" />
+                            <CheckBox Grid.Row="1" IsChecked="{Binding Draft.IncludeNodeId}" />
+                            <Label Grid.Row="1" Grid.Column="1" Text="Node ID" ToolTipProperties.Text="1..127" />
+                            <Entry Grid.Row="1" Grid.Column="2" Text="{Binding Draft.NodeIdText}" Keyboard="Numeric" />
 
-                            <CheckBox Grid.Row="2" IsChecked="{Binding Draft.IncludeMsg1Rate}" />
-                            <Label Grid.Row="2" Grid.Column="1" Text="StatusMsg1 rate" ToolTipProperties.Text="RPM, PWM, status" />
-                            <Picker Grid.Row="2" Grid.Column="2" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding Draft.Msg1Rate}" />
+                            <CheckBox Grid.Row="2" IsChecked="{Binding Draft.IncludeThrottleChannel}" />
+                            <Label Grid.Row="2" Grid.Column="1" Text="Throttle channel" ToolTipProperties.Text="1..63, the motor output number" />
+                            <Entry Grid.Row="2" Grid.Column="2" Text="{Binding Draft.ThrottleChannelText}" Keyboard="Numeric" />
 
-                            <CheckBox Grid.Row="3" IsChecked="{Binding Draft.IncludeMsg2Rate}" />
-                            <Label Grid.Row="3" Grid.Column="1" Text="StatusMsg2 rate" ToolTipProperties.Text="Voltage, current, temperature" />
-                            <Picker Grid.Row="3" Grid.Column="2" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding Draft.Msg2Rate}" />
+                            <CheckBox Grid.Row="3" IsChecked="{Binding Draft.IncludeThrottleSource}" />
+                            <Label Grid.Row="3" Grid.Column="1" Text="Throttle source" />
+                            <Picker Grid.Row="3" Grid.Column="2" ItemsSource="{Binding ThrottleSourceOptions}" SelectedItem="{Binding Draft.ThrottleSource}" />
 
-                            <CheckBox Grid.Row="4" IsChecked="{Binding Draft.IncludeMsg3Rate}" />
-                            <Label Grid.Row="4" Grid.Column="1" Text="StatusMsg3 rate" ToolTipProperties.Text="MOSFET / capacitor / motor temperatures" />
-                            <Picker Grid.Row="4" Grid.Column="2" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding Draft.Msg3Rate}" />
+                            <CheckBox Grid.Row="4" IsChecked="{Binding Draft.IncludeMsg1Rate}" />
+                            <Label Grid.Row="4" Grid.Column="1" Text="StatusMsg1 rate" ToolTipProperties.Text="RPM, PWM, status" />
+                            <Picker Grid.Row="4" Grid.Column="2" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding Draft.Msg1Rate}" />
+
+                            <CheckBox Grid.Row="5" IsChecked="{Binding Draft.IncludeMsg2Rate}" />
+                            <Label Grid.Row="5" Grid.Column="1" Text="StatusMsg2 rate" ToolTipProperties.Text="Voltage, current, temperature" />
+                            <Picker Grid.Row="5" Grid.Column="2" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding Draft.Msg2Rate}" />
+
+                            <CheckBox Grid.Row="6" IsChecked="{Binding Draft.IncludeMsg3Rate}" />
+                            <Label Grid.Row="6" Grid.Column="1" Text="StatusMsg3 rate" ToolTipProperties.Text="MOSFET / capacitor / motor temperatures" />
+                            <Picker Grid.Row="6" Grid.Column="2" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding Draft.Msg3Rate}" />
 
                             <!-- one tick for colour and mode: SetLED writes both -->
-                            <CheckBox Grid.Row="5" IsChecked="{Binding Draft.IncludeLed}" />
-                            <Label Grid.Row="5" Grid.Column="1" Text="LED color" />
-                            <Picker Grid.Row="5" Grid.Column="2" ItemsSource="{Binding LedColorOptions}" SelectedItem="{Binding Draft.LedColor}" />
+                            <CheckBox Grid.Row="7" IsChecked="{Binding Draft.IncludeLed}" />
+                            <Label Grid.Row="7" Grid.Column="1" Text="LED color" />
+                            <Picker Grid.Row="7" Grid.Column="2" ItemsSource="{Binding LedColorOptions}" SelectedItem="{Binding Draft.LedColor}" />
 
-                            <Label Grid.Row="6" Grid.Column="1" Text="LED mode" />
-                            <HorizontalStackLayout Grid.Row="6" Grid.Column="2" Spacing="6">
+                            <Label Grid.Row="8" Grid.Column="1" Text="LED mode" />
+                            <HorizontalStackLayout Grid.Row="8" Grid.Column="2" Spacing="6">
                                 <Picker ItemsSource="{Binding LedBlinkOptions}" SelectedItem="{Binding Draft.LedBlink}" WidthRequest="140" />
                                 <CheckBox IsChecked="{Binding Draft.LedSave}" />
                                 <Label Text="Save" />
                             </HorizontalStackLayout>
 
-                            <CheckBox Grid.Row="7" IsChecked="{Binding Draft.IncludeDirection}" />
-                            <Label Grid.Row="7" Grid.Column="1" Text="Direction" />
-                            <Picker Grid.Row="7" Grid.Column="2" ItemsSource="{Binding DirectionOptions}" SelectedItem="{Binding Draft.Direction}" />
-
-                            <CheckBox Grid.Row="8" IsChecked="{Binding Draft.IncludeThrottleChannel}" />
-                            <Label Grid.Row="8" Grid.Column="1" Text="Throttle channel" ToolTipProperties.Text="1..63, the motor output number" />
-                            <Entry Grid.Row="8" Grid.Column="2" Text="{Binding Draft.ThrottleChannelText}" Keyboard="Numeric" />
-
-                            <CheckBox Grid.Row="9" IsChecked="{Binding Draft.IncludeNodeId}" />
-                            <Label Grid.Row="9" Grid.Column="1" Text="Node ID" ToolTipProperties.Text="1..127" />
-                            <Entry Grid.Row="9" Grid.Column="2" Text="{Binding Draft.NodeIdText}" Keyboard="Numeric" />
+                            <CheckBox Grid.Row="9" IsChecked="{Binding Draft.IncludeDirection}" />
+                            <Label Grid.Row="9" Grid.Column="1" Text="Direction" />
+                            <Picker Grid.Row="9" Grid.Column="2" ItemsSource="{Binding DirectionOptions}" SelectedItem="{Binding Draft.Direction}" />
                         </Grid>
 
                         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
