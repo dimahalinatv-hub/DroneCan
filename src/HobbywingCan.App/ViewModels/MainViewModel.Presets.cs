@@ -182,8 +182,8 @@ public sealed partial class MainViewModel
                 missing.Add(title);
             }
         }
-        Check(d.IncludeCanBaud, d.CanBaud, "CAN speed");
         Check(d.IncludeNodeId, d.NodeIdText.Trim(), "Node ID");
+        Check(d.IncludeCanBaud, d.CanBaud, "CAN speed");
         Check(d.IncludeThrottleChannel, d.ThrottleChannelText.Trim(), "Throttle channel");
         Check(d.IncludeThrottleSource, d.ThrottleSource, "Throttle source");
         Check(d.IncludeMsg1Rate, d.Msg1Rate, "StatusMsg1 rate");
@@ -243,11 +243,11 @@ public sealed partial class MainViewModel
                 parts.Add($"{title}: {option.Text}");
             }
         }
-        Add("CAN speed", Opt(CanBaudOptions, p.CanBaud));
         if (p.NodeId is { } id)
         {
             parts.Add($"Node ID: {id}");
         }
+        Add("CAN speed", Opt(CanBaudOptions, p.CanBaud));
         if (p.ThrottleChannel is { } channel)
         {
             parts.Add($"Throttle channel: {channel}");
