@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/HobbywingCan.App/HobbywingCan.App.csproj" />
+    <Project Path="src/HobbywingCan.Core/HobbywingCan.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/HobbywingCan.Core.Tests/HobbywingCan.Core.Tests.csproj" />
+  </Folder>
+</Solution>

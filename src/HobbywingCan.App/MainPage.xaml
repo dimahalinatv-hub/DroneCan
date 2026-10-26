@@ -1,0 +1,321 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    Lists use BindableLayout inside ScrollView rather than CollectionView: on Windows the
+    CollectionView rows stayed blank when items were added from the refresh timer.
+-->
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:HobbywingCan.App.ViewModels"
+             xmlns:mon="clr-namespace:HobbywingCan.Core.Monitoring;assembly=HobbywingCan.Core"
+             x:Class="HobbywingCan.App.MainPage"
+             x:DataType="vm:MainViewModel"
+             Title="Hobbywing X8 G2 — DroneCAN via ArduPilot">
+
+    <ContentPage.Resources>
+        <Style TargetType="Label">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="VerticalOptions" Value="Center" />
+            <Setter Property="LineBreakMode" Value="TailTruncation" />
+        </Style>
+        <Style x:Key="Header" TargetType="Label">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontAttributes" Value="Bold" />
+            <Setter Property="VerticalOptions" Value="Center" />
+            <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
+        </Style>
+        <Style x:Key="Section" TargetType="Label">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontAttributes" Value="Bold" />
+            <Setter Property="Margin" Value="0,8,0,4" />
+        </Style>
+        <Style x:Key="Empty" TargetType="Label">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Margin" Value="6" />
+            <Setter Property="Opacity" Value="0.6" />
+            <Setter Property="LineBreakMode" Value="WordWrap" />
+        </Style>
+        <Style x:Key="HeaderRow" TargetType="Grid">
+            <Setter Property="ColumnSpacing" Value="6" />
+            <Setter Property="Padding" Value="6,4" />
+            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}" />
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Padding" Value="14,6" />
+            <Setter Property="MinimumHeightRequest" Value="32" />
+        </Style>
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,2*,3*" Padding="12" RowSpacing="4">
+
+        <!-- Connection bar -->
+        <HorizontalStackLayout Grid.Row="0" Spacing="10">
+            <Label Text="Port" />
+            <Picker ItemsSource="{Binding Ports}" SelectedItem="{Binding SelectedPort}" WidthRequest="130"
+                    IsEnabled="{Binding IsDisconnected}" />
+            <Button Text="↻" Command="{Binding RefreshPortsCommand}" ToolTipProperties.Text="Refresh COM ports" />
+            <Label Text="Baud" />
+            <Picker ItemsSource="{Binding BaudRates}" SelectedItem="{Binding SelectedBaud}" WidthRequest="110"
+                    IsEnabled="{Binding IsDisconnected}" />
+            <Label Text="FC CAN bus" />
+            <Picker ItemsSource="{Binding CanBuses}" SelectedItem="{Binding SelectedCanBus}" WidthRequest="70"
+                    IsEnabled="{Binding IsDisconnected}" ToolTipProperties.Text="Physical CAN port: CAN1 = CAN_P1, CAN2 = CAN_P2" />
+            <Label Text="App node ID" />
+            <Entry Text="{Binding LocalNodeIdText}" WidthRequest="60" Keyboard="Numeric" IsEnabled="{Binding IsDisconnected}"
+                   ToolTipProperties.Text="DroneCAN node ID used by this app for requests; must be unused on the bus" />
+            <CheckBox IsChecked="{Binding UseFilter}" IsEnabled="{Binding IsDisconnected}" />
+            <Label Text="Forward only ESC traffic" ToolTipProperties.Text="Sends CAN_FILTER_MODIFY so the FC forwards only the DroneCAN types this app decodes (hides everything else from Bus traffic)" />
+            <CheckBox IsChecked="{Binding PollEscIds}" />
+            <Label Text="Poll GetEscID" ToolTipProperties.Text="Broadcast com.hobbywing.esc.GetEscID once a second while disarmed to learn throttle channels" />
+            <Button Text="{Binding ConnectButtonText}" Command="{Binding ConnectCommand}" WidthRequest="120" />
+        </HorizontalStackLayout>
+
+        <!-- Status -->
+        <HorizontalStackLayout Grid.Row="1" Spacing="20">
+            <Label Text="{Binding VehicleText}" FontAttributes="Bold" />
+            <Label Text="{Binding StatsText}" FontFamily="Consolas" FontSize="12" />
+        </HorizontalStackLayout>
+
+        <!-- ESC table -->
+        <Label Grid.Row="2" Text="DroneCAN ESCs (live, decoded from forwarded CAN frames)" Style="{StaticResource Section}" />
+        <Grid Grid.Row="3" ColumnDefinitions="45,110,45,45,55,50,40,60,60,60,55,120,70,130,60,60,60,130,*" Style="{StaticResource HeaderRow}">
+            <Label Grid.Column="0" Text="Node" Style="{StaticResource Header}" />
+            <Label Grid.Column="1" Text="Name" Style="{StaticResource Header}" />
+            <Label Grid.Column="2" Text="Thr ch" Style="{StaticResource Header}" />
+            <Label Grid.Column="3" Text="Thr src" Style="{StaticResource Header}" ToolTipProperties.Text="Throttle source from GetMajorConfig: CAN (DroneCAN) or PWM" />
+            <Label Grid.Column="4" Text="RPM" Style="{StaticResource Header}" />
+            <Label Grid.Column="5" Text="PWM" Style="{StaticResource Header}" />
+            <Label Grid.Column="6" Text="Dir" Style="{StaticResource Header}"
+                   ToolTipProperties.Text="Direction setting reported by the ESC (SetDirection query / GetMajorConfig). Physical rotation also depends on motor phase wiring." />
+            <Label Grid.Column="7" Text="Voltage" Style="{StaticResource Header}" />
+            <Label Grid.Column="8" Text="Current" Style="{StaticResource Header}" />
+            <Label Grid.Column="9" Text="Power" Style="{StaticResource Header}" />
+            <Label Grid.Column="10" Text="Temp" Style="{StaticResource Header}" />
+            <Label Grid.Column="11" Text="MOS / CAP / Motor" Style="{StaticResource Header}" />
+            <Label Grid.Column="12" Text="Status" Style="{StaticResource Header}" />
+            <Label Grid.Column="13" Text="Health / mode" Style="{StaticResource Header}"
+                   ToolTipProperties.Text="⚠ shared node ID? = several ESCs answer as this node. ⚠ answers for others = this ESC answered a request addressed to another node." />
+            <Label Grid.Column="14" Text="Msg1 set" Style="{StaticResource Header}" ToolTipProperties.Text="StatusMsg1 (RPM, PWM, status) rate configured in the ESC" />
+            <Label Grid.Column="15" Text="Msg2 set" Style="{StaticResource Header}" ToolTipProperties.Text="StatusMsg2 (voltage, current, temperature) rate configured in the ESC" />
+            <Label Grid.Column="16" Text="Msg3 set" Style="{StaticResource Header}" ToolTipProperties.Text="StatusMsg3 (MOS / CAP / motor temperatures) rate configured in the ESC" />
+            <Label Grid.Column="17" Text="Measured, Hz" Style="{StaticResource Header}" ToolTipProperties.Text="Rates actually received from the ESC" />
+            <Label Grid.Column="18" Text="Updated" Style="{StaticResource Header}" />
+        </Grid>
+        <ScrollView Grid.Row="4">
+            <VerticalStackLayout BindableLayout.ItemsSource="{Binding EscRows}">
+                <BindableLayout.EmptyView>
+                    <Label Text="No DroneCAN nodes seen yet. Connect, then check the FC CAN bus number and the Bus traffic panel."
+                           Style="{StaticResource Empty}" />
+                </BindableLayout.EmptyView>
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="vm:EscRowViewModel">
+                        <Grid ColumnDefinitions="45,110,45,45,55,50,40,60,60,60,55,120,70,130,60,60,60,130,*" ColumnSpacing="6" Padding="6,3">
+                            <Grid.Triggers>
+                                <DataTrigger TargetType="Grid" Binding="{Binding IsStale}" Value="True">
+                                    <Setter Property="Opacity" Value="0.45" />
+                                </DataTrigger>
+                            </Grid.Triggers>
+                            <Label Grid.Column="0" Text="{Binding NodeId}" FontAttributes="Bold" />
+                            <Label Grid.Column="1" Text="{Binding Name}" />
+                            <Label Grid.Column="2" Text="{Binding ThrottleChannel}" />
+                            <Label Grid.Column="3" Text="{Binding ThrottleSource}" />
+                            <Label Grid.Column="4" Text="{Binding Rpm}" FontFamily="Consolas" />
+                            <Label Grid.Column="5" Text="{Binding Pwm}" FontFamily="Consolas" />
+                            <Label Grid.Column="6" Text="{Binding Direction}" />
+                            <Label Grid.Column="7" Text="{Binding Voltage}" FontFamily="Consolas" />
+                            <Label Grid.Column="8" Text="{Binding Current}" FontFamily="Consolas" />
+                            <Label Grid.Column="9" Text="{Binding Power}" FontFamily="Consolas" />
+                            <Label Grid.Column="10" Text="{Binding Temperature}" FontFamily="Consolas" />
+                            <Label Grid.Column="11" Text="{Binding ExtraTemperatures}" FontFamily="Consolas" />
+                            <Label Grid.Column="12" Text="{Binding Status}" FontFamily="Consolas" />
+                            <Label Grid.Column="13" Text="{Binding Health}" />
+                            <Label Grid.Column="14" Text="{Binding Msg1Set}" FontFamily="Consolas" />
+                            <Label Grid.Column="15" Text="{Binding Msg2Set}" FontFamily="Consolas" />
+                            <Label Grid.Column="16" Text="{Binding Msg3Set}" FontFamily="Consolas" />
+                            <Label Grid.Column="17" Text="{Binding Rates}" FontSize="12" />
+                            <Label Grid.Column="18" Text="{Binding Age}" FontSize="12" />
+                        </Grid>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Bottom: autopilot telemetry + log | bus traffic | configuration -->
+        <Grid Grid.Row="5" ColumnDefinitions="*,*,*" ColumnSpacing="16">
+
+            <Grid Grid.Column="0" RowDefinitions="Auto,Auto,Auto,Auto,*">
+                <Label Grid.Row="0" Text="ArduPilot ESC telemetry" Style="{StaticResource Section}"
+                       ToolTipProperties.Text="ESC_TELEMETRY_x_TO_y as reported by the autopilot itself" />
+                <Grid Grid.Row="1" ColumnDefinitions="50,55,70,65,50,70,*" Style="{StaticResource HeaderRow}">
+                    <Label Grid.Column="0" Text="ESC" Style="{StaticResource Header}" />
+                    <Label Grid.Column="1" Text="RPM" Style="{StaticResource Header}" />
+                    <Label Grid.Column="2" Text="Voltage" Style="{StaticResource Header}" />
+                    <Label Grid.Column="3" Text="Current" Style="{StaticResource Header}" />
+                    <Label Grid.Column="4" Text="Temp" Style="{StaticResource Header}" />
+                    <Label Grid.Column="5" Text="Consumed" Style="{StaticResource Header}" />
+                    <Label Grid.Column="6" Text="Count" Style="{StaticResource Header}" />
+                </Grid>
+                <VerticalStackLayout Grid.Row="2" BindableLayout.ItemsSource="{Binding AutopilotRows}">
+                    <BindableLayout.EmptyView>
+                        <Label Text="No ESC_TELEMETRY from the autopilot yet." Style="{StaticResource Empty}" />
+                    </BindableLayout.EmptyView>
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="vm:AutopilotEscRowViewModel">
+                            <Grid ColumnDefinitions="50,55,70,65,50,70,*" ColumnSpacing="6" Padding="6,2">
+                                <Label Grid.Column="0" Text="{Binding Title}" FontAttributes="Bold" />
+                                <Label Grid.Column="1" Text="{Binding Rpm}" FontFamily="Consolas" />
+                                <Label Grid.Column="2" Text="{Binding Voltage}" FontFamily="Consolas" />
+                                <Label Grid.Column="3" Text="{Binding Current}" FontFamily="Consolas" />
+                                <Label Grid.Column="4" Text="{Binding Temperature}" FontFamily="Consolas" />
+                                <Label Grid.Column="5" Text="{Binding Consumed}" FontFamily="Consolas" />
+                                <Label Grid.Column="6" Text="{Binding Count}" FontFamily="Consolas" />
+                            </Grid>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+                <HorizontalStackLayout Grid.Row="3" Spacing="10">
+                    <Label Text="Log" Style="{StaticResource Section}" />
+                    <Button Text="Clear" Command="{Binding ClearLogCommand}" VerticalOptions="Center" />
+                </HorizontalStackLayout>
+                <ScrollView Grid.Row="4">
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding Log}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <Label Text="{Binding .}" FontFamily="Consolas" FontSize="12" LineBreakMode="WordWrap" Padding="4,1" />
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                </ScrollView>
+            </Grid>
+
+            <Grid Grid.Column="1" RowDefinitions="Auto,Auto,*">
+                <Label Grid.Row="0" Text="Bus traffic (transfers per node and type)" Style="{StaticResource Section}" />
+                <Grid Grid.Row="1" ColumnDefinitions="40,40,*,65,70,40" Style="{StaticResource HeaderRow}">
+                    <Label Grid.Column="0" Text="Node" Style="{StaticResource Header}" />
+                    <Label Grid.Column="1" Text="Kind" Style="{StaticResource Header}" />
+                    <Label Grid.Column="2" Text="Data type" Style="{StaticResource Header}" />
+                    <Label Grid.Column="3" Text="Rate" Style="{StaticResource Header}" />
+                    <Label Grid.Column="4" Text="Count" Style="{StaticResource Header}" />
+                    <Label Grid.Column="5" Text="Last" Style="{StaticResource Header}" />
+                </Grid>
+                <ScrollView Grid.Row="2">
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding TrafficRows}">
+                        <BindableLayout.EmptyView>
+                            <Label Text="No DroneCAN transfers yet." Style="{StaticResource Empty}" />
+                        </BindableLayout.EmptyView>
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="vm:TrafficRowViewModel">
+                                <Grid ColumnDefinitions="40,40,*,65,70,40" ColumnSpacing="6" Padding="6,1">
+                                    <Label Grid.Column="0" Text="{Binding NodeId}" FontAttributes="Bold" />
+                                    <Label Grid.Column="1" Text="{Binding KindText}" FontSize="12" />
+                                    <Label Grid.Column="2" Text="{Binding TypeText}" FontSize="12" />
+                                    <Label Grid.Column="3" Text="{Binding Rate}" FontFamily="Consolas" FontSize="12" />
+                                    <Label Grid.Column="4" Text="{Binding Count}" FontFamily="Consolas" FontSize="12" />
+                                    <Label Grid.Column="5" Text="{Binding Age}" FontSize="12" />
+                                </Grid>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                </ScrollView>
+            </Grid>
+
+            <Grid Grid.Column="2" RowDefinitions="Auto,Auto,*" RowSpacing="6">
+                <!-- FlexLayout rows wrap instead of pushing the page wider than the window -->
+                <FlexLayout Grid.Row="0" Wrap="Wrap" AlignItems="Center">
+                    <Label Text="ESC configuration" Style="{StaticResource Section}" Margin="0,8,8,4" />
+                    <Button Text="Report" Command="{Binding ShowReportCommand}" Margin="0,0,6,0" />
+                    <Button Text="Settings" Command="{Binding ShowSettingsCommand}" />
+                </FlexLayout>
+                <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                    <Label Text="Node" />
+                    <Picker Grid.Column="1" ItemsSource="{Binding ConfigNodes}" SelectedItem="{Binding SelectedConfigNode}" />
+                    <ActivityIndicator Grid.Column="2" IsRunning="{Binding IsWriting}" HeightRequest="20" WidthRequest="20" />
+                </Grid>
+
+                <!-- Read-only report -->
+                <Grid Grid.Row="2" RowDefinitions="Auto,Auto,*" RowSpacing="6" IsVisible="{Binding ShowReport}">
+                    <HorizontalStackLayout Grid.Row="0" Spacing="8">
+                        <Button Text="Read configuration" Command="{Binding ReadConfigCommand}" />
+                        <Button Text="Cancel" Command="{Binding CancelReadCommand}" />
+                        <Button Text="Copy report" Command="{Binding CopyReportCommand}" />
+                    </HorizontalStackLayout>
+                    <HorizontalStackLayout Grid.Row="1" Spacing="6">
+                        <CheckBox IsChecked="{Binding IncludeParameters}" />
+                        <Label Text="Include params" ToolTipProperties.Text="Also enumerate uavcan.protocol.param.GetSet parameters" />
+                        <ActivityIndicator IsRunning="{Binding IsReading}" HeightRequest="20" WidthRequest="20" />
+                        <Label Text="{Binding ConfigProgress}" />
+                    </HorizontalStackLayout>
+                    <ScrollView Grid.Row="2">
+                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding ConfigItems}">
+                            <BindableLayout.EmptyView>
+                                <Label Text="Select an ESC node (not the autopilot, usually node 10) and press Read configuration. The vehicle must be disarmed."
+                                       Style="{StaticResource Empty}" />
+                            </BindableLayout.EmptyView>
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="mon:ConfigItem">
+                                    <Grid ColumnDefinitions="100,170,*" ColumnSpacing="8" Padding="6,2">
+                                        <Label Grid.Column="0" Text="{Binding Group}" FontSize="12" Opacity="0.65" />
+                                        <Label Grid.Column="1" Text="{Binding Name}" FontAttributes="Bold" />
+                                        <Label Grid.Column="2" Text="{Binding Value}" FontFamily="Consolas" LineBreakMode="CharacterWrap" />
+                                    </Grid>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </ScrollView>
+                </Grid>
+
+                <!-- Settings (writes to the ESC) -->
+                <ScrollView Grid.Row="2" IsVisible="{Binding ShowSettings}">
+                    <!-- keep every row narrow: wide content here widens all three bottom columns -->
+                    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="130,*,60"
+                          RowSpacing="6" ColumnSpacing="8" Padding="0,0,8,0">
+                        <Label Grid.Row="0" Grid.ColumnSpan="3" Style="{StaticResource Empty}" Margin="0"
+                               Text="Set = write after confirmation (disarmed only)"
+                               ToolTipProperties.Text="Each write is checked against the ESC's reply and logged" />
+
+                        <Label Grid.Row="1" Text="Throttle source" />
+                        <Picker Grid.Row="1" Grid.Column="1" ItemsSource="{Binding ThrottleSourceOptions}" SelectedItem="{Binding SelectedThrottleSource}" />
+                        <Button Grid.Row="1" Grid.Column="2" Text="Set" Command="{Binding SetThrottleSourceCommand}" />
+
+                        <Label Grid.Row="2" Text="Direction" />
+                        <Picker Grid.Row="2" Grid.Column="1" ItemsSource="{Binding DirectionOptions}" SelectedItem="{Binding SelectedDirection}" />
+                        <Button Grid.Row="2" Grid.Column="2" Text="Set" Command="{Binding SetDirectionCommand}" />
+
+                        <Label Grid.Row="3" Text="StatusMsg1 rate" ToolTipProperties.Text="RPM, PWM, status" />
+                        <Picker Grid.Row="3" Grid.Column="1" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding SelectedMsg1Rate}" />
+                        <Button Grid.Row="3" Grid.Column="2" Text="Set" Command="{Binding SetRateCommand}" CommandParameter="1" />
+
+                        <Label Grid.Row="4" Text="StatusMsg2 rate" ToolTipProperties.Text="Voltage, current, temperature" />
+                        <Picker Grid.Row="4" Grid.Column="1" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding SelectedMsg2Rate}" />
+                        <Button Grid.Row="4" Grid.Column="2" Text="Set" Command="{Binding SetRateCommand}" CommandParameter="2" />
+
+                        <Label Grid.Row="5" Text="StatusMsg3 rate" ToolTipProperties.Text="MOSFET / capacitor / motor temperatures" />
+                        <Picker Grid.Row="5" Grid.Column="1" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding SelectedMsg3Rate}" />
+                        <Button Grid.Row="5" Grid.Column="2" Text="Set" Command="{Binding SetRateCommand}" CommandParameter="3" />
+
+                        <Label Grid.Row="6" Text="Throttle channel" ToolTipProperties.Text="Motor output number ArduPilot uses for this ESC" />
+                        <Entry Grid.Row="6" Grid.Column="1" Text="{Binding ThrottleChannelText}" Keyboard="Numeric" />
+                        <Button Grid.Row="6" Grid.Column="2" Text="Set" Command="{Binding SetThrottleChannelCommand}" />
+
+                        <Label Grid.Row="7" Text="LED color" />
+                        <Picker Grid.Row="7" Grid.Column="1" ItemsSource="{Binding LedColorOptions}" SelectedItem="{Binding SelectedLedColor}" />
+
+                        <Label Grid.Row="8" Text="LED mode" />
+                        <HorizontalStackLayout Grid.Row="8" Grid.Column="1" Spacing="6">
+                            <Picker ItemsSource="{Binding LedBlinkOptions}" SelectedItem="{Binding SelectedLedBlink}" WidthRequest="120" />
+                            <CheckBox IsChecked="{Binding LedSave}" />
+                            <Label Text="Save" />
+                        </HorizontalStackLayout>
+                        <Button Grid.Row="8" Grid.Column="2" Text="Set" Command="{Binding SetLedCommand}" />
+
+                        <Label Grid.Row="9" Text="Node ID" />
+                        <Entry Grid.Row="9" Grid.Column="1" Text="{Binding NewNodeIdText}" Keyboard="Numeric" />
+                        <Button Grid.Row="9" Grid.Column="2" Text="Set" Command="{Binding SetNodeIdCommand}" />
+
+                        <Button Grid.Row="10" Grid.ColumnSpan="2" Text="Load current values" Command="{Binding LoadSettingsCommand}"
+                                HorizontalOptions="Start" />
+                    </Grid>
+                </ScrollView>
+            </Grid>
+        </Grid>
+    </Grid>
+</ContentPage>
