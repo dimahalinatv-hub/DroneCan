@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using HobbywingCan.Core.DroneCan;
 using HobbywingCan.Core.Messages;
@@ -34,6 +35,7 @@ public sealed partial class MainViewModel
     private Option? _selectedLedBlink;
     private bool _ledSave = true;
     private Option? _selectedCanBaud;
+    private FieldMarks? _marks;
 
     /// <summary>Asks the user to confirm a write; set by the page (title, message) → accepted.</summary>
     public Func<string, string, Task<bool>>? Confirm { get; set; }
@@ -95,17 +97,43 @@ public sealed partial class MainViewModel
         }
     }
 
-    public Option? SelectedThrottleSource { get => _selectedThrottleSource; set => SetProperty(ref _selectedThrottleSource, value); }
-    public Option? SelectedDirection { get => _selectedDirection; set => SetProperty(ref _selectedDirection, value); }
-    public Option? SelectedMsg1Rate { get => _selectedMsg1Rate; set => SetProperty(ref _selectedMsg1Rate, value); }
-    public Option? SelectedMsg2Rate { get => _selectedMsg2Rate; set => SetProperty(ref _selectedMsg2Rate, value); }
-    public Option? SelectedMsg3Rate { get => _selectedMsg3Rate; set => SetProperty(ref _selectedMsg3Rate, value); }
-    public string ThrottleChannelText { get => _throttleChannelText; set => SetProperty(ref _throttleChannelText, value); }
-    public string NewNodeIdText { get => _newNodeIdText; set => SetProperty(ref _newNodeIdText, value); }
-    public Option? SelectedLedColor { get => _selectedLedColor; set => SetProperty(ref _selectedLedColor, value); }
-    public Option? SelectedLedBlink { get => _selectedLedBlink; set => SetProperty(ref _selectedLedBlink, value); }
+    public Option? SelectedThrottleSource { get => _selectedThrottleSource; set => SetField(ref _selectedThrottleSource, value); }
+    public Option? SelectedDirection { get => _selectedDirection; set => SetField(ref _selectedDirection, value); }
+    public Option? SelectedMsg1Rate { get => _selectedMsg1Rate; set => SetField(ref _selectedMsg1Rate, value); }
+    public Option? SelectedMsg2Rate { get => _selectedMsg2Rate; set => SetField(ref _selectedMsg2Rate, value); }
+    public Option? SelectedMsg3Rate { get => _selectedMsg3Rate; set => SetField(ref _selectedMsg3Rate, value); }
+    public string ThrottleChannelText { get => _throttleChannelText; set => SetField(ref _throttleChannelText, value); }
+    public string NewNodeIdText { get => _newNodeIdText; set => SetField(ref _newNodeIdText, value); }
+    public Option? SelectedLedColor { get => _selectedLedColor; set => SetField(ref _selectedLedColor, value); }
+    public Option? SelectedLedBlink { get => _selectedLedBlink; set => SetField(ref _selectedLedBlink, value); }
     public bool LedSave { get => _ledSave; set => SetProperty(ref _ledSave, value); }
-    public Option? SelectedCanBaud { get => _selectedCanBaud; set => SetProperty(ref _selectedCanBaud, value); }
+    public Option? SelectedCanBaud { get => _selectedCanBaud; set => SetField(ref _selectedCanBaud, value); }
+
+    /// <summary>Highlight per settings field (edited / written), bound as Marks[PropertyName].</summary>
+    public FieldMarks Marks => _marks ??= new FieldMarks(FieldValue);
+
+    private object? FieldValue(string field) => field switch
+    {
+        nameof(SelectedCanBaud) => SelectedCanBaud,
+        nameof(NewNodeIdText) => NewNodeIdText,
+        nameof(ThrottleChannelText) => ThrottleChannelText,
+        nameof(SelectedThrottleSource) => SelectedThrottleSource,
+        nameof(SelectedMsg1Rate) => SelectedMsg1Rate,
+        nameof(SelectedMsg2Rate) => SelectedMsg2Rate,
+        nameof(SelectedMsg3Rate) => SelectedMsg3Rate,
+        nameof(SelectedLedColor) => SelectedLedColor,
+        nameof(SelectedLedBlink) => SelectedLedBlink,
+        nameof(SelectedDirection) => SelectedDirection,
+        _ => null,
+    };
+
+    private void SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
+    {
+        if (SetProperty(ref field, value, propertyName))
+        {
+            Marks.Changed();
+        }
+    }
 
     /// <summary>Which settings the ESC could not report; empty when all are known.</summary>
     public string SettingsHint
@@ -134,14 +162,14 @@ public sealed partial class MainViewModel
         });
 
         SetThrottleSourceCommand = new Command(async () => await WriteAsync(
-            SelectedThrottleSource, o => $"Set throttle source to {o.Text}",
+            [nameof(SelectedThrottleSource)], SelectedThrottleSource, o => $"Set throttle source to {o.Text}",
             o => o.Value == HwSetThrottleSource.Pwm
                 ? "With PWM the ESC ignores DroneCAN throttle from ArduPilot and only follows the PWM signal wire. The motor will not respond to the flight controller over CAN."
                 : "The ESC will take throttle from DroneCAN (ArduPilot) again.",
             (w, node, o) => w.SetThrottleSourceAsync(node, o.Value)), CanWrite);
 
         SetDirectionCommand = new Command(async () => await WriteAsync(
-            SelectedDirection, o => $"Set rotation direction to {o.Text}",
+            [nameof(SelectedDirection)], SelectedDirection, o => $"Set rotation direction to {o.Text}",
             _ => "The motor will spin the other way. Check the frame's motor order and propellers before flying.",
             (w, node, o) => w.SetDirectionAsync(node, o.Value)), CanWrite);
 
@@ -151,13 +179,13 @@ public sealed partial class MainViewModel
         SetNodeIdCommand = new Command(async () => await SetNodeIdAsync(), CanWrite);
 
         SetLedCommand = new Command(async () => await WriteAsync(
-            SelectedLedColor, o => $"Set LED to {o.Text}, {SelectedLedBlink?.Text ?? "steady"}{(LedSave ? " (saved)" : "")}",
+            [nameof(SelectedLedColor), nameof(SelectedLedBlink)], SelectedLedColor, o => $"Set LED to {o.Text}, {SelectedLedBlink?.Text ?? "steady"}{(LedSave ? " (saved)" : "")}",
             _ => "Only changes the ESC's status LED.",
             (w, node, o) => w.SetLedAsync(node, o.Value, SelectedLedBlink?.Value ?? 0, LedSave)), CanWrite);
 
         // no read exists, and after the change the ESC is off this bus until the FC runs at the same speed
         SetCanBaudCommand = new Command(async () => await WriteAsync(
-            SelectedCanBaud, o => $"Set CAN speed to {o.Text}",
+            [nameof(SelectedCanBaud)], SelectedCanBaud, o => $"Set CAN speed to {o.Text}",
             o => $"The ESC will only talk at {o.Text}. Unless the flight controller's CAN_Px_BITRATE is set to the same speed, " +
                 "the ESC drops off the bus: no throttle, no telemetry, and this app cannot reach it to change it back. " +
                 "Some ESCs apply it only after a power cycle.",
@@ -195,17 +223,19 @@ public sealed partial class MainViewModel
             return;
         }
         // GetMajorConfig is the only read for these; some X8 G2 firmware does not answer it, then only a write tells
+        // only what the ESC reported becomes the baseline; an edit of an unreported field stays marked
         if (state.ThrottleSourcePwm is { } pwm)
         {
-            SelectedThrottleSource = Find(ThrottleSourceOptions, pwm ? HwSetThrottleSource.Pwm : HwSetThrottleSource.Can);
+            SelectedThrottleSource = Marks.Loaded(nameof(SelectedThrottleSource),
+                Find(ThrottleSourceOptions, pwm ? HwSetThrottleSource.Pwm : HwSetThrottleSource.Can));
         }
-        if (state.LedColor is { } color)
+        if (state.LedColor is { } color && Find(LedColorOptions, color) is { } colorOption)
         {
-            SelectedLedColor = Find(LedColorOptions, color) ?? SelectedLedColor;
+            SelectedLedColor = Marks.Loaded(nameof(SelectedLedColor), colorOption);
         }
-        if (state.LedBlink is { } blink)
+        if (state.LedBlink is { } blink && Find(LedBlinkOptions, blink) is { } blinkOption)
         {
-            SelectedLedBlink = Find(LedBlinkOptions, blink) ?? SelectedLedBlink;
+            SelectedLedBlink = Marks.Loaded(nameof(SelectedLedBlink), blinkOption);
         }
         var unknown = new List<string>();
         if (state.ThrottleSourcePwm == null)
@@ -221,17 +251,31 @@ public sealed partial class MainViewModel
             : $"Current {string.Join(" and ", unknown)} unknown: the ESC has not answered GetMajorConfig. Shown after a Set.";
         if (state.CounterClockwise is { } ccw)
         {
-            SelectedDirection = Find(DirectionOptions, ccw ? HwSetDirection.CounterClockwise : HwSetDirection.Clockwise);
+            SelectedDirection = Marks.Loaded(nameof(SelectedDirection),
+                Find(DirectionOptions, ccw ? HwSetDirection.CounterClockwise : HwSetDirection.Clockwise));
         }
-        SelectedMsg1Rate = RateFor(state, DataTypes.HwStatusMsg1.Id) ?? SelectedMsg1Rate;
-        SelectedMsg2Rate = RateFor(state, DataTypes.HwStatusMsg2.Id) ?? SelectedMsg2Rate;
-        SelectedMsg3Rate = RateFor(state, DataTypes.HwStatusMsg3.Id) ?? SelectedMsg3Rate;
-        ThrottleChannelText = state.ThrottleChannel?.ToString(CultureInfo.InvariantCulture) ?? ThrottleChannelText;
-        NewNodeIdText = state.NodeId.ToString(CultureInfo.InvariantCulture);
+        if (RateFor(state, DataTypes.HwStatusMsg1.Id) is { } rate1)
+        {
+            SelectedMsg1Rate = Marks.Loaded(nameof(SelectedMsg1Rate), rate1);
+        }
+        if (RateFor(state, DataTypes.HwStatusMsg2.Id) is { } rate2)
+        {
+            SelectedMsg2Rate = Marks.Loaded(nameof(SelectedMsg2Rate), rate2);
+        }
+        if (RateFor(state, DataTypes.HwStatusMsg3.Id) is { } rate3)
+        {
+            SelectedMsg3Rate = Marks.Loaded(nameof(SelectedMsg3Rate), rate3);
+        }
+        if (state.ThrottleChannel is { } channel)
+        {
+            ThrottleChannelText = Marks.Loaded(nameof(ThrottleChannelText), channel.ToString(CultureInfo.InvariantCulture));
+        }
+        NewNodeIdText = Marks.Loaded(nameof(NewNodeIdText), state.NodeId.ToString(CultureInfo.InvariantCulture));
     }
 
     private void ClearSettingsEditors()
     {
+        Marks.Clear();
         SelectedCanBaud = null;
         NewNodeIdText = "";
         ThrottleChannelText = "";
@@ -291,16 +335,16 @@ public sealed partial class MainViewModel
 
     private async Task SetRateAsync(string? message)
     {
-        var (messageId, option, use) = message switch
+        var (messageId, field, option, use) = message switch
         {
-            "1" => (DataTypes.HwStatusMsg1.Id, SelectedMsg1Rate,
+            "1" => (DataTypes.HwStatusMsg1.Id, nameof(SelectedMsg1Rate), SelectedMsg1Rate,
                 "StatusMsg1 carries RPM. ArduPilot uses it for ESC RPM telemetry and the RPM-based harmonic notch; a low rate or Off degrades that."),
-            "2" => (DataTypes.HwStatusMsg2.Id, SelectedMsg2Rate,
+            "2" => (DataTypes.HwStatusMsg2.Id, nameof(SelectedMsg2Rate), SelectedMsg2Rate,
                 "StatusMsg2 carries voltage, current and temperature used by ArduPilot's ESC telemetry."),
-            _ => (DataTypes.HwStatusMsg3.Id, SelectedMsg3Rate,
+            _ => (DataTypes.HwStatusMsg3.Id, nameof(SelectedMsg3Rate), SelectedMsg3Rate,
                 "StatusMsg3 carries MOSFET / capacitor / motor temperatures (ArduPilot does not use it)."),
         };
-        await WriteAsync(option, o => $"Set StatusMsg{message} rate to {o.Text}", _ => use,
+        await WriteAsync([field], option, o => $"Set StatusMsg{message} rate to {o.Text}", _ => use,
             (w, node, o) => w.SetReportingRateAsync(node, messageId, o.Value));
     }
 
@@ -312,7 +356,7 @@ public sealed partial class MainViewModel
             return;
         }
         var option = new Option(channel, channel.ToString(CultureInfo.InvariantCulture));
-        await WriteAsync(option, o => $"Set throttle channel to {o.Text}",
+        await WriteAsync([nameof(ThrottleChannelText)], option, o => $"Set throttle channel to {o.Text}",
             _ => "ArduPilot maps Hobbywing ESCs by throttle channel (= motor output number). A wrong channel makes this ESC follow another motor's throttle.",
             (w, node, o) => w.SetIdAsync(node, node, o.Value),
             setsId: true);
@@ -338,7 +382,7 @@ public sealed partial class MainViewModel
             return;
         }
         var option = new Option(newId, newId.ToString(CultureInfo.InvariantCulture));
-        await WriteAsync(option, o => $"Change node ID to {o.Text}",
+        await WriteAsync([nameof(NewNodeIdText)], option, o => $"Change node ID to {o.Text}",
             _ => "The ESC will answer on the new node ID and show up as a new row; the old row goes stale. Some ESCs need a power cycle.",
             (w, node, o) => w.SetIdAsync(node, o.Value, _monitor!.Get(node)!.ThrottleChannel!.Value),
             refreshAfter: false, setsId: true);
@@ -384,7 +428,8 @@ public sealed partial class MainViewModel
 
     private Task ShowAlert(string title, string message) => Alert?.Invoke(title, message) ?? Task.CompletedTask;
 
-    private async Task WriteAsync(Option? value, Func<Option, string> describe, Func<Option, string> warning,
+    /// <param name="fields">settings fields this write stores, marked as written on success</param>
+    private async Task WriteAsync(string[] fields, Option? value, Func<Option, string> describe, Func<Option, string> warning,
         Func<EscConfigWriter, byte, Option, Task<WriteResult>> write, bool refreshAfter = true, bool setsId = false)
     {
         if (_writer == null || _node == null || _monitor == null || SelectedConfigNode is not { } target)
@@ -453,6 +498,14 @@ public sealed partial class MainViewModel
 
             var result = await write(_writer, target.NodeId, value);
             AddLog(result.Message);
+            if (result.Success)
+            {
+                // before the reload, so it keeps the mark when the ESC reports the written value
+                foreach (var field in fields)
+                {
+                    Marks.MarkWritten(field);
+                }
+            }
             if (result.AffectedOthers && reach.Count == 0)
             {
                 // nothing suggested this beforehand, so make sure it is noticed
