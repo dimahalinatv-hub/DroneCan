@@ -206,6 +206,10 @@ public sealed record HwSetId(byte NodeId, byte ThrottleChannel)
 /// <summary>com.hobbywing.esc.SetLED (212).</summary>
 public sealed record HwSetLed(byte Option, byte Color, byte Blink)
 {
+    /// <summary>
+    /// Only 0 (apply until power-off) and 1 (save) are meant to be sent: an X8 G2 also saved after a batch of
+    /// other even options (2..254). There is no read either; every request is echoed back and applied.
+    /// </summary>
     public const byte OptionSave = 1;
 
     public static IReadOnlyList<(byte Color, string Name)> Colors { get; } =
