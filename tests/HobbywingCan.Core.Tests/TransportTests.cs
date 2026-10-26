@@ -1,6 +1,7 @@
 using HobbywingCan.Core.DroneCan;
 using HobbywingCan.Core.Mavlink;
 using HobbywingCan.Core.Messages;
+using HobbywingCan.Core.Monitoring;
 
 namespace HobbywingCan.Core.Tests;
 
@@ -56,6 +57,42 @@ public class TransportTests
             Assert.Null(r.Accept(new CanFrame(0x1F017E85, f), 0));
         }
         Assert.Equal(1, r.CrcErrors);
+    }
+
+    [Fact]
+    public void Reassembler_ReportsTransferThatLostFrames()
+    {
+        var r = new TransferReassembler();
+        var lost = new List<uint>();
+        r.IncompleteTransfer += lost.Add;
+        // the link dropped the tail of the first answer; the retry arrives complete
+        foreach (var hex in NodeInfoFrames.Take(4))
+        {
+            Assert.Null(r.Accept(new CanFrame(0x1F017E85, Hex(hex)), 0));
+        }
+        Transfer? result = null;
+        foreach (var hex in NodeInfoFrames)
+        {
+            result = r.Accept(new CanFrame(0x1F017E85, Hex(hex)), 10) ?? result;
+        }
+
+        Assert.NotNull(result);
+        Assert.Equal(0x017E85u, Assert.Single(lost));
+    }
+
+    [Fact]
+    public async Task Reader_ShowsAnswerWithBadCrcAsUnverifiedAndNamesSilentServices()
+    {
+        var bus = new WrongCrcEsc(escNodeId: 5, Hex(NodeInfoPayload));
+        using var node = new DroneCanNode(bus, localNodeId: 126);
+
+        var report = await new EscConfigReader(node).ReadAsync(5, includeParameters: false, progress: null);
+
+        Assert.Equal("com.hobbywing.x8g2", report.Info?.Name);
+        Assert.Contains(report.Errors, e => e.StartsWith("GetNodeInfo: answer failed the CRC check"));
+        Assert.Contains("GetNodeInfo (CRC mismatch)", report.RawResponses.Keys);
+        Assert.Contains("GetMajorConfig: no response (node 5 sent nothing back)", report.Errors);
+        Assert.True(node.GetResponseStats(DataTypes.GetNodeInfo.Id, 5).Frames >= NodeInfoFrames.Length);
     }
 
     [Fact]
@@ -127,6 +164,30 @@ public class TransportTests
         var payload = MavlinkMessages.EncodeCanFrame(1, 1, 0, 0x9FF285FE, Hex("00c9"));
         var bytes = new MavlinkEncoder(255, 190).Encode(MavlinkIds.CanFrame, payload);
         Assert.Equal("FD0A000000FFBE820100FE85F29F0101000200C9F1CA", Convert.ToHexString(bytes));
+    }
+
+    /// <summary>Fake ESC that answers only GetNodeInfo, with the CRC seeded by a wrong signature.</summary>
+    private sealed class WrongCrcEsc(byte escNodeId, byte[] nodeInfo) : ICanBus
+    {
+        public event Action<CanFrame>? FrameReceived;
+
+        public void Send(CanFrame frame)
+        {
+            if (CanId.Kind(frame.Id) == TransferKind.Request && CanId.DestinationNodeId(frame.Id) == escNodeId &&
+                CanId.DataTypeId(frame.Id) == DataTypes.GetNodeInfo.Id)
+            {
+                byte tid = (byte)(frame.Data[^1] & 0x1F);
+                uint id = CanId.Service(24, (byte)DataTypes.GetNodeInfo.Id, request: false, CanId.SourceNodeId(frame.Id), escNodeId);
+                var frames = TransferEncoder.Encode(id, tid, nodeInfo, signature: 0x1234);
+                Task.Run(() =>
+                {
+                    foreach (var f in frames)
+                    {
+                        FrameReceived?.Invoke(f);
+                    }
+                });
+            }
+        }
     }
 
     /// <summary>Fake bus: answers GetMajorConfig requests addressed to one node, like an ESC would.</summary>

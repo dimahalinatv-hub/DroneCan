@@ -9,6 +9,18 @@ namespace HobbywingCan.Core.DroneCan;
 public sealed record UnexpectedResponse(ushort DataTypeId, byte IntendedNode, byte RespondingNode, bool DuplicateNodeId);
 
 /// <summary>
+/// What one node sent back for one service, addressed to us, counted per CAN frame so that "the node never
+/// answered" can be told apart from "an answer arrived but was dropped".
+/// </summary>
+/// <param name="LastCrcMismatch">Payload of the newest answer that failed the CRC check, or null.</param>
+public readonly record struct ResponseStats(long Frames, long Incomplete, long CrcErrors, byte[]? LastCrcMismatch)
+{
+    public ResponseStats Since(ResponseStats earlier) =>
+        new(Frames - earlier.Frames, Incomplete - earlier.Incomplete, CrcErrors - earlier.CrcErrors,
+            CrcErrors > earlier.CrcErrors ? LastCrcMismatch : null);
+}
+
+/// <summary>
 /// Minimal DroneCAN node: reassembles incoming transfers, publishes broadcasts and
 /// performs service calls (request → awaited response) on behalf of <see cref="LocalNodeId"/>.
 /// </summary>
@@ -24,6 +36,15 @@ public sealed class DroneCanNode : IDisposable
     private readonly ConcurrentDictionary<(TransferKind, ushort, byte), int> _transferIds = new();
     private readonly ConcurrentDictionary<(ushort Type, byte Node, byte Tid), long> _answered = new();
     private readonly List<RecentRequest> _recentRequests = new();
+    private readonly ConcurrentDictionary<(ushort Type, byte Node), ResponseCounters> _responseCounters = new();
+
+    private sealed class ResponseCounters
+    {
+        public long Frames;
+        public long Incomplete;
+        public long CrcErrors;
+        public volatile byte[]? LastCrcMismatch;
+    }
 
     /// <summary>How long after a request extra answers are still attributed to it.</summary>
     private const long UnexpectedWindowMs = 1500;
@@ -38,6 +59,8 @@ public sealed class DroneCanNode : IDisposable
         }
         _bus = bus;
         LocalNodeId = localNodeId;
+        _reassembler.IncompleteTransfer += OnIncompleteTransfer;
+        _reassembler.CrcMismatch += OnCrcMismatch;
         _bus.FrameReceived += OnFrame;
     }
 
@@ -46,6 +69,11 @@ public sealed class DroneCanNode : IDisposable
     public long TransfersReceived { get; private set; }
 
     public long CrcErrors => _reassembler.CrcErrors;
+
+    /// <summary>Multi-frame answers addressed to this node that arrived with frames missing.</summary>
+    public long IncompleteResponses => Interlocked.Read(ref _incompleteResponses);
+
+    private long _incompleteResponses;
 
     /// <summary>Raised on the transport's receive thread for every complete transfer seen on the bus.</summary>
     public event Action<Transfer>? TransferReceived;
@@ -129,8 +157,47 @@ public sealed class DroneCanNode : IDisposable
         return (byte)value;
     }
 
+    public ResponseStats GetResponseStats(ushort serviceId, byte sourceNodeId)
+    {
+        if (!_responseCounters.TryGetValue((serviceId, sourceNodeId), out var c))
+        {
+            return default;
+        }
+        return new ResponseStats(Interlocked.Read(ref c.Frames), Interlocked.Read(ref c.Incomplete),
+            Interlocked.Read(ref c.CrcErrors), c.LastCrcMismatch);
+    }
+
+    /// <summary>Counters for a response addressed to this node, or null for any other frame.</summary>
+    private ResponseCounters? CountersFor(uint canId) =>
+        CanId.Kind(canId) == TransferKind.Response && CanId.DestinationNodeId(canId) == LocalNodeId
+            ? _responseCounters.GetOrAdd((CanId.DataTypeId(canId), CanId.SourceNodeId(canId)), _ => new ResponseCounters())
+            : null;
+
+    private void OnIncompleteTransfer(uint canId)
+    {
+        if (CountersFor(canId) is { } c)
+        {
+            Interlocked.Increment(ref c.Incomplete);
+            Interlocked.Increment(ref _incompleteResponses);
+        }
+    }
+
+    private void OnCrcMismatch(uint canId, byte transferId, byte[] payload)
+    {
+        if (CountersFor(canId) is { } c)
+        {
+            c.LastCrcMismatch = payload;
+            Interlocked.Increment(ref c.CrcErrors);
+        }
+    }
+
     private void OnFrame(CanFrame frame)
     {
+        if (frame.Extended && CountersFor(frame.Id) is { } counters)
+        {
+            Interlocked.Increment(ref counters.Frames);
+        }
+
         Transfer? transfer;
         lock (_rxLock)
         {

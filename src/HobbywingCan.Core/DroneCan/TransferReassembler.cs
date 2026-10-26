@@ -29,6 +29,18 @@ public sealed class TransferReassembler
     public long CrcErrors { get; private set; }
     public long Dropped { get; private set; }
 
+    /// <summary>
+    /// A multi-frame transfer was started but replaced by the next one before its last frame arrived (frames lost);
+    /// the argument is the CAN id without priority.
+    /// </summary>
+    public event Action<uint>? IncompleteTransfer;
+
+    /// <summary>
+    /// A multi-frame transfer arrived complete but its CRC did not match (CAN id without priority, transfer id, payload).
+    /// A sender that seeds the CRC with a different signature ends up here every time.
+    /// </summary>
+    public event Action<uint, byte, byte[]>? CrcMismatch;
+
     public Transfer? Accept(CanFrame frame, long nowMs)
     {
         if (!frame.Extended || frame.Data.Length < 1)
@@ -65,6 +77,10 @@ public sealed class TransferReassembler
                 StartedMs = nowMs,
             };
             session.Payload.AddRange(body[2..]);
+            if (_sessions.TryGetValue(key, out var unfinished) && nowMs - unfinished.StartedMs <= SessionTimeoutMs)
+            {
+                IncompleteTransfer?.Invoke(key);
+            }
             _sessions[key] = session;
             PurgeStale(nowMs);
             return null;
@@ -95,6 +111,7 @@ public sealed class TransferReassembler
         if (Crc16.ForTransfer(signature.Value, payload) != s.Crc)
         {
             CrcErrors++;
+            CrcMismatch?.Invoke(key, tid, payload);
             return null;
         }
         return Build(id, tid, payload);

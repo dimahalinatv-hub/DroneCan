@@ -182,10 +182,24 @@ public sealed class EscConfigReader(DroneCanNode node)
     private async Task<byte[]?> Call(EscConfigReport report, string name, DataTypeInfo service, byte nodeId, byte[] request,
         CancellationToken ct)
     {
+        var before = node.GetResponseStats(service.Id, nodeId);
         var response = await node.RequestWithRetryAsync(service, nodeId, request, Timeout, Attempts, ct);
         if (response == null)
         {
-            report.Errors.Add($"{name}: no response");
+            var seen = node.GetResponseStats(service.Id, nodeId).Since(before);
+            if (seen.LastCrcMismatch is { } unverified)
+            {
+                // a firmware that seeds the CRC with another signature still sends a usable payload
+                report.Errors.Add($"{name}: answer failed the CRC check ({seen.CrcErrors}x); its values are shown but unverified");
+                report.RawResponses[$"{name} (CRC mismatch)"] = Convert.ToHexString(unverified);
+                return unverified;
+            }
+            report.Errors.Add(seen switch
+            {
+                { Incomplete: > 0 } => $"{name}: no complete response ({seen.Incomplete} answer(s) lost frames on the link)",
+                { Frames: > 0 } => $"{name}: {seen.Frames} answer frame(s) arrived but never formed a complete answer",
+                _ => $"{name}: no response (node {nodeId} sent nothing back)",
+            });
             return null;
         }
         report.RawResponses[name] = Convert.ToHexString(response.Payload);

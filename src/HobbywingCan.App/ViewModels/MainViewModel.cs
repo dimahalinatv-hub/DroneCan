@@ -333,7 +333,7 @@ public sealed partial class MainViewModel : ObservableObject
                 ? $"Heartbeat lost ({age:F0} s)"
                 : $"FC sys {v.SystemId} — {(v.IsArmed ? "ARMED (requests disabled)" : "disarmed")}";
         }
-        StatsText = $"MAVLink {_link.MavlinkPackets} pkts, CRC err {_link.MavlinkCrcErrors} | CAN rx {_link.CanFramesReceived} tx {_link.CanFramesSent} | transfers {_node.TransfersReceived}, CRC err {_node.CrcErrors}";
+        StatsText = $"MAVLink {_link.MavlinkPackets} pkts, CRC err {_link.MavlinkCrcErrors} | CAN rx {_link.CanFramesReceived} tx {_link.CanFramesSent} | transfers {_node.TransfersReceived}, CRC err {_node.CrcErrors}, incomplete answers {_node.IncompleteResponses}";
 
         foreach (var state in _monitor.Nodes)
         {
@@ -457,6 +457,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             AddLog($"Reading configuration of node {target.NodeId}…");
             var report = await _reader.ReadAsync(target.NodeId, IncludeParameters, progress, _readCts.Token);
+
             if (SelectedConfigNode?.NodeId != target.NodeId)
             {
                 return;
