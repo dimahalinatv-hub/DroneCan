@@ -35,6 +35,7 @@ public sealed class SimulatedAutopilot : Stream
         public bool PwmThrottle { get; set; }
         public byte LedColor { get; set; } = 2;
         public byte LedBlink { get; set; }
+        public byte BaudCode { get; set; }
         public Dictionary<ushort, byte> RateCodes { get; } = new()
         {
             [DataTypes.HwStatusMsg1.Id] = 5, // 50 Hz
@@ -277,6 +278,7 @@ public sealed class SimulatedAutopilot : Stream
             214 => SetRate(esc, HwReportingFrequency.Decode(t.Payload)),
             215 => SetThrottleSource(esc, t.Payload[0]),
             212 => SetLed(esc, HwSetLed.Decode(t.Payload)),
+            211 => SetBaud(esc, t.Payload[0]),
             210 => SetId(esc, HwSetId.Decode(t.Payload)),
             11 => t.Payload[0] switch
             {
@@ -338,6 +340,13 @@ public sealed class SimulatedAutopilot : Stream
     {
         esc.PwmThrottle = source == HwSetThrottleSource.Pwm;
         return [esc.PwmThrottle ? HwSetThrottleSource.Pwm : HwSetThrottleSource.Can];
+    }
+
+    private static byte[] SetBaud(SimEsc esc, byte code)
+    {
+        // the simulated bus has no bit rate, so the ESC stays reachable
+        esc.BaudCode = code;
+        return [];
     }
 
     private static byte[] SetLed(SimEsc esc, HwSetLed request)

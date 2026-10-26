@@ -12,7 +12,7 @@ public sealed record Option(byte Value, string Text)
     public override string ToString() => Text;
 }
 
-/// <summary>Writing Hobbywing ESC settings (throttle source, rates, direction, IDs, LED).</summary>
+/// <summary>Writing Hobbywing ESC settings (throttle source, rates, direction, IDs, LED, CAN speed).</summary>
 public sealed partial class MainViewModel
 {
     private readonly HashSet<byte> _majorConfigRequested = new();
@@ -32,6 +32,7 @@ public sealed partial class MainViewModel
     private Option? _selectedLedColor;
     private Option? _selectedLedBlink;
     private bool _ledSave = true;
+    private Option? _selectedCanBaud;
 
     /// <summary>Asks the user to confirm a write; set by the page (title, message) → accepted.</summary>
     public Func<string, string, Task<bool>>? Confirm { get; set; }
@@ -52,6 +53,8 @@ public sealed partial class MainViewModel
 
     public IReadOnlyList<Option> LedBlinkOptions { get; } = HwSetLed.BlinkModes.Select(b => new Option(b.Blink, b.Name)).ToList();
 
+    public IReadOnlyList<Option> CanBaudOptions { get; } = HwSetBaud.Options.Select(o => new Option(o.Code, o.Name)).ToList();
+
     public ICommand ShowReportCommand { get; private set; } = null!;
     public ICommand ShowSettingsCommand { get; private set; } = null!;
     public ICommand SetThrottleSourceCommand { get; private set; } = null!;
@@ -60,6 +63,7 @@ public sealed partial class MainViewModel
     public ICommand SetThrottleChannelCommand { get; private set; } = null!;
     public ICommand SetNodeIdCommand { get; private set; } = null!;
     public ICommand SetLedCommand { get; private set; } = null!;
+    public ICommand SetCanBaudCommand { get; private set; } = null!;
 
     public bool ShowSettings
     {
@@ -97,6 +101,7 @@ public sealed partial class MainViewModel
     public Option? SelectedLedColor { get => _selectedLedColor; set => SetProperty(ref _selectedLedColor, value); }
     public Option? SelectedLedBlink { get => _selectedLedBlink; set => SetProperty(ref _selectedLedBlink, value); }
     public bool LedSave { get => _ledSave; set => SetProperty(ref _ledSave, value); }
+    public Option? SelectedCanBaud { get => _selectedCanBaud; set => SetProperty(ref _selectedCanBaud, value); }
 
     /// <summary>Which settings the ESC could not report; empty when all are known.</summary>
     public string SettingsHint
@@ -143,13 +148,22 @@ public sealed partial class MainViewModel
             SelectedLedColor, o => $"Set LED to {o.Text}, {SelectedLedBlink?.Text ?? "steady"}{(LedSave ? " (saved)" : "")}",
             _ => "Only changes the ESC's status LED.",
             (w, node, o) => w.SetLedAsync(node, o.Value, SelectedLedBlink?.Value ?? 0, LedSave)), CanWrite);
+
+        // no read exists, and after the change the ESC is off this bus until the FC runs at the same speed
+        SetCanBaudCommand = new Command(async () => await WriteAsync(
+            SelectedCanBaud, o => $"Set CAN speed to {o.Text}",
+            o => $"The ESC will only talk at {o.Text}. Unless the flight controller's CAN_Px_BITRATE is set to the same speed, " +
+                "the ESC drops off the bus: no throttle, no telemetry, and this app cannot reach it to change it back. " +
+                "Some ESCs apply it only after a power cycle.",
+            (w, node, o) => w.SetBaudAsync(node, o.Value),
+            refreshAfter: false), CanWrite);
     }
 
     private bool CanWrite() => IsConnected && SelectedConfigNode != null && !IsReading && !IsWriting;
 
     private void RefreshSettingsCommands()
     {
-        foreach (var c in new[] { SetThrottleSourceCommand, SetDirectionCommand, SetThrottleChannelCommand, SetNodeIdCommand, SetLedCommand })
+        foreach (var c in new[] { SetThrottleSourceCommand, SetDirectionCommand, SetThrottleChannelCommand, SetNodeIdCommand, SetLedCommand, SetCanBaudCommand })
         {
             ((Command?)c)?.ChangeCanExecute();
         }

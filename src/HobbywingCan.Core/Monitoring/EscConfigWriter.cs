@@ -126,6 +126,18 @@ public sealed class EscConfigWriter(DroneCanNode node)
         return Check(nodeId, what, actual.Color == color && actual.Blink == blink, $"color {actual.Color}, blink {actual.Blink}", call);
     }
 
+    /// <summary>The response is empty, so an answer is all there is to check.</summary>
+    public async Task<WriteResult> SetBaudAsync(byte nodeId, byte code, CancellationToken ct = default)
+    {
+        string what = $"CAN speed → {HwSetBaud.ToText(code)}";
+        var call = await Call(DataTypes.HwSetBaud, nodeId, HwSetBaud.Encode(code), ct);
+        if (call.Payload == null)
+        {
+            return NoResponse(nodeId, what, call);
+        }
+        return Check(nodeId, what, true, "", call);
+    }
+
     /// <summary>Performs the request and collects extra answers from other nodes (or duplicate ids) meanwhile.</summary>
     private async Task<CallResult> Call(DataTypeInfo service, byte nodeId, byte[] request, CancellationToken ct,
         TimeSpan? timeout = null, int attempts = Attempts)

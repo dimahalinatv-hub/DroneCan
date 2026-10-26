@@ -267,7 +267,7 @@
                 <!-- Settings (writes to the ESC) -->
                 <ScrollView Grid.Row="2" IsVisible="{Binding ShowSettings}">
                     <!-- keep every row narrow: wide content here widens all three bottom columns -->
-                    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="130,*,60"
+                    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="130,*,60"
                           RowSpacing="6" ColumnSpacing="8" Padding="0,0,8,0">
                         <VerticalStackLayout Grid.Row="0" Grid.ColumnSpan="3" Spacing="2">
                             <Label Style="{StaticResource Empty}" Margin="0"
@@ -315,6 +315,11 @@
                         <Label Grid.Row="9" Text="Direction" />
                         <Picker Grid.Row="9" Grid.Column="1" ItemsSource="{Binding DirectionOptions}" SelectedItem="{Binding SelectedDirection}" />
                         <Button Grid.Row="9" Grid.Column="2" Text="Set" Command="{Binding SetDirectionCommand}" />
+
+                        <Label Grid.Row="10" Text="CAN speed"
+                               ToolTipProperties.Text="ESC CAN bit rate (SetBaud). Cannot be read back; must match the flight controller's CAN_Px_BITRATE" />
+                        <Picker Grid.Row="10" Grid.Column="1" ItemsSource="{Binding CanBaudOptions}" SelectedItem="{Binding SelectedCanBaud}" />
+                        <Button Grid.Row="10" Grid.Column="2" Text="Set" Command="{Binding SetCanBaudCommand}" />
                     </Grid>
                 </ScrollView>
             </Grid>

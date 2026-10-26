@@ -14,6 +14,22 @@ public class ConfigWriterTests
         Assert.Equal(Convert.FromHexString("01534e07"), HwReportingFrequency.EncodeWriteRequest(20051, 7));
         Assert.Equal(Convert.FromHexString("010602"), new HwSetLed(HwSetLed.OptionSave, 6, 2).Encode());
         Assert.Equal(Convert.FromHexString("0304"), new HwSetId(3, 4).Encode());
+        Assert.Equal(Convert.FromHexString("01"), HwSetBaud.Encode(1));
+    }
+
+    [Fact]
+    public async Task SetBaud_EmptyAnswerCountsAsSuccess()
+    {
+        var fc = new SimulatedAutopilot([3, 4], autoRun: false);
+        await using var link = new MavlinkCanLink(fc, new MavlinkCanLinkOptions { EscTelemetryRateHz = 0 });
+        using var node = new DroneCanNode(link, 126);
+        link.Start();
+
+        var result = await new EscConfigWriter(node).SetBaudAsync(3, 1);
+
+        Assert.True(result.Success, result.Message);
+        Assert.Equal((byte)1, fc.Escs[0].BaudCode);
+        Assert.Equal((byte)0, fc.Escs[1].BaudCode);
     }
 
     [Fact]

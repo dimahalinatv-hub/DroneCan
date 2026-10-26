@@ -15,7 +15,8 @@ public static class DataTypes
     public static readonly DataTypeInfo EscStatusExtended = new("uavcan.equipment.esc.StatusExtended", 1036, 0x02DC203C50960EDC, false);
 
     public static readonly DataTypeInfo HwSetId = new("com.hobbywing.esc.SetID", 210, 0xC323CB5E9EC2B6F7, true);
-    public static readonly DataTypeInfo HwSetLed = new("com.hobbywing.esc.SetLED", 212, 0xB493BD48C0853EE5, true);
+    public static readonly DataTypeInfo HwSetBaud = new("com.hobbywing.esc.SetBaud", 211, 0xADA98653B52DE435, true);
+    public static readonly DataTypeInfo HwSetLed =new("com.hobbywing.esc.SetLED", 212, 0xB493BD48C0853EE5, true);
     public static readonly DataTypeInfo HwSetThrottleSource = new("com.hobbywing.esc.SetThrottleSource", 215, 0x0C248FAAEFE5E29A, true);
     public static readonly DataTypeInfo HwSetDirection = new("com.hobbywing.esc.SetDirection", 213, 0x9D793111D262BA68, true);
     public static readonly DataTypeInfo HwSetReportingFrequency = new("com.hobbywing.esc.SetReportingFrequency", 214, 0x1FD0404420983DEB, true);
@@ -29,7 +30,7 @@ public static class DataTypes
     public static readonly IReadOnlyList<DataTypeInfo> All =
     [
         GetNodeInfo, ParamGetSet, NodeStatus, EscStatus, EscStatusExtended,
-        HwSetId, HwSetLed, HwSetThrottleSource,
+        HwSetId, HwSetBaud, HwSetLed, HwSetThrottleSource,
         HwSetDirection, HwSetReportingFrequency, HwGetMaintenanceInformation, HwGetMajorConfig,
         HwGetEscId, HwStatusMsg1, HwStatusMsg2, HwStatusMsg3,
     ];

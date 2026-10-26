@@ -203,6 +203,21 @@ public sealed record HwSetId(byte NodeId, byte ThrottleChannel)
         new(payload.Length > 0 ? payload[0] : (byte)0, payload.Length > 1 ? payload[1] : (byte)0);
 }
 
+/// <summary>
+/// com.hobbywing.esc.SetBaud (211): CAN bus bit rate of the ESC. The response is empty and there is no read,
+/// so the current speed is only known from the bus the ESC is talking on.
+/// </summary>
+public static class HwSetBaud
+{
+    public static IReadOnlyList<(byte Code, string Name)> Options { get; } =
+        [(0, "1 Mbit/s"), (1, "500 kbit/s"), (2, "250 kbit/s"), (3, "200 kbit/s"), (4, "100 kbit/s"), (5, "50 kbit/s")];
+
+    public static byte[] Encode(byte code) => [code];
+
+    public static string ToText(byte code) =>
+        Options.Where(o => o.Code == code).Select(o => o.Name).FirstOrDefault() ?? $"code {code}";
+}
+
 /// <summary>com.hobbywing.esc.SetLED (212).</summary>
 public sealed record HwSetLed(byte Option, byte Color, byte Blink)
 {

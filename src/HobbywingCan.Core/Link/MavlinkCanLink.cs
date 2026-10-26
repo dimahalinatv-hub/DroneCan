@@ -226,9 +226,19 @@ public sealed class MavlinkCanLink : ICanBus, IAsyncDisposable
     public static IReadOnlyList<ushort> ForwardFilterIds { get; } =
         DataTypes.All.Select(t => t.Id).Distinct().OrderBy(id => id).ToArray();
 
-    private void SendFilter(IReadOnlyList<ushort> ids) =>
-        Write(MavlinkIds.CanFilterModify, MavlinkMessages.EncodeCanFilterModify(
-            TargetSystem, TargetComponent, _options.CanBus, MavlinkIds.CanFilterReplace, ids));
+    /// <summary>One message carries at most 16 ids: the first replaces the filter, the rest are added to it.</summary>
+    private void SendFilter(IReadOnlyList<ushort> ids)
+    {
+        int offset = 0;
+        do
+        {
+            var chunk = ids.Skip(offset).Take(16).ToArray();
+            Write(MavlinkIds.CanFilterModify, MavlinkMessages.EncodeCanFilterModify(TargetSystem, TargetComponent, _options.CanBus,
+                offset == 0 ? MavlinkIds.CanFilterReplace : MavlinkIds.CanFilterAdd, chunk));
+            offset += 16;
+        }
+        while (offset < ids.Count);
+    }
 
     public async ValueTask DisposeAsync()
     {

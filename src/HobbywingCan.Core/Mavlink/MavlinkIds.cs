@@ -22,6 +22,7 @@ public static class MavlinkIds
     public const byte MavModeFlagSafetyArmed = 0x80;
 
     public const byte CanFilterReplace = 0;
+    public const byte CanFilterAdd = 1;
 
     private static readonly Dictionary<uint, byte> CrcExtras = new()
     {
