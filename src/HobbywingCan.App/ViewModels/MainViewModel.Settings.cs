@@ -106,17 +106,7 @@ public sealed partial class MainViewModel
     public string NewNodeIdText { get => _newNodeIdText; set => SetField(ref _newNodeIdText, value); }
     public Option? SelectedLedColor { get => _selectedLedColor; set => SetField(ref _selectedLedColor, value); }
     public Option? SelectedLedBlink { get => _selectedLedBlink; set => SetField(ref _selectedLedBlink, value); }
-    public bool LedSave
-    {
-        get => _ledSave;
-        set
-        {
-            if (SetProperty(ref _ledSave, value))
-            {
-                RefreshPresetFields();
-            }
-        }
-    }
+    public bool LedSave { get => _ledSave; set => SetProperty(ref _ledSave, value); }
     public Option? SelectedCanBaud { get => _selectedCanBaud; set => SetField(ref _selectedCanBaud, value); }
 
     /// <summary>Highlight per settings field (edited / written), bound as Marks[PropertyName].</summary>
@@ -142,7 +132,6 @@ public sealed partial class MainViewModel
         if (SetProperty(ref field, value, propertyName))
         {
             Marks.Changed();
-            RefreshPresetFields();
         }
     }
 

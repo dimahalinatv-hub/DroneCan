@@ -6,20 +6,55 @@ using HobbywingCan.Core.Presets;
 
 namespace HobbywingCan.App.ViewModels;
 
-/// <summary>A settings field in the presets popup: whether Save takes it, and what the editor holds now.</summary>
-public sealed class PresetFieldRow(string field, string title, bool include) : ObservableObject
+/// <summary>The values edited in the presets popup, and which of them belong to the preset.</summary>
+public sealed class PresetDraft : ObservableObject
 {
-    private bool _include = include;
-    private string _currentText = "";
+    private Option? _canBaud;
+    private string _nodeIdText = "";
+    private string _throttleChannelText = "";
+    private Option? _throttleSource;
+    private Option? _msg1Rate;
+    private Option? _msg2Rate;
+    private Option? _msg3Rate;
+    private Option? _ledColor;
+    private Option? _ledBlink;
+    private bool _ledSave = true;
+    private Option? _direction;
+    // what identifies one ESC, or can cut it off the bus, is only taken when ticked
+    private bool _includeCanBaud;
+    private bool _includeNodeId;
+    private bool _includeThrottleChannel;
+    private bool _includeThrottleSource = true;
+    private bool _includeMsg1Rate = true;
+    private bool _includeMsg2Rate = true;
+    private bool _includeMsg3Rate = true;
+    private bool _includeLed = true;
+    private bool _includeDirection = true;
 
-    /// <summary>Name of the settings editor property.</summary>
-    public string Field { get; } = field;
-    public string Title { get; } = title;
-    public bool Include { get => _include; set => SetProperty(ref _include, value); }
-    public string CurrentText { get => _currentText; set => SetProperty(ref _currentText, value); }
+    public Option? CanBaud { get => _canBaud; set => SetProperty(ref _canBaud, value); }
+    public string NodeIdText { get => _nodeIdText; set => SetProperty(ref _nodeIdText, value); }
+    public string ThrottleChannelText { get => _throttleChannelText; set => SetProperty(ref _throttleChannelText, value); }
+    public Option? ThrottleSource { get => _throttleSource; set => SetProperty(ref _throttleSource, value); }
+    public Option? Msg1Rate { get => _msg1Rate; set => SetProperty(ref _msg1Rate, value); }
+    public Option? Msg2Rate { get => _msg2Rate; set => SetProperty(ref _msg2Rate, value); }
+    public Option? Msg3Rate { get => _msg3Rate; set => SetProperty(ref _msg3Rate, value); }
+    public Option? LedColor { get => _ledColor; set => SetProperty(ref _ledColor, value); }
+    public Option? LedBlink { get => _ledBlink; set => SetProperty(ref _ledBlink, value); }
+    public bool LedSave { get => _ledSave; set => SetProperty(ref _ledSave, value); }
+    public Option? Direction { get => _direction; set => SetProperty(ref _direction, value); }
+
+    public bool IncludeCanBaud { get => _includeCanBaud; set => SetProperty(ref _includeCanBaud, value); }
+    public bool IncludeNodeId { get => _includeNodeId; set => SetProperty(ref _includeNodeId, value); }
+    public bool IncludeThrottleChannel { get => _includeThrottleChannel; set => SetProperty(ref _includeThrottleChannel, value); }
+    public bool IncludeThrottleSource { get => _includeThrottleSource; set => SetProperty(ref _includeThrottleSource, value); }
+    public bool IncludeMsg1Rate { get => _includeMsg1Rate; set => SetProperty(ref _includeMsg1Rate, value); }
+    public bool IncludeMsg2Rate { get => _includeMsg2Rate; set => SetProperty(ref _includeMsg2Rate, value); }
+    public bool IncludeMsg3Rate { get => _includeMsg3Rate; set => SetProperty(ref _includeMsg3Rate, value); }
+    public bool IncludeLed { get => _includeLed; set => SetProperty(ref _includeLed, value); }
+    public bool IncludeDirection { get => _includeDirection; set => SetProperty(ref _includeDirection, value); }
 }
 
-/// <summary>Named sets of ESC settings: saved from the settings editors, written to an ESC in one go.</summary>
+/// <summary>Named sets of ESC settings: edited in a popup, saved, written to an ESC in one go.</summary>
 public sealed partial class MainViewModel
 {
     private PresetStore _presetStore = null!;
@@ -32,22 +67,11 @@ public sealed partial class MainViewModel
 
     public ObservableCollection<SettingsPreset> Presets { get; } = new();
 
-    // what identifies one ESC, or can cut it off the bus, is only taken when ticked
-    public IReadOnlyList<PresetFieldRow> PresetFields { get; } =
-    [
-        new(nameof(SelectedCanBaud), "CAN speed", false),
-        new(nameof(NewNodeIdText), "Node ID", false),
-        new(nameof(ThrottleChannelText), "Throttle channel", false),
-        new(nameof(SelectedThrottleSource), "Throttle source", true),
-        new(nameof(SelectedMsg1Rate), "StatusMsg1 rate", true),
-        new(nameof(SelectedMsg2Rate), "StatusMsg2 rate", true),
-        new(nameof(SelectedMsg3Rate), "StatusMsg3 rate", true),
-        new(nameof(SelectedLedColor), "LED", true),
-        new(nameof(SelectedDirection), "Direction", true),
-    ];
+    public PresetDraft Draft { get; } = new();
 
     public ICommand OpenPresetsCommand { get; private set; } = null!;
     public ICommand ClosePresetsCommand { get; private set; } = null!;
+    public ICommand DraftFromEditorCommand { get; private set; } = null!;
     public ICommand SavePresetCommand { get; private set; } = null!;
     public ICommand ApplyPresetCommand { get; private set; } = null!;
     public ICommand DeletePresetCommand { get; private set; } = null!;
@@ -56,6 +80,7 @@ public sealed partial class MainViewModel
 
     public string PresetName { get => _presetName; set => SetProperty(ref _presetName, value); }
 
+    /// <summary>The saved preset chosen in the popup; choosing one loads it into <see cref="Draft"/>.</summary>
     public SettingsPreset? SelectedPreset
     {
         get => _selectedPreset;
@@ -67,20 +92,12 @@ public sealed partial class MainViewModel
             }
             if (value != null)
             {
-                // so saving under the same name again keeps the same fields
                 PresetName = value.Name;
-                foreach (var row in PresetFields)
-                {
-                    row.Include = PresetHas(value, row.Field);
-                }
+                LoadDraft(value);
             }
-            OnPropertyChanged(nameof(PresetSummary));
-            ((Command)ApplyPresetCommand).ChangeCanExecute();
             ((Command)DeletePresetCommand).ChangeCanExecute();
         }
     }
-
-    public string PresetSummary => SelectedPreset is { } p ? PresetText(p, "\n") : "No preset selected";
 
     private void InitPresets()
     {
@@ -97,40 +114,124 @@ public sealed partial class MainViewModel
 
         OpenPresetsCommand = new Command(() =>
         {
-            RefreshPresetFields();
+            // a fresh popup starts from the editor; a chosen preset stays as it was left
+            if (SelectedPreset == null)
+            {
+                DraftFromEditor();
+            }
             ShowPresets = true;
         });
         ClosePresetsCommand = new Command(() => ShowPresets = false);
+        DraftFromEditorCommand = new Command(DraftFromEditor);
         SavePresetCommand = new Command(async () => await SavePresetAsync());
-        ApplyPresetCommand = new Command(async () => await ApplyPresetAsync(), () => CanWrite() && SelectedPreset != null);
+        ApplyPresetCommand = new Command(async () => await ApplyDraftAsync(), CanWrite);
         DeletePresetCommand = new Command(async () => await DeletePresetAsync(), () => SelectedPreset != null);
-        RefreshPresetFields();
     }
 
-    private void RefreshPresetFields()
+    /// <summary>Copy the values of the settings editor into the popup; which fields are ticked stays.</summary>
+    private void DraftFromEditor()
     {
-        foreach (var row in PresetFields)
+        Draft.CanBaud = SelectedCanBaud;
+        Draft.NodeIdText = NewNodeIdText;
+        Draft.ThrottleChannelText = ThrottleChannelText;
+        Draft.ThrottleSource = SelectedThrottleSource;
+        Draft.Msg1Rate = SelectedMsg1Rate;
+        Draft.Msg2Rate = SelectedMsg2Rate;
+        Draft.Msg3Rate = SelectedMsg3Rate;
+        Draft.LedColor = SelectedLedColor;
+        Draft.LedBlink = SelectedLedBlink;
+        Draft.LedSave = LedSave;
+        Draft.Direction = SelectedDirection;
+    }
+
+    private void LoadDraft(SettingsPreset p)
+    {
+        Draft.CanBaud = Opt(CanBaudOptions, p.CanBaud);
+        Draft.NodeIdText = p.NodeId?.ToString(CultureInfo.InvariantCulture) ?? "";
+        Draft.ThrottleChannelText = p.ThrottleChannel?.ToString(CultureInfo.InvariantCulture) ?? "";
+        Draft.ThrottleSource = Opt(ThrottleSourceOptions, p.ThrottleSource);
+        Draft.Msg1Rate = Opt(RateOptions, p.Msg1Rate);
+        Draft.Msg2Rate = Opt(RateOptions, p.Msg2Rate);
+        Draft.Msg3Rate = Opt(RateOptions, p.Msg3Rate);
+        Draft.LedColor = Opt(LedColorOptions, p.LedColor);
+        Draft.LedBlink = Opt(LedBlinkOptions, p.LedBlink);
+        Draft.LedSave = p.LedSave;
+        Draft.Direction = Opt(DirectionOptions, p.Direction);
+        Draft.IncludeCanBaud = p.CanBaud != null;
+        Draft.IncludeNodeId = p.NodeId != null;
+        Draft.IncludeThrottleChannel = p.ThrottleChannel != null;
+        Draft.IncludeThrottleSource = p.ThrottleSource != null;
+        Draft.IncludeMsg1Rate = p.Msg1Rate != null;
+        Draft.IncludeMsg2Rate = p.Msg2Rate != null;
+        Draft.IncludeMsg3Rate = p.Msg3Rate != null;
+        Draft.IncludeLed = p.LedColor != null;
+        Draft.IncludeDirection = p.Direction != null;
+    }
+
+    /// <summary>The ticked popup fields that have a value; null (and logged) when a number is invalid or nothing is left.</summary>
+    /// <param name="empty">ticked fields left out because they have no value</param>
+    private SettingsPreset? PresetFromDraft(string name, out List<string> empty)
+    {
+        var d = Draft;
+        var missing = new List<string>();
+        empty = missing;
+        void Check(bool include, object? value, string title)
         {
-            string text = row.Field == nameof(SelectedLedColor)
-                ? SelectedLedColor is { } color ? LedText(color, SelectedLedBlink, LedSave) : ""
-                : FieldValue(row.Field)?.ToString() ?? "";
-            row.CurrentText = text.Length == 0 ? "–" : text;
+            if (include && value is null or "")
+            {
+                missing.Add(title);
+            }
         }
-    }
+        Check(d.IncludeCanBaud, d.CanBaud, "CAN speed");
+        Check(d.IncludeNodeId, d.NodeIdText.Trim(), "Node ID");
+        Check(d.IncludeThrottleChannel, d.ThrottleChannelText.Trim(), "Throttle channel");
+        Check(d.IncludeThrottleSource, d.ThrottleSource, "Throttle source");
+        Check(d.IncludeMsg1Rate, d.Msg1Rate, "StatusMsg1 rate");
+        Check(d.IncludeMsg2Rate, d.Msg2Rate, "StatusMsg2 rate");
+        Check(d.IncludeMsg3Rate, d.Msg3Rate, "StatusMsg3 rate");
+        Check(d.IncludeLed, d.LedColor, "LED");
+        Check(d.IncludeDirection, d.Direction, "Direction");
 
-    private static bool PresetHas(SettingsPreset p, string field) => field switch
-    {
-        nameof(SelectedCanBaud) => p.CanBaud != null,
-        nameof(NewNodeIdText) => p.NodeId != null,
-        nameof(ThrottleChannelText) => p.ThrottleChannel != null,
-        nameof(SelectedThrottleSource) => p.ThrottleSource != null,
-        nameof(SelectedMsg1Rate) => p.Msg1Rate != null,
-        nameof(SelectedMsg2Rate) => p.Msg2Rate != null,
-        nameof(SelectedMsg3Rate) => p.Msg3Rate != null,
-        nameof(SelectedLedColor) => p.LedColor != null,
-        nameof(SelectedDirection) => p.Direction != null,
-        _ => false,
-    };
+        byte? nodeId = null;
+        if (d.IncludeNodeId && d.NodeIdText.Trim().Length > 0)
+        {
+            if (!byte.TryParse(d.NodeIdText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var id) || id is < 1 or > 127)
+            {
+                AddLog("Preset: node ID must be 1..127");
+                return null;
+            }
+            nodeId = id;
+        }
+        byte? throttleChannel = null;
+        if (d.IncludeThrottleChannel && d.ThrottleChannelText.Trim().Length > 0)
+        {
+            if (!byte.TryParse(d.ThrottleChannelText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var channel) || channel is < 1 or > 63)
+            {
+                AddLog("Preset: throttle channel must be 1..63");
+                return null;
+            }
+            throttleChannel = channel;
+        }
+        bool led = d.IncludeLed && d.LedColor != null;
+        var preset = new SettingsPreset(name,
+            CanBaud: d.IncludeCanBaud ? d.CanBaud?.Value : null,
+            NodeId: nodeId,
+            ThrottleChannel: throttleChannel,
+            ThrottleSource: d.IncludeThrottleSource ? d.ThrottleSource?.Value : null,
+            Msg1Rate: d.IncludeMsg1Rate ? d.Msg1Rate?.Value : null,
+            Msg2Rate: d.IncludeMsg2Rate ? d.Msg2Rate?.Value : null,
+            Msg3Rate: d.IncludeMsg3Rate ? d.Msg3Rate?.Value : null,
+            LedColor: led ? d.LedColor!.Value : null,
+            LedBlink: led ? d.LedBlink?.Value ?? 0 : null,
+            LedSave: d.LedSave,
+            Direction: d.IncludeDirection ? d.Direction?.Value : null);
+        if (preset == new SettingsPreset(name, LedSave: d.LedSave))
+        {
+            AddLog("Preset is empty: tick at least one field and give it a value");
+            return null;
+        }
+        return preset;
+    }
 
     private string PresetText(SettingsPreset p, string separator)
     {
@@ -173,46 +274,8 @@ public sealed partial class MainViewModel
             AddLog("Enter a preset name");
             return;
         }
-        bool Take(string field) => PresetFields.First(r => r.Field == field).Include;
-
-        byte? nodeId = null;
-        if (Take(nameof(NewNodeIdText)) && NewNodeIdText.Trim().Length > 0)
+        if (PresetFromDraft(name, out var empty) is not { } preset)
         {
-            if (!byte.TryParse(NewNodeIdText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var id) || id is < 1 or > 127)
-            {
-                AddLog("Node ID must be 1..127");
-                return;
-            }
-            nodeId = id;
-        }
-        byte? throttleChannel = null;
-        if (Take(nameof(ThrottleChannelText)) && ThrottleChannelText.Trim().Length > 0)
-        {
-            if (!byte.TryParse(ThrottleChannelText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var channel) || channel is < 1 or > 63)
-            {
-                AddLog("Throttle channel must be 1..63");
-                return;
-            }
-            throttleChannel = channel;
-        }
-        bool led = Take(nameof(SelectedLedColor)) && SelectedLedColor != null;
-        var preset = new SettingsPreset(name,
-            CanBaud: Take(nameof(SelectedCanBaud)) ? SelectedCanBaud?.Value : null,
-            NodeId: nodeId,
-            ThrottleChannel: throttleChannel,
-            ThrottleSource: Take(nameof(SelectedThrottleSource)) ? SelectedThrottleSource?.Value : null,
-            Msg1Rate: Take(nameof(SelectedMsg1Rate)) ? SelectedMsg1Rate?.Value : null,
-            Msg2Rate: Take(nameof(SelectedMsg2Rate)) ? SelectedMsg2Rate?.Value : null,
-            Msg3Rate: Take(nameof(SelectedMsg3Rate)) ? SelectedMsg3Rate?.Value : null,
-            LedColor: led ? SelectedLedColor!.Value : null,
-            LedBlink: led ? SelectedLedBlink?.Value ?? 0 : null,
-            LedSave: LedSave,
-            Direction: Take(nameof(SelectedDirection)) ? SelectedDirection?.Value : null);
-
-        var empty = PresetFields.Where(r => r.Include && !PresetHas(preset, r.Field)).Select(r => r.Title).ToList();
-        if (PresetFields.All(r => !PresetHas(preset, r.Field)))
-        {
-            AddLog("Nothing to save: tick at least one field that has a value");
             return;
         }
 
@@ -267,13 +330,28 @@ public sealed partial class MainViewModel
         }
     }
 
+    /// <summary>Writes the popup's values as they are now, saved or not.</summary>
+    private async Task ApplyDraftAsync()
+    {
+        string name = PresetName.Trim();
+        if (PresetFromDraft(name.Length > 0 ? name : "unsaved", out var empty) is not { } preset)
+        {
+            return;
+        }
+        if (empty.Count > 0)
+        {
+            AddLog($"Preset \"{preset.Name}\": no value, not written: {string.Join(", ", empty)}");
+        }
+        await ApplyPresetAsync(preset);
+    }
+
     /// <summary>
     /// Puts the preset into the settings editors and writes every field the ESC does not already report
     /// with that value, after one confirmation.
     /// </summary>
-    private async Task ApplyPresetAsync()
+    private async Task ApplyPresetAsync(SettingsPreset preset)
     {
-        if (SelectedPreset is not { } preset || SelectedConfigNode is not { } target)
+        if (SelectedConfigNode is not { } target)
         {
             return;
         }
