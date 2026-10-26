@@ -68,7 +68,12 @@ public sealed class EscRowViewModel(byte nodeId) : ObservableObject
         {
             Health = "⚠ answers for others";
         }
-        ThrottleSource = s.MajorConfig is { } cfg ? (cfg.ThrottleSourcePwm ? "PWM" : "CAN") : "–";
+        ThrottleSource = s.ThrottleSourcePwm switch
+        {
+            true => "PWM",
+            false => "CAN",
+            null => "–",
+        };
         Direction = s.CounterClockwise switch
         {
             true => "CCW",

@@ -81,7 +81,7 @@
             <Label Grid.Column="0" Text="Node" Style="{StaticResource Header}" />
             <Label Grid.Column="1" Text="Name" Style="{StaticResource Header}" />
             <Label Grid.Column="2" Text="Thr ch" Style="{StaticResource Header}" />
-            <Label Grid.Column="3" Text="Thr src" Style="{StaticResource Header}" ToolTipProperties.Text="Throttle source from GetMajorConfig: CAN (DroneCAN) or PWM" />
+            <Label Grid.Column="3" Text="Thr src" Style="{StaticResource Header}" ToolTipProperties.Text="Throttle source from GetMajorConfig, or from the ESC's answer to the last Set: CAN (DroneCAN) or PWM. – = unknown" />
             <Label Grid.Column="4" Text="RPM" Style="{StaticResource Header}" />
             <Label Grid.Column="5" Text="PWM" Style="{StaticResource Header}" />
             <Label Grid.Column="6" Text="Dir" Style="{StaticResource Header}"
@@ -268,9 +268,13 @@
                     <!-- keep every row narrow: wide content here widens all three bottom columns -->
                     <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="130,*,60"
                           RowSpacing="6" ColumnSpacing="8" Padding="0,0,8,0">
-                        <Label Grid.Row="0" Grid.ColumnSpan="3" Style="{StaticResource Empty}" Margin="0"
-                               Text="Set = write after confirmation (disarmed only)"
-                               ToolTipProperties.Text="Each write is checked against the ESC's reply and logged" />
+                        <VerticalStackLayout Grid.Row="0" Grid.ColumnSpan="3" Spacing="2">
+                            <Label Style="{StaticResource Empty}" Margin="0"
+                                   Text="Set = write after confirmation (disarmed only)"
+                                   ToolTipProperties.Text="Each write is checked against the ESC's reply and logged" />
+                            <Label Style="{StaticResource Empty}" Margin="0" Text="{Binding SettingsHint}" IsVisible="{Binding HasSettingsHint}"
+                                   ToolTipProperties.Text="There is no read-only query for throttle source and LED other than GetMajorConfig (242)" />
+                        </VerticalStackLayout>
 
                         <Label Grid.Row="1" Text="Throttle source" />
                         <Picker Grid.Row="1" Grid.Column="1" ItemsSource="{Binding ThrottleSourceOptions}" SelectedItem="{Binding SelectedThrottleSource}" />

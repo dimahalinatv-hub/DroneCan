@@ -35,6 +35,25 @@ public sealed class NodeState(byte nodeId)
     public bool? CounterClockwise =>
         DirectionSetting is { } d ? d == HwSetDirection.CounterClockwise : MajorConfig?.CounterClockwise;
 
+    /// <summary>
+    /// Throttle source as answered to com.hobbywing.esc.SetThrottleSource. There is no read-only query, so this
+    /// is only known after a write; cleared by a newer GetMajorConfig response.
+    /// </summary>
+    public byte? ThrottleSourceSetting { get; internal set; }
+
+    /// <summary>LED setting as answered to com.hobbywing.esc.SetLED; cleared by a newer GetMajorConfig response.</summary>
+    public HwSetLed? LedSetting { get; internal set; }
+
+    /// <summary>Best known throttle source: newest of SetThrottleSource answer and GetMajorConfig; null when neither was seen.</summary>
+    public bool? ThrottleSourcePwm =>
+        ThrottleSourceSetting is { } s ? s == HwSetThrottleSource.Pwm : MajorConfig?.ThrottleSourcePwm;
+
+    /// <summary>Best known LED color (SetLED answer, else GetMajorConfig).</summary>
+    public byte? LedColor => LedSetting?.Color ?? MajorConfig?.LedColor;
+
+    /// <summary>Best known LED blink mode (SetLED answer, else GetMajorConfig led_status).</summary>
+    public byte? LedBlink => LedSetting?.Blink ?? MajorConfig?.LedStatus;
+
     public HwStatusMsg1? Msg1 { get; internal set; }
     public HwStatusMsg2? Msg2 { get; internal set; }
     public HwStatusMsg3? Msg3 { get; internal set; }
@@ -152,6 +171,9 @@ public sealed class EscMonitor : IDisposable
                 var state = GetOrAdd(t.SourceNodeId);
                 var config = HwMajorConfig.Decode(t.Payload);
                 state.MajorConfig = config;
+                // the config is newer than any earlier write answer
+                state.ThrottleSourceSetting = null;
+                state.LedSetting = null;
                 state.ThrottleChannel = config.ThrottleChannel;
                 state.ReportingRateCodes[DataTypes.HwStatusMsg1.Id] = config.Msg1RateCode;
                 state.ReportingRateCodes[DataTypes.HwStatusMsg2.Id] = config.Msg2RateCode;
@@ -165,6 +187,19 @@ public sealed class EscMonitor : IDisposable
             {
                 // answers both the 255 query and actual writes with the ESC's current setting
                 GetOrAdd(t.SourceNodeId).DirectionSetting = HwSetDirection.DecodeResponse(t.Payload);
+            }
+            else if (t.Kind == TransferKind.Response && t.DataTypeId == DataTypes.HwSetThrottleSource.Id)
+            {
+                // the ESC answers with the source it now uses; the only way to learn it without GetMajorConfig
+                byte source = HwSetThrottleSource.DecodeResponse(t.Payload);
+                if (source is HwSetThrottleSource.Can or HwSetThrottleSource.Pwm)
+                {
+                    GetOrAdd(t.SourceNodeId).ThrottleSourceSetting = source;
+                }
+            }
+            else if (t.Kind == TransferKind.Response && t.DataTypeId == DataTypes.HwSetLed.Id && t.Payload.Length >= 3)
+            {
+                GetOrAdd(t.SourceNodeId).LedSetting = HwSetLed.Decode(t.Payload);
             }
         }
         catch (Exception ex) when (ex is FormatException or ArgumentException or IndexOutOfRangeException)

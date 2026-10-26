@@ -56,6 +56,65 @@ public class ConfigWriterTests
     }
 
     [Fact]
+    public async Task WithoutMajorConfig_ThrottleSourceAndLedAreLearnedFromWriteAnswers()
+    {
+        // some X8 G2 firmware never answers GetMajorConfig
+        var fc = new SimulatedAutopilot([3], autoRun: false);
+        fc.UnansweredServices.Add(DataTypes.HwGetMajorConfig.Id);
+        await using var link = new MavlinkCanLink(fc, new MavlinkCanLinkOptions { EscTelemetryRateHz = 0 });
+        using var node = new DroneCanNode(link, 126);
+        using var monitor = new EscMonitor(node, link);
+        link.Start();
+        var writer = new EscConfigWriter(node);
+        var reader = new EscConfigReader(node);
+
+        var before = (await reader.ReadAsync(3, includeParameters: false, progress: null)).ToItems();
+        foreach (var name in new[] { "Throttle source", "LED color", "LED mode" })
+        {
+            Assert.Contains(before, i => i.Name == name && i.Value.StartsWith("unknown"));
+        }
+        Assert.Null(monitor.Get(3)!.ThrottleSourcePwm);
+
+        Assert.True((await writer.SetThrottleSourceAsync(3, HwSetThrottleSource.Pwm)).Success);
+        Assert.True((await writer.SetLedAsync(3, color: 6, blink: 2, save: false)).Success);
+
+        var state = monitor.Get(3)!;
+        Assert.Null(state.MajorConfig);
+        Assert.True(state.ThrottleSourcePwm);
+        Assert.Equal((byte?)6, state.LedColor);
+        Assert.Equal((byte?)2, state.LedBlink);
+
+        var report = await reader.ReadAsync(3, includeParameters: false, progress: null);
+        report.LastSetThrottleSource = state.ThrottleSourceSetting;
+        report.LastSetLed = state.LedSetting;
+        var items = report.ToItems();
+        Assert.Contains(items, i => i.Name == "Throttle source" && i.Value == "PWM (last set)");
+        Assert.Contains(items, i => i.Name == "LED color" && i.Value == "Yellow (R+G) (last set)");
+        Assert.Contains(items, i => i.Name == "LED mode" && i.Value == "Blink 2 Hz (last set)");
+    }
+
+    [Fact]
+    public async Task MajorConfig_ReplacesEarlierWriteAnswers()
+    {
+        var fc = new SimulatedAutopilot([3], autoRun: false);
+        await using var link = new MavlinkCanLink(fc, new MavlinkCanLinkOptions { EscTelemetryRateHz = 0 });
+        using var node = new DroneCanNode(link, 126);
+        using var monitor = new EscMonitor(node, link);
+        link.Start();
+
+        Assert.True((await new EscConfigWriter(node).SetThrottleSourceAsync(3, HwSetThrottleSource.Pwm)).Success);
+        Assert.True(monitor.Get(3)!.ThrottleSourcePwm);
+
+        // changed behind our back (e.g. by another tool), then read again
+        fc.Escs[0].PwmThrottle = false;
+        Assert.NotNull(await node.RequestAsync(DataTypes.HwGetMajorConfig, 3, HwMajorConfig.EncodeRequest(), TimeSpan.FromSeconds(1)));
+
+        var state = monitor.Get(3)!;
+        Assert.Null(state.ThrottleSourceSetting);
+        Assert.False(state.ThrottleSourcePwm);
+    }
+
+    [Fact]
     public async Task DirectionQuery_ReportsSettingWithoutChangingIt()
     {
         // second simulated ESC is configured CCW

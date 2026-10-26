@@ -21,7 +21,21 @@ public class DsdlSerializationTests
         Assert.Equal(5, c.Msg1RateCode);
         Assert.Equal(300, c.PositioningAngle);
         Assert.Equal(new byte[] { 0xAA, 0x55 }, c.Reserved);
+        Assert.Equal("Yellow (R+G)", c.LedColorText);
+        Assert.Equal("code 3", c.LedModeText);
     }
+
+    [Theory]
+    [InlineData(0, "Off")]
+    [InlineData(4, "Red")]
+    [InlineData(7, "White (R+G+B)")]
+    public void LedColorNames_MatchSettingsOptions(byte color, string name) => Assert.Equal(name, HwSetLed.ColorName(color));
+
+    [Theory]
+    [InlineData(0, "Steady")]
+    [InlineData(5, "Blink 5 Hz")]
+    [InlineData(3, "code 3")]
+    public void LedBlinkNames_MatchSettingsOptions(byte blink, string name) => Assert.Equal(name, HwSetLed.BlinkName(blink));
 
     [Fact]
     public void MaintenanceInfo_DecodesUint24()

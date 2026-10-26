@@ -13,6 +13,12 @@ public sealed class EscConfigReport
     public HwMaintenanceInfo? Maintenance { get; set; }
     public byte? Direction { get; set; }
     public Dictionary<ushort, HwReportingFrequency> ReportingRates { get; } = new();
+
+    /// <summary>Last throttle source the ESC confirmed to a write (shown when GetMajorConfig is not answered).</summary>
+    public byte? LastSetThrottleSource { get; set; }
+
+    /// <summary>Last LED setting the ESC confirmed to a write (shown when GetMajorConfig is not answered).</summary>
+    public HwSetLed? LastSetLed { get; set; }
     public List<ParamEntry> Parameters { get; } = new();
 
     /// <summary>Raw response payloads (hex) so they can be checked against Hobbywing docs.</summary>
@@ -38,12 +44,21 @@ public sealed class EscConfigReport
             items.Add(new("Major config", "Direction", c.DirectionText));
             items.Add(new("Major config", "Throttle source", c.ThrottleSourceText));
             items.Add(new("Major config", "Throttle channel", c.ThrottleChannel.ToString()));
-            items.Add(new("Major config", "LED status", c.LedStatus.ToString()));
             items.Add(new("Major config", "LED color", c.LedColorText));
+            items.Add(new("Major config", "LED mode", c.LedModeText));
             items.Add(new("Major config", "StatusMsg1 rate", HwRate.ToText(c.Msg1RateCode)));
             items.Add(new("Major config", "StatusMsg2 rate", HwRate.ToText(c.Msg2RateCode)));
             items.Add(new("Major config", "Positioning angle", c.PositioningAngle.ToString()));
             items.Add(new("Major config", "Reserved", Convert.ToHexString(c.Reserved)));
+        }
+        else
+        {
+            // only GetMajorConfig reports these; a write answer is the next best thing
+            const string unknown = "unknown (no GetMajorConfig answer)";
+            items.Add(new("Major config", "Throttle source",
+                LastSetThrottleSource is { } s ? $"{HwSetThrottleSource.ToText(s)} (last set)" : unknown));
+            items.Add(new("Major config", "LED color", LastSetLed is { } led ? $"{HwSetLed.ColorName(led.Color)} (last set)" : unknown));
+            items.Add(new("Major config", "LED mode", LastSetLed is { } led2 ? $"{HwSetLed.BlinkName(led2.Blink)} (last set)" : unknown));
         }
         if (Direction is { } d)
         {

@@ -419,6 +419,11 @@ public sealed partial class MainViewModel : ObservableObject
         {
             AddLog($"Reading configuration of node {target.NodeId}…");
             var report = await _reader.ReadAsync(target.NodeId, IncludeParameters, progress, _readCts.Token);
+            if (_monitor?.Get(target.NodeId) is { } state)
+            {
+                report.LastSetThrottleSource = state.ThrottleSourceSetting;
+                report.LastSetLed = state.LedSetting;
+            }
             _lastReport = report;
             foreach (var item in report.ToItems())
             {

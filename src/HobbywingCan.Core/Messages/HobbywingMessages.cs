@@ -113,8 +113,8 @@ public sealed record HwMajorConfig(
 
     public string DirectionText => CounterClockwise ? "CCW" : "CW";
     public string ThrottleSourceText => ThrottleSourcePwm ? "PWM" : "CAN (digital)";
-    public string LedColorText => LedColor == 0 ? "off" : string.Concat(
-        (LedColor & 4) != 0 ? "R" : "", (LedColor & 2) != 0 ? "G" : "", (LedColor & 1) != 0 ? "B" : "");
+    public string LedColorText => HwSetLed.ColorName(LedColor);
+    public string LedModeText => HwSetLed.BlinkName(LedStatus);
 }
 
 /// <summary>com.hobbywing.esc.GetMaintenanceInformation (241) response.</summary>
@@ -211,6 +211,12 @@ public sealed record HwSetLed(byte Option, byte Color, byte Blink)
 
     public static IReadOnlyList<(byte Blink, string Name)> BlinkModes { get; } =
         [(0, "Steady"), (1, "Blink 1 Hz"), (2, "Blink 2 Hz"), (5, "Blink 5 Hz")];
+
+    public static string ColorName(byte color) =>
+        Colors.Where(c => c.Color == color).Select(c => c.Name).FirstOrDefault() ?? $"code {color}";
+
+    public static string BlinkName(byte blink) =>
+        BlinkModes.Where(b => b.Blink == blink).Select(b => b.Name).FirstOrDefault() ?? $"code {blink}";
 
     public byte[] Encode() => [Option, Color, Blink];
 

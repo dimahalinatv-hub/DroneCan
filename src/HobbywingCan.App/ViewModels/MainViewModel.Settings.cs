@@ -19,7 +19,8 @@ public sealed partial class MainViewModel
     private EscConfigWriter? _writer;
     private bool _isWriting;
     private bool _showSettings;
-    private (HwMajorConfig?, byte, byte?)? _loadedSettings;
+    private (HwMajorConfig?, byte, byte?, byte?, HwSetLed?)? _loadedSettings;
+    private string _settingsHint = "";
 
     private Option? _selectedThrottleSource;
     private Option? _selectedDirection;
@@ -98,6 +99,21 @@ public sealed partial class MainViewModel
     public Option? SelectedLedBlink { get => _selectedLedBlink; set => SetProperty(ref _selectedLedBlink, value); }
     public bool LedSave { get => _ledSave; set => SetProperty(ref _ledSave, value); }
 
+    /// <summary>Which settings the ESC could not report; empty when all are known.</summary>
+    public string SettingsHint
+    {
+        get => _settingsHint;
+        private set
+        {
+            if (SetProperty(ref _settingsHint, value))
+            {
+                OnPropertyChanged(nameof(HasSettingsHint));
+            }
+        }
+    }
+
+    public bool HasSettingsHint => SettingsHint.Length > 0;
+
     private void InitSettings()
     {
         ShowReportCommand = new Command(() => ShowSettings = false);
@@ -149,12 +165,31 @@ public sealed partial class MainViewModel
         {
             return;
         }
-        if (state.MajorConfig is { } c)
+        // GetMajorConfig is the only read for these; some X8 G2 firmware does not answer it, then only a write tells
+        if (state.ThrottleSourcePwm is { } pwm)
         {
-            SelectedThrottleSource = Find(ThrottleSourceOptions, c.ThrottleSourcePwm ? HwSetThrottleSource.Pwm : HwSetThrottleSource.Can);
-            SelectedLedColor = Find(LedColorOptions, c.LedColor);
-            SelectedLedBlink = Find(LedBlinkOptions, c.LedStatus) ?? SelectedLedBlink;
+            SelectedThrottleSource = Find(ThrottleSourceOptions, pwm ? HwSetThrottleSource.Pwm : HwSetThrottleSource.Can);
         }
+        if (state.LedColor is { } color)
+        {
+            SelectedLedColor = Find(LedColorOptions, color) ?? SelectedLedColor;
+        }
+        if (state.LedBlink is { } blink)
+        {
+            SelectedLedBlink = Find(LedBlinkOptions, blink) ?? SelectedLedBlink;
+        }
+        var unknown = new List<string>();
+        if (state.ThrottleSourcePwm == null)
+        {
+            unknown.Add("throttle source");
+        }
+        if (state.LedColor == null)
+        {
+            unknown.Add("LED");
+        }
+        SettingsHint = unknown.Count == 0
+            ? ""
+            : $"Current {string.Join(" and ", unknown)} unknown: the ESC has not answered GetMajorConfig. Shown after a Set.";
         if (state.CounterClockwise is { } ccw)
         {
             SelectedDirection = Find(DirectionOptions, ccw ? HwSetDirection.CounterClockwise : HwSetDirection.Clockwise);
@@ -190,7 +225,8 @@ public sealed partial class MainViewModel
         {
             return;
         }
-        var snapshot = (state.MajorConfig, state.ReportingRateCodes.GetValueOrDefault(DataTypes.HwStatusMsg3.Id), state.DirectionSetting);
+        var snapshot = (state.MajorConfig, state.ReportingRateCodes.GetValueOrDefault(DataTypes.HwStatusMsg3.Id), state.DirectionSetting,
+            state.ThrottleSourceSetting, state.LedSetting);
         if (!Equals(snapshot, _loadedSettings))
         {
             _loadedSettings = snapshot;
