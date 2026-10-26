@@ -466,7 +466,8 @@ public sealed partial class MainViewModel : ObservableObject
             _lastReport = report;
             // replace only now, so a re-read keeps showing the previous values meanwhile
             ConfigItems.Clear();
-            foreach (var item in report.ToItems())
+            // errors only go to the log and the copied report
+            foreach (var item in report.ToItems(includeErrors: false))
             {
                 ConfigItems.Add(item);
             }

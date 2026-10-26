@@ -26,7 +26,7 @@ public sealed class EscConfigReport
 
     public List<string> Errors { get; } = new();
 
-    public IReadOnlyList<ConfigItem> ToItems()
+    public IReadOnlyList<ConfigItem> ToItems(bool includeErrors = true)
     {
         var items = new List<ConfigItem>();
         if (Info != null)
@@ -53,12 +53,16 @@ public sealed class EscConfigReport
         }
         else
         {
-            // only GetMajorConfig reports these; a write answer is the next best thing
-            const string unknown = "unknown (no GetMajorConfig answer)";
-            items.Add(new("Major config", "Throttle source",
-                LastSetThrottleSource is { } s ? $"{HwSetThrottleSource.ToText(s)} (last set)" : unknown));
-            items.Add(new("Major config", "LED color", LastSetLed is { } led ? $"{HwSetLed.ColorName(led.Color)} (last set)" : unknown));
-            items.Add(new("Major config", "LED mode", LastSetLed is { } led2 ? $"{HwSetLed.BlinkName(led2.Blink)} (last set)" : unknown));
+            // only GetMajorConfig reports these; a write answer is the next best thing, otherwise they are left out
+            if (LastSetThrottleSource is { } s)
+            {
+                items.Add(new("Major config", "Throttle source", $"{HwSetThrottleSource.ToText(s)} (last set)"));
+            }
+            if (LastSetLed is { } led)
+            {
+                items.Add(new("Major config", "LED color", $"{HwSetLed.ColorName(led.Color)} (last set)"));
+                items.Add(new("Major config", "LED mode", $"{HwSetLed.BlinkName(led.Blink)} (last set)"));
+            }
         }
         if (Direction is { } d)
         {
@@ -85,9 +89,12 @@ public sealed class EscConfigReport
         {
             items.Add(new("Raw", name, hex));
         }
-        foreach (var e in Errors)
+        if (includeErrors)
         {
-            items.Add(new("Errors", "", e));
+            foreach (var e in Errors)
+            {
+                items.Add(new("Errors", "", e));
+            }
         }
         return items;
     }

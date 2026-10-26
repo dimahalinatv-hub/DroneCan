@@ -71,7 +71,7 @@ public class ConfigWriterTests
         var before = (await reader.ReadAsync(3, includeParameters: false, progress: null)).ToItems();
         foreach (var name in new[] { "Throttle source", "LED color", "LED mode" })
         {
-            Assert.Contains(before, i => i.Name == name && i.Value.StartsWith("unknown"));
+            Assert.DoesNotContain(before, i => i.Name == name);
         }
         Assert.Null(monitor.Get(3)!.ThrottleSourcePwm);
 

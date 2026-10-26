@@ -45,7 +45,7 @@
         </Style>
     </ContentPage.Resources>
 
-    <Grid RowDefinitions="Auto,Auto,Auto,Auto,2*,3*" Padding="12" RowSpacing="4">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,4*" Padding="12" RowSpacing="4">
 
         <!-- Connection bar -->
         <HorizontalStackLayout Grid.Row="0" Spacing="10">
