@@ -74,12 +74,12 @@
 | Налаштування | Сервіс | Примітка |
 |---|---|---|
 | CAN speed | `SetBaud` (211) | див. нижче: помилкова швидкість обриває зв'язок з ESC |
-| Node ID | `SetID` (210) | throttle-канал лишається тим самим; ESC з'явиться як новий вузол |
-| Throttle channel | `SetID` (210) | node ID лишається тим самим |
 | Throttle source CAN / PWM | `SetThrottleSource` (215) | у режимі PWM ESC **ігнорує газ з ArduPilot по CAN** |
 | StatusMsg1 / 2 / 3 rate | `SetReportingFrequency` (214), `OPTION_WRITE` | 500…1 Гц або Off; Msg1 (RPM) використовується ArduPilot, зокрема для RPM-notch |
 | LED color / mode | `SetLED` (212) | «Save» — зберегти в ESC |
 | Direction CW / CCW | `SetDirection` (213) | |
+| Throttle channel | `SetID` (210) | node ID лишається тим самим |
+| Node ID | `SetID` (210) | throttle-канал лишається тим самим; ESC з'явиться як новий вузол |
 
 ### ⚠ X8 G2: SetID діє на всі ESC на шині
 

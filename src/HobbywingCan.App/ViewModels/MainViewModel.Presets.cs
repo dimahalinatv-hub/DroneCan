@@ -183,14 +183,14 @@ public sealed partial class MainViewModel
             }
         }
         Check(d.IncludeCanBaud, d.CanBaud, "CAN speed");
-        Check(d.IncludeNodeId, d.NodeIdText.Trim(), "Node ID");
-        Check(d.IncludeThrottleChannel, d.ThrottleChannelText.Trim(), "Throttle channel");
         Check(d.IncludeThrottleSource, d.ThrottleSource, "Throttle source");
         Check(d.IncludeMsg1Rate, d.Msg1Rate, "StatusMsg1 rate");
         Check(d.IncludeMsg2Rate, d.Msg2Rate, "StatusMsg2 rate");
         Check(d.IncludeMsg3Rate, d.Msg3Rate, "StatusMsg3 rate");
         Check(d.IncludeLed, d.LedColor, "LED");
         Check(d.IncludeDirection, d.Direction, "Direction");
+        Check(d.IncludeThrottleChannel, d.ThrottleChannelText.Trim(), "Throttle channel");
+        Check(d.IncludeNodeId, d.NodeIdText.Trim(), "Node ID");
 
         byte? nodeId = null;
         if (d.IncludeNodeId && d.NodeIdText.Trim().Length > 0)
@@ -244,14 +244,6 @@ public sealed partial class MainViewModel
             }
         }
         Add("CAN speed", Opt(CanBaudOptions, p.CanBaud));
-        if (p.NodeId is { } id)
-        {
-            parts.Add($"Node ID: {id}");
-        }
-        if (p.ThrottleChannel is { } channel)
-        {
-            parts.Add($"Throttle channel: {channel}");
-        }
         Add("Throttle source", Opt(ThrottleSourceOptions, p.ThrottleSource));
         Add("StatusMsg1 rate", Opt(RateOptions, p.Msg1Rate));
         Add("StatusMsg2 rate", Opt(RateOptions, p.Msg2Rate));
@@ -261,6 +253,14 @@ public sealed partial class MainViewModel
             parts.Add($"LED: {LedText(color, Opt(LedBlinkOptions, p.LedBlink), p.LedSave)}");
         }
         Add("Direction", Opt(DirectionOptions, p.Direction));
+        if (p.ThrottleChannel is { } channel)
+        {
+            parts.Add($"Throttle channel: {channel}");
+        }
+        if (p.NodeId is { } id)
+        {
+            parts.Add($"Node ID: {id}");
+        }
         return string.Join(separator, parts);
     }
 
