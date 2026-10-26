@@ -270,6 +270,9 @@ public sealed partial class MainViewModel : ObservableObject
         _autoReadNodeId = null;
         _lastReport = null;
         ConfigItems.Clear();
+        // a new connection may be a different ESC with the same node ID
+        _settingsNodeId = null;
+        _loadedSettings = null;
         _lastForwardAckResult = null;
         IsConnected = true;
         _timer.Start();

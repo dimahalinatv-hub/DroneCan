@@ -20,6 +20,7 @@ public sealed partial class MainViewModel
     private bool _isWriting;
     private bool _showSettings;
     private (HwMajorConfig?, byte, byte?, byte?, HwSetLed?)? _loadedSettings;
+    private byte? _settingsNodeId;
     private string _settingsHint = "";
 
     private Option? _selectedThrottleSource;
@@ -178,7 +179,18 @@ public sealed partial class MainViewModel
     /// <summary>Fill the settings editors with what is currently known about the selected ESC.</summary>
     private void LoadSettingsFromNode()
     {
-        if (SelectedConfigNode == null || _monitor?.Get(SelectedConfigNode.NodeId) is not { } state)
+        // null is only a moment while the Picker replaces the selected item; keep the fields then
+        if (SelectedConfigNode is not { } selected)
+        {
+            return;
+        }
+        if (selected.NodeId != _settingsNodeId)
+        {
+            // never leave another ESC's values in fields this ESC has not reported
+            _settingsNodeId = selected.NodeId;
+            ClearSettingsEditors();
+        }
+        if (_monitor?.Get(selected.NodeId) is not { } state)
         {
             return;
         }
@@ -216,6 +228,21 @@ public sealed partial class MainViewModel
         SelectedMsg3Rate = RateFor(state, DataTypes.HwStatusMsg3.Id) ?? SelectedMsg3Rate;
         ThrottleChannelText = state.ThrottleChannel?.ToString(CultureInfo.InvariantCulture) ?? ThrottleChannelText;
         NewNodeIdText = state.NodeId.ToString(CultureInfo.InvariantCulture);
+    }
+
+    private void ClearSettingsEditors()
+    {
+        SelectedCanBaud = null;
+        NewNodeIdText = "";
+        ThrottleChannelText = "";
+        SelectedThrottleSource = null;
+        SelectedMsg1Rate = null;
+        SelectedMsg2Rate = null;
+        SelectedMsg3Rate = null;
+        SelectedLedColor = null;
+        SelectedLedBlink = null;
+        SelectedDirection = null;
+        SettingsHint = "";
     }
 
     private Option? RateFor(NodeState state, ushort messageId) =>
