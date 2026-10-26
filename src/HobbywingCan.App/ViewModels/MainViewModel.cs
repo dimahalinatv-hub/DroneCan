@@ -27,6 +27,9 @@ public sealed partial class MainViewModel : ObservableObject
     private EscConfigReport? _lastReport;
     private byte? _lastForwardAckResult;
     private bool _disconnecting;
+    // node whose configuration was already read for the current selection; null → read on the next tick
+    private byte? _autoReadNodeId;
+    private byte? _readingNodeId;
 
     private string? _selectedPort;
     private int _selectedBaud = 115200;
@@ -52,7 +55,7 @@ public sealed partial class MainViewModel : ObservableObject
 
         RefreshPortsCommand = new Command(RefreshPorts, () => !IsConnected);
         ConnectCommand = new Command(async () => await ToggleConnectionAsync(), () => !_isBusy);
-        ReadConfigCommand = new Command(async () => await ReadConfigAsync(), () => IsConnected && !IsReading && SelectedConfigNode != null);
+        ReadConfigCommand = new Command(() => _autoReadNodeId = null, () => IsConnected && !IsReading && SelectedConfigNode != null);
         CancelReadCommand = new Command(() => _readCts?.Cancel(), () => IsReading);
         CopyReportCommand = new Command(async () => await CopyReportAsync(), () => _lastReport != null);
         ClearLogCommand = new Command(() => Log.Clear());
@@ -131,6 +134,8 @@ public sealed partial class MainViewModel : ObservableObject
         get => _selectedConfigNode;
         set
         {
+            // no read handling here: the Picker sets null for a moment whenever the selected item is
+            // replaced (node name arrives), so AutoReadConfig() follows the selection on the timer tick
             if (SetProperty(ref _selectedConfigNode, value))
             {
                 RefreshCommands();
@@ -139,7 +144,17 @@ public sealed partial class MainViewModel : ObservableObject
         }
     }
 
-    public bool IncludeParameters { get => _includeParameters; set => SetProperty(ref _includeParameters, value); }
+    public bool IncludeParameters
+    {
+        get => _includeParameters;
+        set
+        {
+            if (SetProperty(ref _includeParameters, value) && value)
+            {
+                _autoReadNodeId = null;
+            }
+        }
+    }
 
     public bool IsReading
     {
@@ -254,6 +269,9 @@ public sealed partial class MainViewModel : ObservableObject
         ConfigNodes.Clear();
         _nodeInfoRequested.Clear();
         _majorConfigRequested.Clear();
+        _autoReadNodeId = null;
+        _lastReport = null;
+        ConfigItems.Clear();
         _lastForwardAckResult = null;
         IsConnected = true;
         _timer.Start();
@@ -332,6 +350,7 @@ public sealed partial class MainViewModel : ObservableObject
             RequestMajorConfigOnce(state);
         }
         SyncSettingsEditors();
+        AutoReadConfig();
 
         foreach (var e in _monitor.Traffic)
         {
@@ -394,53 +413,81 @@ public sealed partial class MainViewModel : ObservableObject
         _ = Task.Run(() => node.RequestWithRetryAsync(DataTypes.GetNodeInfo, state.NodeId, [], TimeSpan.FromMilliseconds(500), 2));
     }
 
-    private async Task ReadConfigAsync()
+    /// <summary>Read the selected ESC's configuration once per selection, as soon as the vehicle is known and disarmed.</summary>
+    private void AutoReadConfig()
     {
-        if (_reader == null || _link == null || SelectedConfigNode is not { } target)
+        var selected = SelectedConfigNode?.NodeId;
+        if (_lastReport != null && _lastReport.NodeId != selected)
+        {
+            // never show another ESC's report
+            _lastReport = null;
+            ConfigItems.Clear();
+            RefreshCommands();
+        }
+        if (IsReading)
+        {
+            if (_readingNodeId != selected)
+            {
+                _readCts?.Cancel();
+            }
+            return;
+        }
+        if (SelectedConfigNode is not { } target || _autoReadNodeId == target.NodeId || IsWriting ||
+            _link is not { Vehicle: not null, IsArmed: false })
         {
             return;
         }
-        if (_link.Vehicle == null)
+        _autoReadNodeId = target.NodeId;
+        _ = ReadConfigAsync(target);
+    }
+
+    private async Task ReadConfigAsync(NodeChoice target)
+    {
+        if (_reader == null)
         {
-            AddLog("No heartbeat from the flight controller yet");
-            return;
-        }
-        if (_link.IsArmed)
-        {
-            AddLog("Vehicle is ARMED — configuration requests are blocked for safety");
             return;
         }
 
         IsReading = true;
-        ConfigItems.Clear();
+        _readingNodeId = target.NodeId;
         _readCts = new CancellationTokenSource();
         var progress = new Progress<string>(text => ConfigProgress = text);
+        bool shown = false;
         try
         {
             AddLog($"Reading configuration of node {target.NodeId}…");
             var report = await _reader.ReadAsync(target.NodeId, IncludeParameters, progress, _readCts.Token);
-            if (_monitor?.Get(target.NodeId) is { } state)
+            if (SelectedConfigNode?.NodeId != target.NodeId)
             {
-                report.LastSetThrottleSource = state.ThrottleSourceSetting;
-                report.LastSetLed = state.LedSetting;
+                return;
             }
+            shown = true;
             _lastReport = report;
+            // replace only now, so a re-read keeps showing the previous values meanwhile
+            ConfigItems.Clear();
             foreach (var item in report.ToItems())
             {
                 ConfigItems.Add(item);
             }
             AddLog($"Node {target.NodeId}: read finished, {report.Errors.Count} error(s), {report.Parameters.Count} parameter(s)");
+            LoadSettingsFromNode();
         }
         catch (OperationCanceledException)
         {
-            AddLog("Read cancelled");
+            AddLog($"Node {target.NodeId}: read cancelled");
         }
         finally
         {
+            if (!shown && _autoReadNodeId == target.NodeId)
+            {
+                // not shown (cancelled / selection moved away): read again when this node is selected
+                _autoReadNodeId = null;
+            }
             ConfigProgress = "";
-            IsReading = false;
+            _readingNodeId = null;
             _readCts.Dispose();
             _readCts = null;
+            IsReading = false;
         }
     }
 

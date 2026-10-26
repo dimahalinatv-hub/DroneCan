@@ -234,7 +234,8 @@
                 <!-- Read-only report -->
                 <Grid Grid.Row="2" RowDefinitions="Auto,Auto,*" RowSpacing="6" IsVisible="{Binding ShowReport}">
                     <HorizontalStackLayout Grid.Row="0" Spacing="8">
-                        <Button Text="Read configuration" Command="{Binding ReadConfigCommand}" />
+                        <Button Text="↻" Command="{Binding ReadConfigCommand}"
+                                ToolTipProperties.Text="Read again (the configuration is read automatically when a node is selected)" />
                         <Button Text="Cancel" Command="{Binding CancelReadCommand}" />
                         <Button Text="Copy report" Command="{Binding CopyReportCommand}" />
                     </HorizontalStackLayout>
@@ -247,7 +248,7 @@
                     <ScrollView Grid.Row="2">
                         <VerticalStackLayout BindableLayout.ItemsSource="{Binding ConfigItems}">
                             <BindableLayout.EmptyView>
-                                <Label Text="Select an ESC node (not the autopilot, usually node 10) and press Read configuration. The vehicle must be disarmed."
+                                <Label Text="The configuration of the selected ESC node (not the autopilot, usually node 10) is read automatically. The vehicle must be disarmed."
                                        Style="{StaticResource Empty}" />
                             </BindableLayout.EmptyView>
                             <BindableLayout.ItemTemplate>
@@ -266,7 +267,7 @@
                 <!-- Settings (writes to the ESC) -->
                 <ScrollView Grid.Row="2" IsVisible="{Binding ShowSettings}">
                     <!-- keep every row narrow: wide content here widens all three bottom columns -->
-                    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="130,*,60"
+                    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="130,*,60"
                           RowSpacing="6" ColumnSpacing="8" Padding="0,0,8,0">
                         <VerticalStackLayout Grid.Row="0" Grid.ColumnSpan="3" Spacing="2">
                             <Label Style="{StaticResource Empty}" Margin="0"
@@ -314,9 +315,6 @@
                         <Label Grid.Row="9" Text="Node ID" />
                         <Entry Grid.Row="9" Grid.Column="1" Text="{Binding NewNodeIdText}" Keyboard="Numeric" />
                         <Button Grid.Row="9" Grid.Column="2" Text="Set" Command="{Binding SetNodeIdCommand}" />
-
-                        <Button Grid.Row="10" Grid.ColumnSpan="2" Text="Load current values" Command="{Binding LoadSettingsCommand}"
-                                HorizontalOptions="Start" />
                     </Grid>
                 </ScrollView>
             </Grid>
