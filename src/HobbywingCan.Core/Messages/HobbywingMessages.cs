@@ -180,6 +180,8 @@ public static class HwSetThrottleSource
     public const byte Can = 0;
     public const byte Pwm = 1;
 
+    // Do not use 255 as a query: an X8 G2 answers it with the source while it stays powered, but after a
+    // power cycle it answers CAN and switches a saved PWM setting to CAN (tested on hardware).
     public static byte[] Encode(byte source) => [source];
 
     public static byte DecodeResponse(byte[] payload) => payload.Length > 0 ? payload[0] : (byte)0xFF;
