@@ -444,7 +444,7 @@ public sealed partial class MainViewModel
             .Select(n => n.NodeId)
             .ToList();
         var state = _monitor.Get(target);
-        bool shared = state?.DuplicateSuspected == true;
+        bool shared = state?.DeviceCount is { } n ? n >= 2 : state?.DuplicateSuspected == true;
         if (others.Count == 0 && !shared)
         {
             return null;

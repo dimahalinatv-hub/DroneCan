@@ -57,9 +57,9 @@
 
 У таблиці ESC:
 
-- **Thr src** — джерело газу (CAN/PWM). Деякі прошивки X8 G2 не відповідають на `GetMajorConfig`, а іншого
-  запиту лише для читання для throttle source і LED немає. Тоді ці значення невідомі (`–`, «unknown» у звіті)
-  і з'являються лише після «Set»: ESC у відповіді повертає застосоване значення;
+- **Health / mode** — спершу кількість ESC з цим node ID: зелене `✓ 1 ESC` або жовте `⚠ N ESC`
+  (див. розділ про X8 G2 нижче), далі health / mode з `NodeStatus`. Ця ж позначка є поруч із вибором
+  вузла в «ESC configuration» і в попапі «Presets»;
 - **Dir** — напрям, налаштований в ESC (відповідь на `SetDirection` з запитом 255, інакше з
   `GetMajorConfig`). Біт 14 статусу StatusMsg1 (його використовує DroneCAN GUI) на X8 G2 напряму
   не відповідає, тому не використовується. Фактичне обертання залежить ще й від того, як
@@ -76,7 +76,7 @@
 | Node ID | `SetID` (210) | throttle-канал лишається тим самим; ESC з'явиться як новий вузол |
 | CAN speed | `SetBaud` (211) | див. нижче: помилкова швидкість обриває зв'язок з ESC |
 | Throttle channel | `SetID` (210) | node ID лишається тим самим |
-| Throttle source CAN / PWM | `SetThrottleSource` (215) | у режимі PWM ESC **ігнорує газ з ArduPilot по CAN** |
+| Throttle source CAN / PWM | `SetThrottleSource` (215) | у режимі PWM ESC **ігнорує газ з ArduPilot по CAN**. Деякі X8 G2 не відповідають на `GetMajorConfig`, тоді джерело газу (і LED) невідоме до першого «Set» |
 | StatusMsg1 / 2 / 3 rate | `SetReportingFrequency` (214), `OPTION_WRITE` | 500…1 Гц або Off; Msg1 (RPM) використовується ArduPilot, зокрема для RPM-notch |
 | LED color / mode | `SetLED` (212) | «Save» — зберегти в ESC |
 | Direction CW / CCW | `SetDirection` (213) | |
@@ -93,7 +93,7 @@
   цільового ESC, у вікні підтвердження перелічено, які ESC теж буде змінено.
   Запис на кілька ESC одночасно дозволено, але тільки свідомо: «Write» — записати, «Cancel» — ні;
 - після запису попереджає, якщо його несподівано застосували й інші ESC (вони теж надсилають відповідь);
-- у колонці Health показує `⚠ N ESCs share this ID` (скільки ESC мають цей ID), `⚠ shared node ID?`
+- у колонці Health показує `✓ 1 ESC` / `⚠ N ESC` (скільки ESC мають цей ID), `⚠ 2+ ESC`
   (кілька ESC з одним ID, але кількість ще не порахована) або `⚠ answers for others`.
 
 Кількість рахується за відповідями на `GetEscID`: застосунок щосекунди (лише поки апарат роззброєний)

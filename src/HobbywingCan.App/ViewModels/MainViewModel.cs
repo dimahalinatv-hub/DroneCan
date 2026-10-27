@@ -42,6 +42,7 @@ public sealed partial class MainViewModel : ObservableObject
     private string _vehicleText = "Not connected";
     private string _statsText = "";
     private NodeChoice? _selectedConfigNode;
+    private EscCountBadge _selectedEscCount = EscCountBadge.Unknown;
     private bool _includeParameters = true;
     private bool _isReading;
     private string _configProgress = "";
@@ -137,12 +138,19 @@ public sealed partial class MainViewModel : ObservableObject
             // replaced (node name arrives), so AutoReadConfig() follows the selection on the timer tick
             if (SetProperty(ref _selectedConfigNode, value))
             {
+                RefreshSelectedEscCount();
                 RefreshCommands();
                 LoadSettingsFromNode();
                 PresetNodeChanged();
             }
         }
     }
+
+    /// <summary>How many ESCs answer as the selected node id (shown next to the node picker).</summary>
+    public EscCountBadge SelectedEscCount { get => _selectedEscCount; private set => SetProperty(ref _selectedEscCount, value); }
+
+    private void RefreshSelectedEscCount() =>
+        SelectedEscCount = EscCountBadge.For(SelectedConfigNode is { } node ? _monitor?.Get(node.NodeId) : null);
 
     public bool IncludeParameters
     {
@@ -352,6 +360,7 @@ public sealed partial class MainViewModel : ObservableObject
             RequestNodeInfoOnce(state);
             RequestMajorConfigOnce(state);
         }
+        RefreshSelectedEscCount();
         SyncSettingsEditors();
         if (ShowPresets)
         {

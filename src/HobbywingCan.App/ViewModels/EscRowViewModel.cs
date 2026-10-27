@@ -20,13 +20,12 @@ public sealed class EscRowViewModel(byte nodeId) : ObservableObject
     private string _pwm = "–";
     private string _status = "–";
     private string _direction = "–";
-    private string _throttleSource = "–";
     private string _voltage = "–";
     private string _current = "–";
-    private string _power = "–";
     private string _temperature = "–";
     private string _extraTemperatures = "–";
     private string _health = "–";
+    private EscCountBadge _escCount = EscCountBadge.Unknown;
     private string _rates = "";
     private string _msg1Set = "–";
     private string _msg2Set = "–";
@@ -41,13 +40,12 @@ public sealed class EscRowViewModel(byte nodeId) : ObservableObject
     public string Pwm { get => _pwm; private set => SetProperty(ref _pwm, value); }
     public string Status { get => _status; private set => SetProperty(ref _status, value); }
     public string Direction { get => _direction; private set => SetProperty(ref _direction, value); }
-    public string ThrottleSource { get => _throttleSource; private set => SetProperty(ref _throttleSource, value); }
     public string Voltage { get => _voltage; private set => SetProperty(ref _voltage, value); }
     public string Current { get => _current; private set => SetProperty(ref _current, value); }
-    public string Power { get => _power; private set => SetProperty(ref _power, value); }
     public string Temperature { get => _temperature; private set => SetProperty(ref _temperature, value); }
     public string ExtraTemperatures { get => _extraTemperatures; private set => SetProperty(ref _extraTemperatures, value); }
     public string Health { get => _health; private set => SetProperty(ref _health, value); }
+    public EscCountBadge EscCount { get => _escCount; private set => SetProperty(ref _escCount, value); }
     public string Rates { get => _rates; private set => SetProperty(ref _rates, value); }
     public string Msg1Set { get => _msg1Set; private set => SetProperty(ref _msg1Set, value); }
     public string Msg2Set { get => _msg2Set; private set => SetProperty(ref _msg2Set, value); }
@@ -60,24 +58,11 @@ public sealed class EscRowViewModel(byte nodeId) : ObservableObject
         Name = s.Info?.Name ?? (s.IsHobbywing ? "Hobbywing ESC" : "");
         ThrottleChannel = s.ThrottleChannel?.ToString(Inv) ?? s.EscStatus?.EscIndex.ToString(Inv) ?? "–";
         Health = s.Status is { } st ? $"{st.HealthText} / {st.ModeText}" : "–";
-        if (s.DeviceCount is >= 2 and var count)
-        {
-            Health = $"⚠ {count} ESCs share this ID";
-        }
-        else if (s.DuplicateSuspected)
-        {
-            Health = "⚠ shared node ID?";
-        }
-        else if (s.IgnoresDestination)
+        if (s.IgnoresDestination)
         {
             Health = "⚠ answers for others";
         }
-        ThrottleSource = s.ThrottleSourcePwm switch
-        {
-            true => "PWM",
-            false => "CAN",
-            null => "–",
-        };
+        EscCount = EscCountBadge.For(s);
         Direction = s.CounterClockwise switch
         {
             true => "CCW",
@@ -118,7 +103,6 @@ public sealed class EscRowViewModel(byte nodeId) : ObservableObject
         {
             Voltage = v.ToString("F1", Inv) + " V";
             Current = a.ToString("F1", Inv) + " A";
-            Power = (v * a).ToString("F0", Inv) + " W";
         }
 
         if (s.Msg3 is { } m3)
@@ -172,6 +156,25 @@ public sealed class EscRowViewModel(byte nodeId) : ObservableObject
                 var hz => $"{hz} Hz",
             }
             : "–";
+}
+
+/// <summary>How many ESCs answer as one node id: "✓ 1 ESC" in green, "⚠ N ESC" in yellow.</summary>
+public sealed record EscCountBadge(string Icon, string Text, Color Color)
+{
+    private static readonly Color Ok = Color.FromArgb("#4CAF50");
+    private static readonly Color Warning = Color.FromArgb("#FFC107");
+
+    /// <summary>Not counted yet (GetEscID is only polled while disarmed).</summary>
+    public static readonly EscCountBadge Unknown = new("", "", Colors.Transparent);
+
+    public static EscCountBadge For(NodeState? s) => s switch
+    {
+        // the count follows the bus as ESCs are unplugged, so it wins over the sticky suspicion
+        { DeviceCount: 1 } => new("✓", "1 ESC", Ok),
+        { DeviceCount: { } n } => new("⚠", $"{n} ESC", Warning),
+        { DuplicateSuspected: true } => new("⚠", "2+ ESC", Warning),
+        _ => Unknown,
+    };
 }
 
 /// <summary>One line of ArduPilot's own ESC telemetry (ESC_TELEMETRY_x_TO_y).</summary>

@@ -77,28 +77,26 @@
 
         <!-- ESC table -->
         <Label Grid.Row="2" Text="DroneCAN ESCs (live, decoded from forwarded CAN frames)" Style="{StaticResource Section}" />
-        <Grid Grid.Row="3" ColumnDefinitions="45,110,45,45,55,50,40,60,60,60,55,120,70,130,60,60,60,130,*" Style="{StaticResource HeaderRow}">
+        <Grid Grid.Row="3" ColumnDefinitions="45,110,45,55,50,40,60,60,55,120,70,210,60,60,60,130,*" Style="{StaticResource HeaderRow}">
             <Label Grid.Column="0" Text="Node" Style="{StaticResource Header}" />
             <Label Grid.Column="1" Text="Name" Style="{StaticResource Header}" />
             <Label Grid.Column="2" Text="Thr ch" Style="{StaticResource Header}" />
-            <Label Grid.Column="3" Text="Thr src" Style="{StaticResource Header}" ToolTipProperties.Text="Throttle source from GetMajorConfig, or from the ESC's answer to the last Set: CAN (DroneCAN) or PWM. – = unknown" />
-            <Label Grid.Column="4" Text="RPM" Style="{StaticResource Header}" />
-            <Label Grid.Column="5" Text="PWM" Style="{StaticResource Header}" />
-            <Label Grid.Column="6" Text="Dir" Style="{StaticResource Header}"
+            <Label Grid.Column="3" Text="RPM" Style="{StaticResource Header}" />
+            <Label Grid.Column="4" Text="PWM" Style="{StaticResource Header}" />
+            <Label Grid.Column="5" Text="Dir" Style="{StaticResource Header}"
                    ToolTipProperties.Text="Direction setting reported by the ESC (SetDirection query / GetMajorConfig). Physical rotation also depends on motor phase wiring." />
-            <Label Grid.Column="7" Text="Voltage" Style="{StaticResource Header}" />
-            <Label Grid.Column="8" Text="Current" Style="{StaticResource Header}" />
-            <Label Grid.Column="9" Text="Power" Style="{StaticResource Header}" />
-            <Label Grid.Column="10" Text="Temp" Style="{StaticResource Header}" />
-            <Label Grid.Column="11" Text="MOS / CAP / Motor" Style="{StaticResource Header}" />
-            <Label Grid.Column="12" Text="Status" Style="{StaticResource Header}" />
-            <Label Grid.Column="13" Text="Health / mode" Style="{StaticResource Header}"
-                   ToolTipProperties.Text="⚠ shared node ID? = several ESCs answer as this node. ⚠ answers for others = this ESC answered a request addressed to another node." />
-            <Label Grid.Column="14" Text="Msg1 set" Style="{StaticResource Header}" ToolTipProperties.Text="StatusMsg1 (RPM, PWM, status) rate configured in the ESC" />
-            <Label Grid.Column="15" Text="Msg2 set" Style="{StaticResource Header}" ToolTipProperties.Text="StatusMsg2 (voltage, current, temperature) rate configured in the ESC" />
-            <Label Grid.Column="16" Text="Msg3 set" Style="{StaticResource Header}" ToolTipProperties.Text="StatusMsg3 (MOS / CAP / motor temperatures) rate configured in the ESC" />
-            <Label Grid.Column="17" Text="Measured, Hz" Style="{StaticResource Header}" ToolTipProperties.Text="Rates actually received from the ESC" />
-            <Label Grid.Column="18" Text="Updated" Style="{StaticResource Header}" />
+            <Label Grid.Column="6" Text="Voltage" Style="{StaticResource Header}" />
+            <Label Grid.Column="7" Text="Current" Style="{StaticResource Header}" />
+            <Label Grid.Column="8" Text="Temp" Style="{StaticResource Header}" />
+            <Label Grid.Column="9" Text="MOS / CAP / Motor" Style="{StaticResource Header}" />
+            <Label Grid.Column="10" Text="Status" Style="{StaticResource Header}" />
+            <Label Grid.Column="11" Text="Health / mode" Style="{StaticResource Header}"
+                   ToolTipProperties.Text="✓ 1 ESC / ⚠ N ESC = how many ESCs answer GetEscID as this node ID (counted while disarmed). ⚠ answers for others = this ESC answered a request addressed to another node." />
+            <Label Grid.Column="12" Text="Msg1 set" Style="{StaticResource Header}" ToolTipProperties.Text="StatusMsg1 (RPM, PWM, status) rate configured in the ESC" />
+            <Label Grid.Column="13" Text="Msg2 set" Style="{StaticResource Header}" ToolTipProperties.Text="StatusMsg2 (voltage, current, temperature) rate configured in the ESC" />
+            <Label Grid.Column="14" Text="Msg3 set" Style="{StaticResource Header}" ToolTipProperties.Text="StatusMsg3 (MOS / CAP / motor temperatures) rate configured in the ESC" />
+            <Label Grid.Column="15" Text="Measured, Hz" Style="{StaticResource Header}" ToolTipProperties.Text="Rates actually received from the ESC" />
+            <Label Grid.Column="16" Text="Updated" Style="{StaticResource Header}" />
         </Grid>
         <ScrollView Grid.Row="4">
             <VerticalStackLayout BindableLayout.ItemsSource="{Binding EscRows}">
@@ -108,7 +106,7 @@
                 </BindableLayout.EmptyView>
                 <BindableLayout.ItemTemplate>
                     <DataTemplate x:DataType="vm:EscRowViewModel">
-                        <Grid ColumnDefinitions="45,110,45,45,55,50,40,60,60,60,55,120,70,130,60,60,60,130,*" ColumnSpacing="6" Padding="6,3">
+                        <Grid ColumnDefinitions="45,110,45,55,50,40,60,60,55,120,70,210,60,60,60,130,*" ColumnSpacing="6" Padding="6,3">
                             <Grid.Triggers>
                                 <DataTrigger TargetType="Grid" Binding="{Binding IsStale}" Value="True">
                                     <Setter Property="Opacity" Value="0.45" />
@@ -117,22 +115,25 @@
                             <Label Grid.Column="0" Text="{Binding NodeId}" FontAttributes="Bold" />
                             <Label Grid.Column="1" Text="{Binding Name}" />
                             <Label Grid.Column="2" Text="{Binding ThrottleChannel}" />
-                            <Label Grid.Column="3" Text="{Binding ThrottleSource}" />
-                            <Label Grid.Column="4" Text="{Binding Rpm}" FontFamily="Consolas" />
-                            <Label Grid.Column="5" Text="{Binding Pwm}" FontFamily="Consolas" />
-                            <Label Grid.Column="6" Text="{Binding Direction}" />
-                            <Label Grid.Column="7" Text="{Binding Voltage}" FontFamily="Consolas" />
-                            <Label Grid.Column="8" Text="{Binding Current}" FontFamily="Consolas" />
-                            <Label Grid.Column="9" Text="{Binding Power}" FontFamily="Consolas" />
-                            <Label Grid.Column="10" Text="{Binding Temperature}" FontFamily="Consolas" />
-                            <Label Grid.Column="11" Text="{Binding ExtraTemperatures}" FontFamily="Consolas" />
-                            <Label Grid.Column="12" Text="{Binding Status}" FontFamily="Consolas" />
-                            <Label Grid.Column="13" Text="{Binding Health}" />
-                            <Label Grid.Column="14" Text="{Binding Msg1Set}" FontFamily="Consolas" />
-                            <Label Grid.Column="15" Text="{Binding Msg2Set}" FontFamily="Consolas" />
-                            <Label Grid.Column="16" Text="{Binding Msg3Set}" FontFamily="Consolas" />
-                            <Label Grid.Column="17" Text="{Binding Rates}" FontSize="12" />
-                            <Label Grid.Column="18" Text="{Binding Age}" FontSize="12" />
+                            <Label Grid.Column="3" Text="{Binding Rpm}" FontFamily="Consolas" />
+                            <Label Grid.Column="4" Text="{Binding Pwm}" FontFamily="Consolas" />
+                            <Label Grid.Column="5" Text="{Binding Direction}" />
+                            <Label Grid.Column="6" Text="{Binding Voltage}" FontFamily="Consolas" />
+                            <Label Grid.Column="7" Text="{Binding Current}" FontFamily="Consolas" />
+                            <Label Grid.Column="8" Text="{Binding Temperature}" FontFamily="Consolas" />
+                            <Label Grid.Column="9" Text="{Binding ExtraTemperatures}" FontFamily="Consolas" />
+                            <Label Grid.Column="10" Text="{Binding Status}" FontFamily="Consolas" />
+                            <!-- fixed-width ESC count first, so the health text after it never moves -->
+                            <Grid Grid.Column="11" ColumnDefinitions="16,52,*" ColumnSpacing="2">
+                                <Label Text="{Binding EscCount.Icon}" TextColor="{Binding EscCount.Color}" FontAttributes="Bold" />
+                                <Label Grid.Column="1" Text="{Binding EscCount.Text}" TextColor="{Binding EscCount.Color}" />
+                                <Label Grid.Column="2" Text="{Binding Health}" />
+                            </Grid>
+                            <Label Grid.Column="12" Text="{Binding Msg1Set}" FontFamily="Consolas" />
+                            <Label Grid.Column="13" Text="{Binding Msg2Set}" FontFamily="Consolas" />
+                            <Label Grid.Column="14" Text="{Binding Msg3Set}" FontFamily="Consolas" />
+                            <Label Grid.Column="15" Text="{Binding Rates}" FontSize="12" />
+                            <Label Grid.Column="16" Text="{Binding Age}" FontSize="12" />
                         </Grid>
                     </DataTemplate>
                 </BindableLayout.ItemTemplate>
@@ -233,10 +234,20 @@
                                 ToolTipProperties.Text="Save the settings as a preset, or write a saved preset to this ESC" />
                     </FlexLayout>
                 </VerticalStackLayout>
-                <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                <Grid Grid.Row="1" ColumnDefinitions="Auto,*,70,Auto" ColumnSpacing="10">
                     <Label Text="Node" />
                     <Picker MinimumHeightRequest="32" Grid.Column="1" ItemsSource="{Binding ConfigNodes}" SelectedItem="{Binding SelectedConfigNode}" />
-                    <ActivityIndicator Grid.Column="2" IsRunning="{Binding IsWriting}" HeightRequest="20" WidthRequest="20" />
+                    <Label Grid.Column="2" TextColor="{Binding SelectedEscCount.Color}"
+                           ToolTipProperties.Text="How many ESCs answer as this node ID; a write reaches all of them">
+                        <Label.FormattedText>
+                            <FormattedString>
+                                <Span Text="{Binding SelectedEscCount.Icon}" FontAttributes="Bold" />
+                                <Span Text=" " />
+                                <Span Text="{Binding SelectedEscCount.Text}" />
+                            </FormattedString>
+                        </Label.FormattedText>
+                    </Label>
+                    <ActivityIndicator Grid.Column="3" IsRunning="{Binding IsWriting}" HeightRequest="20" WidthRequest="20" />
                 </Grid>
 
                 <!-- Read-only report -->
@@ -356,11 +367,21 @@
                         </Grid>
 
                         <!-- the same selection as the page: the ESC whose values are shown on the right and that Apply writes to -->
-                        <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
+                        <Grid ColumnDefinitions="Auto,*,70,Auto,Auto" ColumnSpacing="8">
                             <Label Text="Node" />
                             <Picker MinimumHeightRequest="32" Grid.Column="1" ItemsSource="{Binding ConfigNodes}" SelectedItem="{Binding SelectedConfigNode}" Title="Choose the ESC" />
-                            <ActivityIndicator Grid.Column="2" IsRunning="{Binding IsWriting}" HeightRequest="20" WidthRequest="20" />
-                            <Button Grid.Column="3" Text="Apply to ESC" Command="{Binding ApplyPresetCommand}"
+                            <Label Grid.Column="2" TextColor="{Binding SelectedEscCount.Color}"
+                                   ToolTipProperties.Text="How many ESCs answer as this node ID; Apply reaches all of them">
+                                <Label.FormattedText>
+                                    <FormattedString>
+                                        <Span Text="{Binding SelectedEscCount.Icon}" FontAttributes="Bold" />
+                                        <Span Text=" " />
+                                        <Span Text="{Binding SelectedEscCount.Text}" />
+                                    </FormattedString>
+                                </Label.FormattedText>
+                            </Label>
+                            <ActivityIndicator Grid.Column="3" IsRunning="{Binding IsWriting}" HeightRequest="20" WidthRequest="20" />
+                            <Button Grid.Column="4" Text="Apply to ESC" Command="{Binding ApplyPresetCommand}"
                                     HeightRequest="32" WidthRequest="110" VerticalOptions="Center" />
                         </Grid>
                         <Label Style="{StaticResource Empty}" Margin="0"
