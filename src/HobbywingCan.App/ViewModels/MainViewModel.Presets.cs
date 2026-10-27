@@ -21,16 +21,16 @@ public sealed class PresetDraft : ObservableObject
     private Option? _ledBlink;
     private bool _ledSave = true;
     private Option? _direction;
-    // what identifies one ESC, or can cut it off the bus, is only taken when ticked
+    // nothing is ticked until the user picks the fields (or loads a preset)
     private bool _includeCanBaud;
     private bool _includeNodeId;
     private bool _includeThrottleChannel;
-    private bool _includeThrottleSource = true;
-    private bool _includeMsg1Rate = true;
-    private bool _includeMsg2Rate = true;
-    private bool _includeMsg3Rate = true;
-    private bool _includeLed = true;
-    private bool _includeDirection = true;
+    private bool _includeThrottleSource;
+    private bool _includeMsg1Rate;
+    private bool _includeMsg2Rate;
+    private bool _includeMsg3Rate;
+    private bool _includeLed;
+    private bool _includeDirection;
 
     public Option? CanBaud { get => _canBaud; set => SetProperty(ref _canBaud, value); }
     public string NodeIdText { get => _nodeIdText; set => SetProperty(ref _nodeIdText, value); }

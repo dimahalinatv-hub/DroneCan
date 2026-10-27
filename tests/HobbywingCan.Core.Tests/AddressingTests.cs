@@ -153,6 +153,57 @@ public class AddressingTests
     }
 
     [Fact]
+    public async Task GetEscId_MergedRepliesDoNotMakeTheCountJump()
+    {
+        // two ESCs on node 1 whose identical replies merge on the bus every other query
+        var (fc, link, node, monitor) = await Start([1], setIdQuirk: false);
+        var seen = new List<int?>();
+
+        for (int i = 0; i < 8; i++)
+        {
+            monitor.QueryEscIds();
+            await Task.Delay(50);
+            if (i % 2 == 0)
+            {
+                fc.ForwardBroadcast(1, DataTypes.HwGetEscId, [1, 1]);
+            }
+            await Task.Delay(150);
+            seen.Add(monitor.Get(1)?.DeviceCount);
+        }
+
+        // once two replies were seen twice, it stays at 2
+        Assert.All(seen.SkipWhile(c => c != 2), c => Assert.Equal(2, c));
+        Assert.Equal(2, seen[^1]);
+
+        monitor.Dispose();
+        node.Dispose();
+        await link.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task GetEscId_OneStrayExtraReplyIsIgnored()
+    {
+        var (fc, link, node, monitor) = await Start([1], setIdQuirk: false);
+
+        for (int i = 0; i < 6; i++)
+        {
+            monitor.QueryEscIds();
+            await Task.Delay(50);
+            if (i == 2)
+            {
+                fc.ForwardBroadcast(1, DataTypes.HwGetEscId, [1, 1]);
+            }
+            await Task.Delay(150);
+        }
+
+        Assert.Equal(1, monitor.Get(1)!.DeviceCount);
+
+        monitor.Dispose();
+        node.Dispose();
+        await link.DisposeAsync();
+    }
+
+    [Fact]
     public async Task GetEscId_QueriesTooCloseTogetherAreNotCounted()
     {
         var (_, link, node, monitor) = await Start([1, 1], setIdQuirk: false);

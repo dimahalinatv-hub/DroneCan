@@ -74,9 +74,11 @@ public sealed class NodeState(byte nodeId)
     public bool IgnoresDestination { get; internal set; }
 
     /// <summary>
-    /// How many devices answer GetEscID as this node id: every ESC replies once per query, so this is the median
-    /// number of replies per query over the last few queries. Null until one query was counted (only while disarmed).
-    /// May undercount when two ESCs send an identical reply at the same instant (the CAN frames merge).
+    /// How many devices answer GetEscID as this node id: every ESC replies once per query. ESCs sharing an id
+    /// often send identical replies at the same instant, and those CAN frames merge into one, so a single query
+    /// regularly counts too few. This is therefore the highest count seen at least twice over the last queries
+    /// (one stray count too high is ignored). Null until three queries were counted (only while disarmed): with
+    /// fewer, one high count could not yet be told from a stray one and the value would jump.
     /// </summary>
     public int? DeviceCount
     {
@@ -84,15 +86,12 @@ public sealed class NodeState(byte nodeId)
         {
             lock (EscIdReplyCounts)
             {
-                if (EscIdReplyCounts.Count == 0)
-                {
-                    return null;
-                }
-                var sorted = EscIdReplyCounts.Order().ToList();
-                return sorted[sorted.Count / 2];
+                return EscIdReplyCounts.Count < MinCountedQueries ? null : EscIdReplyCounts.OrderDescending().ElementAt(1);
             }
         }
     }
+
+    private const int MinCountedQueries = 3;
 
     internal uint? LastUptime;
     internal readonly Queue<DateTime> UptimeRegressions = new();
@@ -125,7 +124,8 @@ public sealed class EscMonitor : IDisposable
 
     /// <summary>Queries this close together get mixed-up replies, so neither is counted.</summary>
     private static readonly TimeSpan EscIdMinQueryGap = TimeSpan.FromMilliseconds(100);
-    private const int EscIdCountHistory = 5;
+    /// <summary>Queries the count is taken over: an unplugged ESC drops out of it after about this many seconds.</summary>
+    private const int EscIdCountHistory = 10;
 
     private sealed class TrafficCounter
     {

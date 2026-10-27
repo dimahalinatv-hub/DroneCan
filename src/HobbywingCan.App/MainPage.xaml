@@ -367,9 +367,10 @@
                         </Grid>
 
                         <!-- the same selection as the page: the ESC whose values are shown on the right and that Apply writes to -->
-                        <Grid ColumnDefinitions="Auto,*,70,Auto,Auto" ColumnSpacing="8">
+                        <!-- the Node and Preset rows share their columns, so both pickers are the same width -->
+                        <Grid ColumnDefinitions="50,*,70,20,110" ColumnSpacing="8">
                             <Label Text="Node" />
-                            <Picker MinimumHeightRequest="32" Grid.Column="1" ItemsSource="{Binding ConfigNodes}" SelectedItem="{Binding SelectedConfigNode}" Title="Choose the ESC" />
+                            <Picker MinimumHeightRequest="32" Grid.Column="1" ItemsSource="{Binding ConfigNodes}" SelectedItem="{Binding SelectedConfigNode}" />
                             <Label Grid.Column="2" TextColor="{Binding SelectedEscCount.Color}"
                                    ToolTipProperties.Text="How many ESCs answer as this node ID; Apply reaches all of them">
                                 <Label.FormattedText>
@@ -387,10 +388,10 @@
                         <Label Style="{StaticResource Empty}" Margin="0"
                                Text="Apply writes the ticked fields to this node (disarmed only); values it already has are skipped." />
 
-                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                        <Grid ColumnDefinitions="50,*,70,20,110" ColumnSpacing="8">
                             <Label Text="Preset" />
                             <Picker MinimumHeightRequest="32" Grid.Column="1" ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" />
-                            <Button Grid.Column="2" Text="Delete" Command="{Binding DeletePresetCommand}"
+                            <Button Grid.Column="4" Text="Delete" Command="{Binding DeletePresetCommand}"
                                     HeightRequest="32" WidthRequest="110" VerticalOptions="Center" />
                         </Grid>
 
