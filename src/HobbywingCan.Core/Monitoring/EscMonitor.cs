@@ -73,8 +73,35 @@ public sealed class NodeState(byte nodeId)
     /// <summary>This node answered a request addressed to another node, i.e. it ignores the destination.</summary>
     public bool IgnoresDestination { get; internal set; }
 
+    /// <summary>
+    /// How many devices answer GetEscID as this node id: every ESC replies once per query, so this is the median
+    /// number of replies per query over the last few queries. Null until one query was counted (only while disarmed).
+    /// May undercount when two ESCs send an identical reply at the same instant (the CAN frames merge).
+    /// </summary>
+    public int? DeviceCount
+    {
+        get
+        {
+            lock (EscIdReplyCounts)
+            {
+                if (EscIdReplyCounts.Count == 0)
+                {
+                    return null;
+                }
+                var sorted = EscIdReplyCounts.Order().ToList();
+                return sorted[sorted.Count / 2];
+            }
+        }
+    }
+
     internal uint? LastUptime;
     internal readonly Queue<DateTime> UptimeRegressions = new();
+
+    /// <summary>GetEscID replies since the newest query on the bus.</summary>
+    internal int EscIdReplies;
+
+    /// <summary>Replies per query for the last few queries.</summary>
+    internal readonly Queue<int> EscIdReplyCounts = new();
 }
 
 /// <summary>How many transfers of one type one node has sent (bus diagnostics).</summary>
@@ -92,6 +119,13 @@ public sealed class EscMonitor : IDisposable
     private readonly AutopilotEscTelemetry?[] _autopilotEsc = new AutopilotEscTelemetry?[12];
     private readonly CancellationTokenSource _cts = new();
     private readonly ConcurrentDictionary<(byte Node, TransferKind Kind, ushort Type), TrafficCounter> _traffic = new();
+    private readonly object _escIdLock = new();
+    private DateTime? _escIdQueryUtc;
+    private bool _escIdQueryOverlapped;
+
+    /// <summary>Queries this close together get mixed-up replies, so neither is counted.</summary>
+    private static readonly TimeSpan EscIdMinQueryGap = TimeSpan.FromMilliseconds(100);
+    private const int EscIdCountHistory = 5;
 
     private sealed class TrafficCounter
     {
@@ -240,6 +274,18 @@ public sealed class EscMonitor : IDisposable
             if (HwGetEscId.TryDecodeReply(t.SourceNodeId, t.Payload, out var channel))
             {
                 state.ThrottleChannel = channel;
+                lock (_escIdLock)
+                {
+                    if (_escIdQueryUtc != null)
+                    {
+                        state.EscIdReplies++;
+                    }
+                }
+            }
+            else if (t.Payload.Length < 2)
+            {
+                // someone else's query (ArduPilot polls GetEscID too): every ESC answers it as well
+                StartEscIdQuery();
             }
         }
         else if (type == DataTypes.HwStatusMsg1.Id)
@@ -294,6 +340,49 @@ public sealed class EscMonitor : IDisposable
         }
     }
 
+    /// <summary>Broadcasts one GetEscID query; each ESC's reply to it is counted towards <see cref="NodeState.DeviceCount"/>.</summary>
+    public void QueryEscIds()
+    {
+        StartEscIdQuery();
+        _node.Broadcast(DataTypes.HwGetEscId, HwGetEscId.EncodeQuery());
+    }
+
+    /// <summary>
+    /// A new GetEscID query was sent: the replies counted since the previous query are final. Must run before
+    /// the query goes out so that no reply to it is counted for the previous one.
+    /// </summary>
+    private void StartEscIdQuery()
+    {
+        var now = DateTime.UtcNow;
+        lock (_escIdLock)
+        {
+            // two queries close together: replies to both land in the second count
+            bool overlapped = _escIdQueryUtc is { } last && now - last < EscIdMinQueryGap;
+            bool countLast = _escIdQueryUtc != null && !overlapped && !_escIdQueryOverlapped;
+            foreach (var state in _nodes.Values)
+            {
+                if (countLast && state.EscIdReplies > 0)
+                {
+                    lock (state.EscIdReplyCounts)
+                    {
+                        state.EscIdReplyCounts.Enqueue(state.EscIdReplies);
+                        while (state.EscIdReplyCounts.Count > EscIdCountHistory)
+                        {
+                            state.EscIdReplyCounts.Dequeue();
+                        }
+                    }
+                    if (state.DeviceCount >= 2)
+                    {
+                        state.DuplicateSuspected = true;
+                    }
+                }
+                state.EscIdReplies = 0;
+            }
+            _escIdQueryUtc = now;
+            _escIdQueryOverlapped = overlapped;
+        }
+    }
+
     private void OnAutopilotEsc(AutopilotEscTelemetry[] block)
     {
         lock (_autopilotEsc)
@@ -318,7 +407,7 @@ public sealed class EscMonitor : IDisposable
                 await Task.Delay(1000, ct).ConfigureAwait(false);
                 if (PollEscIds && _link.Vehicle != null && !_link.IsArmed)
                 {
-                    _node.Broadcast(DataTypes.HwGetEscId, HwGetEscId.EncodeQuery());
+                    QueryEscIds();
                 }
             }
         }

@@ -443,14 +443,17 @@ public sealed partial class MainViewModel
             .Where(n => n.NodeId != target && n.IsHobbywing && now - n.LastSeenUtc < TimeSpan.FromSeconds(3))
             .Select(n => n.NodeId)
             .ToList();
-        bool shared = _monitor.Get(target)?.DuplicateSuspected == true;
+        var state = _monitor.Get(target);
+        bool shared = state?.DuplicateSuspected == true;
         if (others.Count == 0 && !shared)
         {
             return null;
         }
         string who = others.Count > 0
             ? $"Other ESCs on the bus: node {string.Join(", ", others)}."
-            : $"Node {target} looks like several ESCs sharing one node ID.";
+            : state?.DeviceCount is >= 2 and var count
+                ? $"Node {target} is {count} ESCs sharing one node ID."
+                : $"Node {target} looks like several ESCs sharing one node ID.";
         return "Hobbywing X8 G2 applies SetID to EVERY ESC on the CAN bus, whichever node it is addressed to. " +
             $"{who} They will all get the same node ID and throttle channel.";
     }
@@ -512,9 +515,10 @@ public sealed partial class MainViewModel
             {
                 reach.Add(idWarning);
             }
-            if (probe.DuplicateNodeId)
+            int sharing = Math.Max(probe.SameIdAnswers, _monitor.Get(target.NodeId)?.DeviceCount ?? 0);
+            if (sharing > 1)
             {
-                reach.Add($"More than one ESC answers as node {target.NodeId} (shared node ID) — all of them will be changed.");
+                reach.Add($"{sharing} ESCs answer as node {target.NodeId} (shared node ID) — all of them will be changed.");
             }
             if (probe.OtherResponders.Count > 0)
             {

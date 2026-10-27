@@ -60,7 +60,11 @@ public sealed class EscRowViewModel(byte nodeId) : ObservableObject
         Name = s.Info?.Name ?? (s.IsHobbywing ? "Hobbywing ESC" : "");
         ThrottleChannel = s.ThrottleChannel?.ToString(Inv) ?? s.EscStatus?.EscIndex.ToString(Inv) ?? "–";
         Health = s.Status is { } st ? $"{st.HealthText} / {st.ModeText}" : "–";
-        if (s.DuplicateSuspected)
+        if (s.DeviceCount is >= 2 and var count)
+        {
+            Health = $"⚠ {count} ESCs share this ID";
+        }
+        else if (s.DuplicateSuspected)
         {
             Health = "⚠ shared node ID?";
         }

@@ -99,8 +99,71 @@ public class AddressingTests
 
         Assert.True(probe.TargetAnswered);
         Assert.True(probe.DuplicateNodeId);
+        Assert.Equal(2, probe.SameIdAnswers);
         Assert.False(probe.IsolatedTarget);
         Assert.True(monitor.Get(3)!.DuplicateSuspected);
+
+        monitor.Dispose();
+        node.Dispose();
+        await link.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task GetEscId_CountsDevicesSharingANodeId()
+    {
+        var (_, link, node, monitor) = await Start([1, 1, 1, 4], setIdQuirk: false);
+
+        for (int i = 0; i < 4; i++)
+        {
+            monitor.QueryEscIds();
+            await Task.Delay(200);
+        }
+
+        Assert.Equal(3, monitor.Get(1)!.DeviceCount);
+        Assert.True(monitor.Get(1)!.DuplicateSuspected);
+        Assert.Equal(1, monitor.Get(4)!.DeviceCount);
+        Assert.False(monitor.Get(4)!.DuplicateSuspected);
+
+        monitor.Dispose();
+        node.Dispose();
+        await link.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task GetEscId_AutopilotPollingDoesNotDoubleTheCount()
+    {
+        var (fc, link, node, monitor) = await Start([1, 1], setIdQuirk: false);
+
+        for (int i = 0; i < 4; i++)
+        {
+            monitor.QueryEscIds();
+            await Task.Delay(150);
+            // ArduPilot polls too, and both ESCs answer its query as well
+            fc.ForwardBroadcast(SimulatedAutopilot.AutopilotNodeId, DataTypes.HwGetEscId, [0]);
+            fc.ForwardBroadcast(1, DataTypes.HwGetEscId, [1, 1]);
+            fc.ForwardBroadcast(1, DataTypes.HwGetEscId, [1, 1]);
+            await Task.Delay(150);
+        }
+
+        Assert.Equal(2, monitor.Get(1)!.DeviceCount);
+
+        monitor.Dispose();
+        node.Dispose();
+        await link.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task GetEscId_QueriesTooCloseTogetherAreNotCounted()
+    {
+        var (_, link, node, monitor) = await Start([1, 1], setIdQuirk: false);
+
+        monitor.QueryEscIds();
+        monitor.QueryEscIds();
+        await Task.Delay(200);
+        monitor.QueryEscIds();
+
+        // the second query's window holds the replies to both queries
+        Assert.Null(monitor.Get(1)!.DeviceCount);
 
         monitor.Dispose();
         node.Dispose();

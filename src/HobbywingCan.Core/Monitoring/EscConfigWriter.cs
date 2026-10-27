@@ -6,16 +6,26 @@ namespace HobbywingCan.Core.Monitoring;
 /// <param name="Success">The ESC answered and echoed the requested value.</param>
 /// <param name="Message">Human-readable outcome for the log.</param>
 /// <param name="AlsoAnsweredBy">Other node ids that answered (and so probably applied) the same request.</param>
-/// <param name="DuplicateNodeId">More than one device answered from the addressed node id.</param>
-public sealed record WriteResult(bool Success, string Message, IReadOnlyList<byte> AlsoAnsweredBy, bool DuplicateNodeId)
+/// <param name="SameIdAnswers">How many devices answered from the addressed node id (0 when none did).</param>
+public sealed record WriteResult(bool Success, string Message, IReadOnlyList<byte> AlsoAnsweredBy, int SameIdAnswers)
 {
+    /// <summary>More than one device answered from the addressed node id.</summary>
+    public bool DuplicateNodeId => SameIdAnswers > 1;
+
     public bool AffectedOthers => AlsoAnsweredBy.Count > 0 || DuplicateNodeId;
 }
 
 /// <summary>Who answered a harmless request addressed to one ESC.</summary>
+/// <param name="SameIdAnswers">
+/// How many devices answered from the probed node id. A lower bound: identical answers sent at the same instant
+/// merge into one CAN frame.
+/// </param>
 /// <param name="ProbedWith">Service that got an answer; null when no read request was answered at all.</param>
-public sealed record AddressingProbe(bool TargetAnswered, IReadOnlyList<byte> OtherResponders, bool DuplicateNodeId, string? ProbedWith)
+public sealed record AddressingProbe(bool TargetAnswered, IReadOnlyList<byte> OtherResponders, int SameIdAnswers, string? ProbedWith)
 {
+    /// <summary>More than one device answered from the probed node id (shared id).</summary>
+    public bool DuplicateNodeId => SameIdAnswers > 1;
+
     /// <summary>Nobody answered any read request, so it is unknown which ESCs a write reaches.</summary>
     public bool Inconclusive => !TargetAnswered && OtherResponders.Count == 0 && !DuplicateNodeId;
 
@@ -36,7 +46,10 @@ public sealed class EscConfigWriter(DroneCanNode node)
     private static readonly TimeSpan ProbeTimeout = TimeSpan.FromMilliseconds(400);
     private const int Attempts = 3;
 
-    private sealed record CallResult(byte[]? Payload, IReadOnlyList<byte> Others, bool Duplicate);
+    private sealed record CallResult(byte[]? Payload, IReadOnlyList<byte> Others, int SameIdAnswers)
+    {
+        public bool Duplicate => SameIdAnswers > 1;
+    }
 
     /// <summary>
     /// Sends read-only requests to <paramref name="nodeId"/> and reports who answered. Several services are
@@ -55,10 +68,10 @@ public sealed class EscConfigWriter(DroneCanNode node)
             var call = await Call(service, nodeId, request, ct, ProbeTimeout, attempts: 1);
             if (call.Payload != null || call.Others.Count > 0 || call.Duplicate)
             {
-                return new AddressingProbe(call.Payload != null, call.Others, call.Duplicate, service.Name);
+                return new AddressingProbe(call.Payload != null, call.Others, call.SameIdAnswers, service.Name);
             }
         }
-        return new AddressingProbe(false, [], false, null);
+        return new AddressingProbe(false, [], 0, null);
     }
 
     public async Task<WriteResult> SetReportingRateAsync(byte nodeId, ushort messageId, byte rateCode, CancellationToken ct = default)
@@ -143,7 +156,7 @@ public sealed class EscConfigWriter(DroneCanNode node)
         TimeSpan? timeout = null, int attempts = Attempts)
     {
         var others = new HashSet<byte>();
-        bool duplicate = false;
+        int duplicates = 0;
         void OnUnexpected(UnexpectedResponse u)
         {
             if (u.DataTypeId != service.Id || u.IntendedNode != nodeId)
@@ -154,7 +167,8 @@ public sealed class EscConfigWriter(DroneCanNode node)
             {
                 if (u.DuplicateNodeId)
                 {
-                    duplicate = true;
+                    // every extra answer from the addressed id is one more device sharing it
+                    duplicates++;
                 }
                 else
                 {
@@ -171,7 +185,8 @@ public sealed class EscConfigWriter(DroneCanNode node)
             await Task.Delay(ExtraAnswerWindow, ct);
             lock (others)
             {
-                return new CallResult(response?.Payload, others.OrderBy(n => n).ToList(), duplicate);
+                return new CallResult(response?.Payload, others.OrderBy(n => n).ToList(),
+                    response != null ? 1 + duplicates : duplicates);
             }
         }
         finally
@@ -195,8 +210,8 @@ public sealed class EscConfigWriter(DroneCanNode node)
         }
         if (call.Duplicate)
         {
-            message += ". WARNING: more than one ESC answered from this node id";
+            message += $". WARNING: {call.SameIdAnswers} ESCs answered from this node id";
         }
-        return new WriteResult(success, message, call.Others, call.Duplicate);
+        return new WriteResult(success, message, call.Others, call.SameIdAnswers);
     }
 }
