@@ -74,33 +74,70 @@ public sealed class NodeState(byte nodeId)
     public bool IgnoresDestination { get; internal set; }
 
     /// <summary>
-    /// How many devices answer GetEscID as this node id: every ESC replies once per query. ESCs sharing an id
-    /// often send identical replies at the same instant, and those CAN frames merge into one, so a single query
-    /// regularly counts too few. This is therefore the highest count seen at least twice over the last queries
-    /// (one stray count too high is ignored). Null until three queries were counted (only while disarmed): with
-    /// fewer, one high count could not yet be told from a stray one and the value would jump.
+    /// How many devices answer GetEscID as this node id, told apart by the transfer ids of their replies (see
+    /// <see cref="EscIdTrack"/>). Counting replies per query is not enough: ArduPilot polls GetEscID too, and its
+    /// queries may never reach this app, so one ESC can answer twice between two of our queries. Null until a
+    /// reply was seen (GetEscID is only polled while disarmed); frozen while nobody polls.
     /// </summary>
     public int? DeviceCount
     {
         get
         {
-            lock (EscIdReplyCounts)
+            lock (EscIdTracks)
             {
-                return EscIdReplyCounts.Count < MinCountedQueries ? null : EscIdReplyCounts.OrderDescending().ElementAt(1);
+                return EscIdTracks.Count == 0 ? null : EscIdTracks.Sum(t => t.Devices);
             }
         }
     }
 
-    private const int MinCountedQueries = 3;
-
     internal uint? LastUptime;
     internal readonly Queue<DateTime> UptimeRegressions = new();
 
-    /// <summary>GetEscID replies since the newest query on the bus.</summary>
-    internal int EscIdReplies;
+    internal readonly List<EscIdTrack> EscIdTracks = new();
+}
 
-    /// <summary>Replies per query for the last few queries.</summary>
-    internal readonly Queue<int> EscIdReplyCounts = new();
+/// <summary>
+/// One sequence of GetEscID reply transfer ids. Each ESC numbers its replies, one higher per reply, whoever asked,
+/// so one ESC answering two pollers gives consecutive ids, while a second ESC gives a sequence of its own. ESCs
+/// powered up together answer in lockstep: the same id at the same moment, so they share a track and are counted
+/// by the copies of each id. Such identical frames sent at the same instant merge on CAN, so the most copies over
+/// the last few ids is taken.
+/// </summary>
+internal sealed class EscIdTrack(byte transferId, DateTime nowUtc)
+{
+    /// <summary>Ids the copy count is taken over: an unplugged lockstep ESC drops out after about this many replies.</summary>
+    private const int History = 10;
+
+    private readonly Queue<int> _recentCopies = new();
+
+    public byte LastTransferId { get; private set; } = transferId;
+    public DateTime LastTransferIdUtc { get; private set; } = nowUtc;
+    public DateTime LastSeenUtc { get; private set; } = nowUtc;
+    public int Copies { get; private set; } = 1;
+
+    public int Devices => _recentCopies.Count == 0 ? Copies : Math.Max(Copies, _recentCopies.Max());
+
+    /// <summary>Distance from the last id to <paramref name="transferId"/> (5-bit, wraps).</summary>
+    public int GapTo(byte transferId) => (transferId - LastTransferId) & 0x1F;
+
+    public void AddCopy(DateTime nowUtc)
+    {
+        Copies++;
+        LastSeenUtc = nowUtc;
+    }
+
+    public void Advance(byte transferId, DateTime nowUtc)
+    {
+        _recentCopies.Enqueue(Copies);
+        while (_recentCopies.Count > History)
+        {
+            _recentCopies.Dequeue();
+        }
+        LastTransferId = transferId;
+        LastTransferIdUtc = nowUtc;
+        LastSeenUtc = nowUtc;
+        Copies = 1;
+    }
 }
 
 /// <summary>How many transfers of one type one node has sent (bus diagnostics).</summary>
@@ -118,14 +155,15 @@ public sealed class EscMonitor : IDisposable
     private readonly AutopilotEscTelemetry?[] _autopilotEsc = new AutopilotEscTelemetry?[12];
     private readonly CancellationTokenSource _cts = new();
     private readonly ConcurrentDictionary<(byte Node, TransferKind Kind, ushort Type), TrafficCounter> _traffic = new();
-    private readonly object _escIdLock = new();
-    private DateTime? _escIdQueryUtc;
-    private bool _escIdQueryOverlapped;
 
-    /// <summary>Queries this close together get mixed-up replies, so neither is counted.</summary>
-    private static readonly TimeSpan EscIdMinQueryGap = TimeSpan.FromMilliseconds(100);
-    /// <summary>Queries the count is taken over: an unplugged ESC drops out of it after about this many seconds.</summary>
-    private const int EscIdCountHistory = 10;
+    /// <summary>Copies of one reply from lockstep ESCs arrive together; later ones are a new reply.</summary>
+    private static readonly TimeSpan EscIdCopyWindow = TimeSpan.FromMilliseconds(50);
+
+    /// <summary>A track with no reply for this long while the node still answers is an unplugged ESC.</summary>
+    private static readonly TimeSpan EscIdTrackTimeout = TimeSpan.FromSeconds(3);
+
+    /// <summary>Lost replies skip ids; a jump of up to this many still continues the same track.</summary>
+    private const int EscIdMaxGap = 3;
 
     private sealed class TrafficCounter
     {
@@ -274,18 +312,7 @@ public sealed class EscMonitor : IDisposable
             if (HwGetEscId.TryDecodeReply(t.SourceNodeId, t.Payload, out var channel))
             {
                 state.ThrottleChannel = channel;
-                lock (_escIdLock)
-                {
-                    if (_escIdQueryUtc != null)
-                    {
-                        state.EscIdReplies++;
-                    }
-                }
-            }
-            else if (t.Payload.Length < 2)
-            {
-                // someone else's query (ArduPilot polls GetEscID too): every ESC answers it as well
-                StartEscIdQuery();
+                CountEscIdReply(state, t.TransferId);
             }
         }
         else if (type == DataTypes.HwStatusMsg1.Id)
@@ -340,46 +367,44 @@ public sealed class EscMonitor : IDisposable
         }
     }
 
-    /// <summary>Broadcasts one GetEscID query; each ESC's reply to it is counted towards <see cref="NodeState.DeviceCount"/>.</summary>
-    public void QueryEscIds()
-    {
-        StartEscIdQuery();
-        _node.Broadcast(DataTypes.HwGetEscId, HwGetEscId.EncodeQuery());
-    }
+    /// <summary>Broadcasts one GetEscID query; every ESC answers with its node id and throttle channel.</summary>
+    public void QueryEscIds() => _node.Broadcast(DataTypes.HwGetEscId, HwGetEscId.EncodeQuery());
 
-    /// <summary>
-    /// A new GetEscID query was sent: the replies counted since the previous query are final. Must run before
-    /// the query goes out so that no reply to it is counted for the previous one.
-    /// </summary>
-    private void StartEscIdQuery()
+    /// <summary>Assigns one GetEscID reply to the track of the ESC(s) that sent it.</summary>
+    private static void CountEscIdReply(NodeState state, byte transferId)
     {
         var now = DateTime.UtcNow;
-        lock (_escIdLock)
+        lock (state.EscIdTracks)
         {
-            // two queries close together: replies to both land in the second count
-            bool overlapped = _escIdQueryUtc is { } last && now - last < EscIdMinQueryGap;
-            bool countLast = _escIdQueryUtc != null && !overlapped && !_escIdQueryOverlapped;
-            foreach (var state in _nodes.Values)
+            var tracks = state.EscIdTracks;
+            tracks.RemoveAll(t => now - t.LastSeenUtc > EscIdTrackTimeout);
+
+            var copy = tracks.FirstOrDefault(t => t.LastTransferId == transferId && now - t.LastTransferIdUtc <= EscIdCopyWindow);
+            if (copy != null)
             {
-                if (countLast && state.EscIdReplies > 0)
-                {
-                    lock (state.EscIdReplyCounts)
-                    {
-                        state.EscIdReplyCounts.Enqueue(state.EscIdReplies);
-                        while (state.EscIdReplyCounts.Count > EscIdCountHistory)
-                        {
-                            state.EscIdReplyCounts.Dequeue();
-                        }
-                    }
-                    if (state.DeviceCount >= 2)
-                    {
-                        state.DuplicateSuspected = true;
-                    }
-                }
-                state.EscIdReplies = 0;
+                copy.AddCopy(now);
             }
-            _escIdQueryUtc = now;
-            _escIdQueryOverlapped = overlapped;
+            else if (tracks
+                         // the nearest next id; of two equally near, the track waiting longest for its reply
+                         .Where(t => t.GapTo(transferId) is >= 1 and <= EscIdMaxGap)
+                         .OrderBy(t => t.GapTo(transferId)).ThenBy(t => t.LastSeenUtc)
+                         .FirstOrDefault() is { } next)
+            {
+                next.Advance(transferId, now);
+            }
+            else if (tracks.FirstOrDefault(t => t.LastTransferId == transferId) is { } same)
+            {
+                // firmware that does not count its transfer ids
+                same.Advance(transferId, now);
+            }
+            else
+            {
+                tracks.Add(new EscIdTrack(transferId, now));
+            }
+        }
+        if (state.DeviceCount >= 2)
+        {
+            state.DuplicateSuspected = true;
         }
     }
 

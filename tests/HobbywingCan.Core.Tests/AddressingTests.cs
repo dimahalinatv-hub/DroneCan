@@ -138,10 +138,12 @@ public class AddressingTests
         {
             monitor.QueryEscIds();
             await Task.Delay(150);
-            // ArduPilot polls too, and both ESCs answer its query as well
-            fc.ForwardBroadcast(SimulatedAutopilot.AutopilotNodeId, DataTypes.HwGetEscId, [0]);
-            fc.ForwardBroadcast(1, DataTypes.HwGetEscId, [1, 1]);
-            fc.ForwardBroadcast(1, DataTypes.HwGetEscId, [1, 1]);
+            // ArduPilot polls too, and that query may never be forwarded to the app: both ESCs answer it as well
+            foreach (var esc in fc.Escs)
+            {
+                fc.ForwardBroadcast(1, DataTypes.HwGetEscId, [1, esc.ThrottleChannel], esc.EscIdTransferId);
+                esc.EscIdTransferId++;
+            }
             await Task.Delay(150);
         }
 
@@ -152,28 +154,46 @@ public class AddressingTests
         await link.DisposeAsync();
     }
 
+    /// <summary>Feeds GetEscID replies from node 1 (not simulated) with the given transfer ids, one group per reply.</summary>
+    private static async Task<List<int?>> Replies(SimulatedAutopilot fc, EscMonitor monitor, IEnumerable<byte[]> groups)
+    {
+        var seen = new List<int?>();
+        foreach (var group in groups)
+        {
+            foreach (byte tid in group)
+            {
+                fc.ForwardBroadcast(1, DataTypes.HwGetEscId, [1, 1], tid);
+            }
+            await Task.Delay(120);
+            seen.Add(monitor.Get(1)?.DeviceCount);
+        }
+        return seen;
+    }
+
+    [Fact]
+    public async Task GetEscId_OneEscAnsweringTwoPollers_IsOneEsc()
+    {
+        var (fc, link, node, monitor) = await Start([4], setIdQuirk: false);
+
+        // the app's query and ArduPilot's: two replies a second, numbered one after the other
+        var seen = await Replies(fc, monitor, Enumerable.Range(0, 20).Select(i => new[] { (byte)i }));
+
+        Assert.All(seen, c => Assert.Equal(1, c));
+
+        monitor.Dispose();
+        node.Dispose();
+        await link.DisposeAsync();
+    }
+
     [Fact]
     public async Task GetEscId_MergedRepliesDoNotMakeTheCountJump()
     {
-        // two ESCs on node 1 whose identical replies merge on the bus every other query
-        var (fc, link, node, monitor) = await Start([1], setIdQuirk: false);
-        var seen = new List<int?>();
+        // two ESCs powered up together: every reply twice with the same id, but every other pair merged on CAN
+        var (fc, link, node, monitor) = await Start([4], setIdQuirk: false);
 
-        for (int i = 0; i < 8; i++)
-        {
-            monitor.QueryEscIds();
-            await Task.Delay(50);
-            if (i % 2 == 0)
-            {
-                fc.ForwardBroadcast(1, DataTypes.HwGetEscId, [1, 1]);
-            }
-            await Task.Delay(150);
-            seen.Add(monitor.Get(1)?.DeviceCount);
-        }
+        var seen = await Replies(fc, monitor, Enumerable.Range(0, 10).Select(i => i % 2 == 0 ? new[] { (byte)i, (byte)i } : [(byte)i]));
 
-        // once two replies were seen twice, it stays at 2
-        Assert.All(seen.SkipWhile(c => c != 2), c => Assert.Equal(2, c));
-        Assert.Equal(2, seen[^1]);
+        Assert.All(seen, c => Assert.Equal(2, c));
 
         monitor.Dispose();
         node.Dispose();
@@ -181,22 +201,14 @@ public class AddressingTests
     }
 
     [Fact]
-    public async Task GetEscId_OneStrayExtraReplyIsIgnored()
+    public async Task GetEscId_UnpluggingOneOfTwo_DropsToOne()
     {
-        var (fc, link, node, monitor) = await Start([1], setIdQuirk: false);
+        var (fc, link, node, monitor) = await Start([4], setIdQuirk: false);
 
-        for (int i = 0; i < 6; i++)
-        {
-            monitor.QueryEscIds();
-            await Task.Delay(50);
-            if (i == 2)
-            {
-                fc.ForwardBroadcast(1, DataTypes.HwGetEscId, [1, 1]);
-            }
-            await Task.Delay(150);
-        }
+        var seen = await Replies(fc, monitor, Enumerable.Range(0, 25).Select(i => i < 5 ? new[] { (byte)i, (byte)i } : [(byte)i]));
 
-        Assert.Equal(1, monitor.Get(1)!.DeviceCount);
+        Assert.Equal(2, seen[4]);
+        Assert.Equal(1, seen[^1]);
 
         monitor.Dispose();
         node.Dispose();
@@ -204,17 +216,28 @@ public class AddressingTests
     }
 
     [Fact]
-    public async Task GetEscId_QueriesTooCloseTogetherAreNotCounted()
+    public async Task GetEscId_TwoEscsNotInStep_AreTwoEscs()
     {
-        var (_, link, node, monitor) = await Start([1, 1], setIdQuirk: false);
+        // one ESC was plugged in later, so its replies are numbered differently; each answers two pollers
+        var (fc, link, node, monitor) = await Start([4], setIdQuirk: false);
 
-        monitor.QueryEscIds();
-        monitor.QueryEscIds();
-        await Task.Delay(200);
-        monitor.QueryEscIds();
+        var seen = await Replies(fc, monitor, Enumerable.Range(0, 12).Select(i => new[] { (byte)i, (byte)((i + 17) & 0x1F) }));
 
-        // the second query's window holds the replies to both queries
-        Assert.Null(monitor.Get(1)!.DeviceCount);
+        Assert.All(seen.Skip(1), c => Assert.Equal(2, c));
+
+        monitor.Dispose();
+        node.Dispose();
+        await link.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task GetEscId_FirmwareWithoutTransferIdCounter_IsOneEsc()
+    {
+        var (fc, link, node, monitor) = await Start([4], setIdQuirk: false);
+
+        var seen = await Replies(fc, monitor, Enumerable.Range(0, 8).Select(_ => new byte[] { 0 }));
+
+        Assert.All(seen, c => Assert.Equal(1, c));
 
         monitor.Dispose();
         node.Dispose();

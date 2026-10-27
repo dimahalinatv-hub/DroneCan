@@ -36,6 +36,8 @@ public sealed class SimulatedAutopilot : Stream
         public byte LedColor { get; set; } = 2;
         public byte LedBlink { get; set; }
         public byte BaudCode { get; set; }
+        /// <summary>Transfer id of this ESC's next GetEscID reply (ESCs started together stay in lockstep).</summary>
+        public byte EscIdTransferId { get; set; }
         public Dictionary<ushort, byte> RateCodes { get; } = new()
         {
             [DataTypes.HwStatusMsg1.Id] = 5, // 50 Hz
@@ -79,10 +81,10 @@ public sealed class SimulatedAutopilot : Stream
         Emit(MavlinkIds.Heartbeat, hb);
     }
 
-    public void ForwardBroadcast(byte sourceNode, DataTypeInfo type, byte[] payload)
+    public void ForwardBroadcast(byte sourceNode, DataTypeInfo type, byte[] payload, byte? transferId = null)
     {
         uint id = CanId.Message(16, type.Id, sourceNode);
-        foreach (var f in TransferEncoder.Encode(id, _tid++, payload, type.Signature))
+        foreach (var f in TransferEncoder.Encode(id, transferId ?? _tid++, payload, type.Signature))
         {
             Forward(f);
         }
@@ -234,7 +236,8 @@ public sealed class SimulatedAutopilot : Stream
             {
                 foreach (var e in _escs)
                 {
-                    ForwardBroadcast(e.NodeId, DataTypes.HwGetEscId, [e.NodeId, e.ThrottleChannel]);
+                    ForwardBroadcast(e.NodeId, DataTypes.HwGetEscId, [e.NodeId, e.ThrottleChannel], e.EscIdTransferId);
+                    e.EscIdTransferId = (byte)((e.EscIdTransferId + 1) & 0x1F);
                 }
                 return;
             }
