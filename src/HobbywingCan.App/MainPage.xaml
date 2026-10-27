@@ -348,15 +348,18 @@
                     <VerticalStackLayout Spacing="6" Padding="0,0,18,0">
                         <Grid ColumnDefinitions="*,Auto">
                             <Label Text="Settings presets" Style="{StaticResource Section}" Margin="0" />
-                            <Button Grid.Column="1" Text="Close" Command="{Binding ClosePresetsCommand}" />
+                            <!-- every popup button: the same size, in one column at the right edge -->
+                            <Button Grid.Column="1" Text="Close" Command="{Binding ClosePresetsCommand}"
+                                    HeightRequest="32" WidthRequest="110" VerticalOptions="Center" />
                         </Grid>
 
                         <!-- the same selection as the page: the ESC whose values are shown on the right and that Apply writes to -->
                         <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
                             <Label Text="Node" />
                             <Picker MinimumHeightRequest="32" Grid.Column="1" ItemsSource="{Binding ConfigNodes}" SelectedItem="{Binding SelectedConfigNode}" Title="Choose the ESC" />
-                            <Button Grid.Column="2" Text="Apply to ESC" Command="{Binding ApplyPresetCommand}" />
-                            <ActivityIndicator Grid.Column="3" IsRunning="{Binding IsWriting}" HeightRequest="20" WidthRequest="20" />
+                            <ActivityIndicator Grid.Column="2" IsRunning="{Binding IsWriting}" HeightRequest="20" WidthRequest="20" />
+                            <Button Grid.Column="3" Text="Apply to ESC" Command="{Binding ApplyPresetCommand}"
+                                    HeightRequest="32" WidthRequest="110" VerticalOptions="Center" />
                         </Grid>
                         <Label Style="{StaticResource Empty}" Margin="0"
                                Text="Apply writes the ticked fields to this node (disarmed only); values it already has are skipped." />
@@ -365,7 +368,7 @@
                             <Label Text="Preset" />
                             <Picker MinimumHeightRequest="32" Grid.Column="1" ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" />
                             <Button Grid.Column="2" Text="Delete" Command="{Binding DeletePresetCommand}"
-                                    Padding="8,2" MinimumHeightRequest="24" FontSize="12" VerticalOptions="Center" />
+                                    HeightRequest="32" WidthRequest="110" VerticalOptions="Center" />
                         </Grid>
 
                         <Label Style="{StaticResource Empty}" Margin="0"
@@ -452,7 +455,8 @@
                         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
                             <Label Text="Name" />
                             <Entry MinimumHeightRequest="32" Grid.Column="1" Text="{Binding PresetName}" Placeholder="e.g. Quad X, 200 Hz" />
-                            <Button Grid.Column="2" Text="Save" Command="{Binding SavePresetCommand}" />
+                            <Button Grid.Column="2" Text="Save" Command="{Binding SavePresetCommand}"
+                                    HeightRequest="32" WidthRequest="110" VerticalOptions="Center" />
                         </Grid>
                     </VerticalStackLayout>
                 </ScrollView>
