@@ -219,17 +219,20 @@
             </Grid>
 
             <Grid Grid.Column="0" RowDefinitions="Auto,Auto,*" RowSpacing="6">
-                <!-- FlexLayout rows wrap instead of pushing the page wider than the window -->
-                <FlexLayout Grid.Row="0" Wrap="Wrap" AlignItems="Center">
-                    <Label Text="ESC configuration" Style="{StaticResource Section}" Margin="0,8,8,4" />
-                    <Button Text="↻" Command="{Binding ReadConfigCommand}" Margin="0,0,6,0"
-                            ToolTipProperties.Text="Read again (the configuration is read automatically when a node is selected)" />
-                    <Button Text="Copy report" Command="{Binding CopyReportCommand}" Margin="0,0,6,0" />
-                    <Button Text="{Binding ToggleViewText}" Command="{Binding ToggleViewCommand}" Margin="0,0,6,0"
-                            ToolTipProperties.Text="Switch between the read-only report and the settings editor" />
-                    <Button Text="Presets…" Command="{Binding OpenPresetsCommand}"
-                            ToolTipProperties.Text="Save the settings as a preset, or write a saved preset to this ESC" />
-                </FlexLayout>
+                <VerticalStackLayout Grid.Row="0">
+                    <Label Text="ESC configuration" Style="{StaticResource Section}" />
+                    <!-- FlexLayout rows wrap instead of pushing the page wider than the window -->
+                    <FlexLayout Wrap="Wrap" AlignItems="Center">
+                        <Button Text="↻" Command="{Binding ReadConfigCommand}" Margin="0,0,6,0"
+                                ToolTipProperties.Text="Read again (the configuration is read automatically when a node is selected)" />
+                        <Button Text="Copy report" Command="{Binding CopyReportCommand}" Margin="0,0,6,0" />
+                        <!-- fixed width: "Report" and "Edit" must not move the buttons after it -->
+                        <Button Text="{Binding ToggleViewText}" Command="{Binding ToggleViewCommand}" Margin="0,0,6,0" WidthRequest="80"
+                                ToolTipProperties.Text="Switch between the read-only report and the settings editor" />
+                        <Button Text="Presets…" Command="{Binding OpenPresetsCommand}"
+                                ToolTipProperties.Text="Save the settings as a preset, or write a saved preset to this ESC" />
+                    </FlexLayout>
+                </VerticalStackLayout>
                 <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
                     <Label Text="Node" />
                     <Picker MinimumHeightRequest="32" Grid.Column="1" ItemsSource="{Binding ConfigNodes}" SelectedItem="{Binding SelectedConfigNode}" />
