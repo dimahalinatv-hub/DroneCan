@@ -337,7 +337,7 @@
 
         <!-- Presets popup: an overlay over the whole page, no extra package needed -->
         <Grid Grid.RowSpan="6" Margin="-12" ZIndex="10" BackgroundColor="#99000000" IsVisible="{Binding ShowPresets}">
-            <Border WidthRequest="480" MaximumHeightRequest="760" HorizontalOptions="Center" VerticalOptions="Center" Padding="16"
+            <Border WidthRequest="600" MaximumHeightRequest="800" HorizontalOptions="Center" VerticalOptions="Center" Padding="16"
                     StrokeThickness="1" Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"
                     BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}">
                 <Border.StrokeShape>
@@ -348,6 +348,13 @@
                         <Grid ColumnDefinitions="*,Auto">
                             <Label Text="Settings presets" Style="{StaticResource Section}" Margin="0" />
                             <Button Grid.Column="1" Text="Close" Command="{Binding ClosePresetsCommand}" />
+                        </Grid>
+
+                        <!-- the same selection as the page: the ESC whose values are shown on the right and that Apply writes to -->
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                            <Label Text="Node" />
+                            <Picker Grid.Column="1" ItemsSource="{Binding ConfigNodes}" SelectedItem="{Binding SelectedConfigNode}" Title="Choose the ESC" />
+                            <ActivityIndicator Grid.Column="2" IsRunning="{Binding IsWriting}" HeightRequest="20" WidthRequest="20" />
                         </Grid>
 
                         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
@@ -363,52 +370,79 @@
                                     ToolTipProperties.Text="Copy the values of the settings editor (what the ESC reported, plus your edits) into these fields" />
                         </Grid>
 
-                        <!-- the same fields and order as the settings editor -->
-                        <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="Auto,120,*"
+                        <Label Style="{StaticResource Empty}" Margin="0"
+                               Text="Yellow = differs from the ESC · Green = written · N/A = the ESC does not report it" />
+
+                        <!-- the same fields and order as the settings editor; on the right what the selected ESC reports now -->
+                        <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="Auto,120,*,120"
                               RowSpacing="4" ColumnSpacing="6">
-                            <CheckBox Grid.Row="0" IsChecked="{Binding Draft.IncludeNodeId}" />
-                            <Label Grid.Row="0" Grid.Column="1" Text="Node ID" ToolTipProperties.Text="1..127" />
-                            <Entry Grid.Row="0" Grid.Column="2" Text="{Binding Draft.NodeIdText}" Keyboard="Numeric" />
+                            <Label Grid.Row="0" Grid.Column="2" Text="Preset" FontSize="12" Opacity="0.65" />
+                            <Label Grid.Row="0" Grid.Column="3" Text="Current" FontSize="12" Opacity="0.65" />
 
-                            <CheckBox Grid.Row="1" IsChecked="{Binding Draft.IncludeCanBaud}" />
-                            <Label Grid.Row="1" Grid.Column="1" Text="CAN speed" ToolTipProperties.Text="Must match the flight controller's CAN_Px_BITRATE" />
-                            <Picker Grid.Row="1" Grid.Column="2" ItemsSource="{Binding CanBaudOptions}" SelectedItem="{Binding Draft.CanBaud}" />
+                            <BoxView Grid.Row="1" Grid.ColumnSpan="4" Color="{Binding DraftMarks[NodeIdText]}" CornerRadius="4" Margin="-4,-2" />
+                            <CheckBox Grid.Row="1" IsChecked="{Binding Draft.IncludeNodeId}" />
+                            <Label Grid.Row="1" Grid.Column="1" Text="Node ID" ToolTipProperties.Text="1..127" />
+                            <Entry Grid.Row="1" Grid.Column="2" Text="{Binding Draft.NodeIdText}" Keyboard="Numeric" />
+                            <Label Grid.Row="1" Grid.Column="3" Text="{Binding PresetCurrent[NodeIdText]}" FontFamily="Consolas" />
 
-                            <CheckBox Grid.Row="2" IsChecked="{Binding Draft.IncludeThrottleChannel}" />
-                            <Label Grid.Row="2" Grid.Column="1" Text="Throttle channel" ToolTipProperties.Text="1..63, the motor output number" />
-                            <Entry Grid.Row="2" Grid.Column="2" Text="{Binding Draft.ThrottleChannelText}" Keyboard="Numeric" />
+                            <BoxView Grid.Row="2" Grid.ColumnSpan="4" Color="{Binding DraftMarks[CanBaud]}" CornerRadius="4" Margin="-4,-2" />
+                            <CheckBox Grid.Row="2" IsChecked="{Binding Draft.IncludeCanBaud}" />
+                            <Label Grid.Row="2" Grid.Column="1" Text="CAN speed" ToolTipProperties.Text="Must match the flight controller's CAN_Px_BITRATE" />
+                            <Picker Grid.Row="2" Grid.Column="2" ItemsSource="{Binding CanBaudOptions}" SelectedItem="{Binding Draft.CanBaud}" />
+                            <Label Grid.Row="2" Grid.Column="3" Text="{Binding PresetCurrent[CanBaud]}" FontFamily="Consolas"
+                                   ToolTipProperties.Text="CAN speed cannot be read back from the ESC" />
 
-                            <CheckBox Grid.Row="3" IsChecked="{Binding Draft.IncludeThrottleSource}" />
-                            <Label Grid.Row="3" Grid.Column="1" Text="Throttle source" />
-                            <Picker Grid.Row="3" Grid.Column="2" ItemsSource="{Binding ThrottleSourceOptions}" SelectedItem="{Binding Draft.ThrottleSource}" />
+                            <BoxView Grid.Row="3" Grid.ColumnSpan="4" Color="{Binding DraftMarks[ThrottleChannelText]}" CornerRadius="4" Margin="-4,-2" />
+                            <CheckBox Grid.Row="3" IsChecked="{Binding Draft.IncludeThrottleChannel}" />
+                            <Label Grid.Row="3" Grid.Column="1" Text="Throttle channel" ToolTipProperties.Text="1..63, the motor output number" />
+                            <Entry Grid.Row="3" Grid.Column="2" Text="{Binding Draft.ThrottleChannelText}" Keyboard="Numeric" />
+                            <Label Grid.Row="3" Grid.Column="3" Text="{Binding PresetCurrent[ThrottleChannelText]}" FontFamily="Consolas" />
 
-                            <CheckBox Grid.Row="4" IsChecked="{Binding Draft.IncludeMsg1Rate}" />
-                            <Label Grid.Row="4" Grid.Column="1" Text="StatusMsg1 rate" ToolTipProperties.Text="RPM, PWM, status" />
-                            <Picker Grid.Row="4" Grid.Column="2" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding Draft.Msg1Rate}" />
+                            <BoxView Grid.Row="4" Grid.ColumnSpan="4" Color="{Binding DraftMarks[ThrottleSource]}" CornerRadius="4" Margin="-4,-2" />
+                            <CheckBox Grid.Row="4" IsChecked="{Binding Draft.IncludeThrottleSource}" />
+                            <Label Grid.Row="4" Grid.Column="1" Text="Throttle source" />
+                            <Picker Grid.Row="4" Grid.Column="2" ItemsSource="{Binding ThrottleSourceOptions}" SelectedItem="{Binding Draft.ThrottleSource}" />
+                            <Label Grid.Row="4" Grid.Column="3" Text="{Binding PresetCurrent[ThrottleSource]}" FontFamily="Consolas" />
 
-                            <CheckBox Grid.Row="5" IsChecked="{Binding Draft.IncludeMsg2Rate}" />
-                            <Label Grid.Row="5" Grid.Column="1" Text="StatusMsg2 rate" ToolTipProperties.Text="Voltage, current, temperature" />
-                            <Picker Grid.Row="5" Grid.Column="2" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding Draft.Msg2Rate}" />
+                            <BoxView Grid.Row="5" Grid.ColumnSpan="4" Color="{Binding DraftMarks[Msg1Rate]}" CornerRadius="4" Margin="-4,-2" />
+                            <CheckBox Grid.Row="5" IsChecked="{Binding Draft.IncludeMsg1Rate}" />
+                            <Label Grid.Row="5" Grid.Column="1" Text="StatusMsg1 rate" ToolTipProperties.Text="RPM, PWM, status" />
+                            <Picker Grid.Row="5" Grid.Column="2" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding Draft.Msg1Rate}" />
+                            <Label Grid.Row="5" Grid.Column="3" Text="{Binding PresetCurrent[Msg1Rate]}" FontFamily="Consolas" />
 
-                            <CheckBox Grid.Row="6" IsChecked="{Binding Draft.IncludeMsg3Rate}" />
-                            <Label Grid.Row="6" Grid.Column="1" Text="StatusMsg3 rate" ToolTipProperties.Text="MOSFET / capacitor / motor temperatures" />
-                            <Picker Grid.Row="6" Grid.Column="2" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding Draft.Msg3Rate}" />
+                            <BoxView Grid.Row="6" Grid.ColumnSpan="4" Color="{Binding DraftMarks[Msg2Rate]}" CornerRadius="4" Margin="-4,-2" />
+                            <CheckBox Grid.Row="6" IsChecked="{Binding Draft.IncludeMsg2Rate}" />
+                            <Label Grid.Row="6" Grid.Column="1" Text="StatusMsg2 rate" ToolTipProperties.Text="Voltage, current, temperature" />
+                            <Picker Grid.Row="6" Grid.Column="2" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding Draft.Msg2Rate}" />
+                            <Label Grid.Row="6" Grid.Column="3" Text="{Binding PresetCurrent[Msg2Rate]}" FontFamily="Consolas" />
+
+                            <BoxView Grid.Row="7" Grid.ColumnSpan="4" Color="{Binding DraftMarks[Msg3Rate]}" CornerRadius="4" Margin="-4,-2" />
+                            <CheckBox Grid.Row="7" IsChecked="{Binding Draft.IncludeMsg3Rate}" />
+                            <Label Grid.Row="7" Grid.Column="1" Text="StatusMsg3 rate" ToolTipProperties.Text="MOSFET / capacitor / motor temperatures" />
+                            <Picker Grid.Row="7" Grid.Column="2" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding Draft.Msg3Rate}" />
+                            <Label Grid.Row="7" Grid.Column="3" Text="{Binding PresetCurrent[Msg3Rate]}" FontFamily="Consolas" />
 
                             <!-- one tick for colour and mode: SetLED writes both -->
-                            <CheckBox Grid.Row="7" IsChecked="{Binding Draft.IncludeLed}" />
-                            <Label Grid.Row="7" Grid.Column="1" Text="LED color" />
-                            <Picker Grid.Row="7" Grid.Column="2" ItemsSource="{Binding LedColorOptions}" SelectedItem="{Binding Draft.LedColor}" />
+                            <BoxView Grid.Row="8" Grid.ColumnSpan="4" Color="{Binding DraftMarks[LedColor]}" CornerRadius="4" Margin="-4,-2" />
+                            <CheckBox Grid.Row="8" IsChecked="{Binding Draft.IncludeLed}" />
+                            <Label Grid.Row="8" Grid.Column="1" Text="LED color" />
+                            <Picker Grid.Row="8" Grid.Column="2" ItemsSource="{Binding LedColorOptions}" SelectedItem="{Binding Draft.LedColor}" />
+                            <Label Grid.Row="8" Grid.Column="3" Text="{Binding PresetCurrent[LedColor]}" FontFamily="Consolas" />
 
-                            <Label Grid.Row="8" Grid.Column="1" Text="LED mode" />
-                            <HorizontalStackLayout Grid.Row="8" Grid.Column="2" Spacing="6">
+                            <BoxView Grid.Row="9" Grid.ColumnSpan="4" Color="{Binding DraftMarks[LedBlink]}" CornerRadius="4" Margin="-4,-2" />
+                            <Label Grid.Row="9" Grid.Column="1" Text="LED mode" />
+                            <HorizontalStackLayout Grid.Row="9" Grid.Column="2" Spacing="6">
                                 <Picker ItemsSource="{Binding LedBlinkOptions}" SelectedItem="{Binding Draft.LedBlink}" WidthRequest="140" />
                                 <CheckBox IsChecked="{Binding Draft.LedSave}" />
                                 <Label Text="Save" />
                             </HorizontalStackLayout>
+                            <Label Grid.Row="9" Grid.Column="3" Text="{Binding PresetCurrent[LedBlink]}" FontFamily="Consolas" />
 
-                            <CheckBox Grid.Row="9" IsChecked="{Binding Draft.IncludeDirection}" />
-                            <Label Grid.Row="9" Grid.Column="1" Text="Direction" />
-                            <Picker Grid.Row="9" Grid.Column="2" ItemsSource="{Binding DirectionOptions}" SelectedItem="{Binding Draft.Direction}" />
+                            <BoxView Grid.Row="10" Grid.ColumnSpan="4" Color="{Binding DraftMarks[Direction]}" CornerRadius="4" Margin="-4,-2" />
+                            <CheckBox Grid.Row="10" IsChecked="{Binding Draft.IncludeDirection}" />
+                            <Label Grid.Row="10" Grid.Column="1" Text="Direction" />
+                            <Picker Grid.Row="10" Grid.Column="2" ItemsSource="{Binding DirectionOptions}" SelectedItem="{Binding Draft.Direction}" />
+                            <Label Grid.Row="10" Grid.Column="3" Text="{Binding PresetCurrent[Direction]}" FontFamily="Consolas" />
                         </Grid>
 
                         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
@@ -419,12 +453,8 @@
 
                         <BoxView HeightRequest="1" Margin="0,6" Color="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}" />
 
-                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
-                            <Label Text="ESC" />
-                            <Label Grid.Column="1" Text="{Binding SelectedConfigNode.Display, FallbackValue='no node selected'}" FontAttributes="Bold" />
-                        </Grid>
                         <Label Style="{StaticResource Empty}" Margin="0"
-                               Text="Apply writes the ticked fields above as they are now (saved or not): one confirmation, then one write after another (disarmed only). Values the ESC already reports are skipped; it stops at the first failed write." />
+                               Text="Apply writes the ticked fields above to the selected node as they are now (saved or not): one confirmation, then one write after another (disarmed only). Values the ESC already reports are skipped; it stops at the first failed write and shows what was saved." />
                         <Button Text="Apply to ESC" Command="{Binding ApplyPresetCommand}" HorizontalOptions="Start" />
                     </VerticalStackLayout>
                 </ScrollView>

@@ -139,6 +139,7 @@ public sealed partial class MainViewModel : ObservableObject
             {
                 RefreshCommands();
                 LoadSettingsFromNode();
+                PresetNodeChanged();
             }
         }
     }
@@ -352,6 +353,10 @@ public sealed partial class MainViewModel : ObservableObject
             RequestMajorConfigOnce(state);
         }
         SyncSettingsEditors();
+        if (ShowPresets)
+        {
+            RefreshPresetCurrent();
+        }
         AutoReadConfig();
 
         foreach (var e in _monitor.Traffic)

@@ -480,15 +480,16 @@ public sealed partial class MainViewModel
     /// Writes <paramref name="steps"/> in order to the selected ESC after one confirmation; stops at the first that fails.
     /// </summary>
     /// <param name="action">what the whole write does, for the confirmation and the log</param>
-    private async Task WriteStepsAsync(string action, IReadOnlyList<WriteStep> steps)
+    /// <returns>the result of each step, null for one not tried after a failure; null when nothing was tried (blocked or cancelled)</returns>
+    private async Task<WriteResult?[]?> WriteStepsAsync(string action, IReadOnlyList<WriteStep> steps)
     {
         if (_writer == null || _node == null || _monitor == null || SelectedConfigNode is not { } target || steps.Count == 0)
         {
-            return;
+            return null;
         }
         if (!EnsureDisarmed())
         {
-            return;
+            return null;
         }
 
         IsWriting = true;
@@ -534,7 +535,7 @@ public sealed partial class MainViewModel
             if (Confirm != null && !await Confirm(title, string.Join("\n\n", notes)))
             {
                 AddLog($"Cancelled: {action}");
-                return;
+                return null;
             }
             if (reach.Count > 0)
             {
@@ -545,10 +546,12 @@ public sealed partial class MainViewModel
             bool anyWritten = false;
             bool refresh = true;
             bool alerted = false;
+            var results = new WriteResult?[steps.Count];
             for (int i = 0; i < steps.Count; i++)
             {
                 var step = steps[i];
                 var result = await step.Write(_writer, nodeId);
+                results[i] = result;
                 AddLog(result.Message);
                 if (result.Success)
                 {
@@ -587,6 +590,7 @@ public sealed partial class MainViewModel
                 // the report shows the old values now; read it again
                 _autoReadNodeId = null;
             }
+            return results;
         }
         finally
         {

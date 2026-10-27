@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Windows.Input;
+using HobbywingCan.Core.DroneCan;
 using HobbywingCan.Core.Messages;
 using HobbywingCan.Core.Presets;
 
@@ -54,6 +55,64 @@ public sealed class PresetDraft : ObservableObject
     public bool IncludeDirection { get => _includeDirection; set => SetProperty(ref _includeDirection, value); }
 }
 
+/// <summary>What the selected ESC reports for each presets popup row, bound as <c>PresetCurrent[DraftProperty]</c>; N/A when unknown.</summary>
+public sealed class PresetCurrentValues : ObservableObject
+{
+    private Dictionary<string, object?> _values = new();
+
+    public string this[string field] => _values.GetValueOrDefault(field) switch
+    {
+        null => "N/A",
+        Option option => option.Text,
+        var value => Convert.ToString(value, CultureInfo.InvariantCulture) ?? "N/A",
+    };
+
+    /// <summary>The reported value (an <see cref="Option"/> or a number); null when unknown.</summary>
+    public object? Value(string field) => _values.GetValueOrDefault(field);
+
+    public void Set(Dictionary<string, object?> values)
+    {
+        if (_values.Count == values.Count && _values.All(kv => Equals(kv.Value, values.GetValueOrDefault(kv.Key))))
+        {
+            return;
+        }
+        _values = values;
+        OnPropertyChanged(string.Empty);
+    }
+}
+
+/// <summary>
+/// Highlight of each presets popup row, bound as <c>DraftMarks[DraftProperty]</c>:
+/// yellow = the preset differs from what the ESC reports, green = written by the last Apply.
+/// </summary>
+public sealed class PresetMarks : ObservableObject
+{
+    private readonly Func<string, bool> _differs;
+    private readonly HashSet<string> _written = new();
+
+    public PresetMarks(Func<string, bool> differs) => _differs = differs;
+
+    public Color this[string field] =>
+        _differs(field) ? FieldMarks.Edited
+        : _written.Contains(field) ? FieldMarks.Written
+        : Colors.Transparent;
+
+    public void MarkWritten(string field)
+    {
+        _written.Add(field);
+        Changed();
+    }
+
+    public void Clear()
+    {
+        _written.Clear();
+        Changed();
+    }
+
+    // empty name = every indexer binding re-reads
+    public void Changed() => OnPropertyChanged(string.Empty);
+}
+
 /// <summary>Named sets of ESC settings: edited in a popup, saved, written to an ESC in one go.</summary>
 public sealed partial class MainViewModel
 {
@@ -61,6 +120,9 @@ public sealed partial class MainViewModel
     private SettingsPreset? _selectedPreset;
     private string _presetName = "";
     private bool _showPresets;
+    private PresetMarks? _draftMarks;
+    // the node the green marks were written to; another node chosen clears them
+    private byte? _presetWrittenNode;
 
     /// <summary>Asks the user to confirm something other than a write (title, message, accept button) → accepted; set by the page.</summary>
     public Func<string, string, string, Task<bool>>? Ask { get; set; }
@@ -68,6 +130,10 @@ public sealed partial class MainViewModel
     public ObservableCollection<SettingsPreset> Presets { get; } = new();
 
     public PresetDraft Draft { get; } = new();
+
+    public PresetCurrentValues PresetCurrent { get; } = new();
+
+    public PresetMarks DraftMarks => _draftMarks ??= new PresetMarks(DraftDiffers);
 
     public ICommand OpenPresetsCommand { get; private set; } = null!;
     public ICommand ClosePresetsCommand { get; private set; } = null!;
@@ -112,6 +178,8 @@ public sealed partial class MainViewModel
             AddLog(error);
         }
 
+        Draft.PropertyChanged += (_, _) => DraftMarks.Changed();
+
         OpenPresetsCommand = new Command(() =>
         {
             // a fresh popup starts from the editor; a chosen preset stays as it was left
@@ -119,6 +187,7 @@ public sealed partial class MainViewModel
             {
                 DraftFromEditor();
             }
+            RefreshPresetCurrent();
             ShowPresets = true;
         });
         ClosePresetsCommand = new Command(() => ShowPresets = false);
@@ -128,9 +197,100 @@ public sealed partial class MainViewModel
         DeletePresetCommand = new Command(async () => await DeletePresetAsync(), () => SelectedPreset != null);
     }
 
+    /// <summary>Show in the popup what the selected ESC reports now.</summary>
+    private void RefreshPresetCurrent()
+    {
+        var state = SelectedConfigNode is { } node ? _monitor?.Get(node.NodeId) : null;
+        PresetCurrent.Set(new Dictionary<string, object?>
+        {
+            [nameof(PresetDraft.NodeIdText)] = state?.NodeId,
+            // no read exists for CAN speed
+            [nameof(PresetDraft.CanBaud)] = null,
+            [nameof(PresetDraft.ThrottleChannelText)] = state?.ThrottleChannel,
+            [nameof(PresetDraft.ThrottleSource)] = state?.ThrottleSourcePwm is { } pwm
+                ? Find(ThrottleSourceOptions, pwm ? HwSetThrottleSource.Pwm : HwSetThrottleSource.Can)
+                : null,
+            [nameof(PresetDraft.Msg1Rate)] = state != null ? RateFor(state, DataTypes.HwStatusMsg1.Id) : null,
+            [nameof(PresetDraft.Msg2Rate)] = state != null ? RateFor(state, DataTypes.HwStatusMsg2.Id) : null,
+            [nameof(PresetDraft.Msg3Rate)] = state != null ? RateFor(state, DataTypes.HwStatusMsg3.Id) : null,
+            [nameof(PresetDraft.LedColor)] = Opt(LedColorOptions, state?.LedColor),
+            [nameof(PresetDraft.LedBlink)] = Opt(LedBlinkOptions, state?.LedBlink),
+            [nameof(PresetDraft.Direction)] = state?.CounterClockwise is { } ccw
+                ? Find(DirectionOptions, ccw ? HwSetDirection.CounterClockwise : HwSetDirection.Clockwise)
+                : null,
+        });
+        DraftMarks.Changed();
+    }
+
+    /// <summary>The row is ticked and its value differs from what the ESC reports; unknown values never differ.</summary>
+    private bool DraftDiffers(string field)
+    {
+        var d = Draft;
+        bool include = field switch
+        {
+            nameof(PresetDraft.NodeIdText) => d.IncludeNodeId,
+            nameof(PresetDraft.CanBaud) => d.IncludeCanBaud,
+            nameof(PresetDraft.ThrottleChannelText) => d.IncludeThrottleChannel,
+            nameof(PresetDraft.ThrottleSource) => d.IncludeThrottleSource,
+            nameof(PresetDraft.Msg1Rate) => d.IncludeMsg1Rate,
+            nameof(PresetDraft.Msg2Rate) => d.IncludeMsg2Rate,
+            nameof(PresetDraft.Msg3Rate) => d.IncludeMsg3Rate,
+            nameof(PresetDraft.LedColor) or nameof(PresetDraft.LedBlink) => d.IncludeLed,
+            nameof(PresetDraft.Direction) => d.IncludeDirection,
+            _ => false,
+        };
+        object? value = field switch
+        {
+            nameof(PresetDraft.NodeIdText) => ParseByte(d.NodeIdText),
+            nameof(PresetDraft.CanBaud) => d.CanBaud,
+            nameof(PresetDraft.ThrottleChannelText) => ParseByte(d.ThrottleChannelText),
+            nameof(PresetDraft.ThrottleSource) => d.ThrottleSource,
+            nameof(PresetDraft.Msg1Rate) => d.Msg1Rate,
+            nameof(PresetDraft.Msg2Rate) => d.Msg2Rate,
+            nameof(PresetDraft.Msg3Rate) => d.Msg3Rate,
+            nameof(PresetDraft.LedColor) => d.LedColor,
+            // no mode is written as steady (0)
+            nameof(PresetDraft.LedBlink) => d.LedColor == null ? null : d.LedBlink ?? Find(LedBlinkOptions, 0),
+            nameof(PresetDraft.Direction) => d.Direction,
+            _ => null,
+        };
+        return include && value != null && PresetCurrent.Value(field) is { } current && !Equals(value, current);
+    }
+
+    private static byte? ParseByte(string text) =>
+        byte.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var b) ? b : null;
+
+    /// <summary>The popup row of a settings editor field.</summary>
+    private static string DraftField(string editorField) => editorField switch
+    {
+        nameof(NewNodeIdText) => nameof(PresetDraft.NodeIdText),
+        nameof(SelectedCanBaud) => nameof(PresetDraft.CanBaud),
+        nameof(ThrottleChannelText) => nameof(PresetDraft.ThrottleChannelText),
+        nameof(SelectedThrottleSource) => nameof(PresetDraft.ThrottleSource),
+        nameof(SelectedMsg1Rate) => nameof(PresetDraft.Msg1Rate),
+        nameof(SelectedMsg2Rate) => nameof(PresetDraft.Msg2Rate),
+        nameof(SelectedMsg3Rate) => nameof(PresetDraft.Msg3Rate),
+        nameof(SelectedLedColor) => nameof(PresetDraft.LedColor),
+        nameof(SelectedLedBlink) => nameof(PresetDraft.LedBlink),
+        nameof(SelectedDirection) => nameof(PresetDraft.Direction),
+        _ => editorField,
+    };
+
+    /// <summary>The selected ESC changed: its values in the popup, and green marks only for the node they were written to.</summary>
+    private void PresetNodeChanged()
+    {
+        if (SelectedConfigNode is { } node && node.NodeId != _presetWrittenNode)
+        {
+            _presetWrittenNode = null;
+            DraftMarks.Clear();
+        }
+        RefreshPresetCurrent();
+    }
+
     /// <summary>Copy the values of the settings editor into the popup; which fields are ticked stays.</summary>
     private void DraftFromEditor()
     {
+        DraftMarks.Clear();
         Draft.CanBaud = SelectedCanBaud;
         Draft.NodeIdText = NewNodeIdText;
         Draft.ThrottleChannelText = ThrottleChannelText;
@@ -146,6 +306,7 @@ public sealed partial class MainViewModel
 
     private void LoadDraft(SettingsPreset p)
     {
+        DraftMarks.Clear();
         Draft.CanBaud = Opt(CanBaudOptions, p.CanBaud);
         Draft.NodeIdText = p.NodeId?.ToString(CultureInfo.InvariantCulture) ?? "";
         Draft.ThrottleChannelText = p.ThrottleChannel?.ToString(CultureInfo.InvariantCulture) ?? "";
@@ -356,8 +517,9 @@ public sealed partial class MainViewModel
             return;
         }
         var state = _monitor?.Get(target.NodeId);
-        // the editors show what is written; each field turns green once it is
-        ShowPresets = false;
+        // the popup stays open: each of its rows turns green once written; the editors behind it get the values too
+        _presetWrittenNode = null;
+        DraftMarks.Clear();
         if (!ShowSettings)
         {
             ShowSettings = true;
@@ -451,7 +613,9 @@ public sealed partial class MainViewModel
             }
             if ((preset.ThrottleChannel ?? state?.ThrottleChannel) is not { } channel)
             {
-                AddLog("Throttle channel of this ESC is unknown (enable Poll GetEscID or wait for the configuration read) — SetID needs it to keep it unchanged");
+                const string unknown = "Throttle channel of this ESC is unknown (enable Poll GetEscID or wait for the configuration read) — SetID needs it to keep it unchanged";
+                AddLog(unknown);
+                await ShowAlert($"Preset \"{preset.Name}\" not applied", $"Nothing was written to node {target.NodeId}.\n\n{unknown}");
                 return;
             }
             if (preset.ThrottleChannel != null)
@@ -501,8 +665,51 @@ public sealed partial class MainViewModel
         if (steps.Count == 0)
         {
             AddLog($"Preset \"{preset.Name}\": nothing to write");
+            await ShowAlert($"Preset \"{preset.Name}\" applied", $"Nothing to write: node {target.NodeId} already has {string.Join(", ", same)}.");
             return;
         }
-        await WriteStepsAsync($"Apply preset \"{preset.Name}\" ({steps.Count} write{(steps.Count == 1 ? "" : "s")})", steps);
+        if (await WriteStepsAsync($"Apply preset \"{preset.Name}\" ({steps.Count} write{(steps.Count == 1 ? "" : "s")})", steps) is not { } results)
+        {
+            // cancelled or blocked, already logged
+            return;
+        }
+
+        byte nodeId = target.NodeId;
+        var lines = new List<string>();
+        for (int i = 0; i < steps.Count; i++)
+        {
+            if (results[i] is { Success: true })
+            {
+                nodeId = steps[i].NewNodeId ?? nodeId;
+                foreach (var field in steps[i].Fields)
+                {
+                    DraftMarks.MarkWritten(DraftField(field));
+                }
+            }
+            lines.Add(results[i] switch
+            {
+                { Success: true } => $"✓ {steps[i].Description}",
+                { } failed => $"✗ {steps[i].Description}: {failed.Message}",
+                null => $"– {steps[i].Description}: not written (stopped after the failure)",
+            });
+        }
+        if (same.Count > 0)
+        {
+            lines.Add($"= Already set, not written again: {string.Join(", ", same)}");
+        }
+        _presetWrittenNode = nodeId;
+        // after a node ID change the ESC answers on the new node: follow it once it is on the bus
+        if (nodeId != target.NodeId && ConfigNodes.FirstOrDefault(n => n.NodeId == nodeId) is { } moved)
+        {
+            SelectedConfigNode = moved;
+        }
+        RefreshPresetCurrent();
+
+        int written = results.Count(r => r is { Success: true });
+        string outcome = written == steps.Count ? "applied"
+            : written == 0 ? "not applied"
+            : "partly applied";
+        await ShowAlert($"Preset \"{preset.Name}\" {outcome}",
+            $"Node {target.NodeId}: {written} of {steps.Count} write{(steps.Count == 1 ? "" : "s")} succeeded.\n\n{string.Join("\n", lines)}");
     }
 }
