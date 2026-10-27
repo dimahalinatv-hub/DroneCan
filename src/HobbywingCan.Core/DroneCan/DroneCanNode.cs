@@ -95,8 +95,11 @@ public sealed class DroneCanNode : IDisposable
     }
 
     /// <summary>Sends a service request and waits for the matching response; returns null on timeout.</summary>
+    /// <param name="alsoAcceptFrom">
+    /// Another node id whose response to this request counts as the answer: SetID makes the ESC reply from its new id.
+    /// </param>
     public async Task<Transfer?> RequestAsync(DataTypeInfo service, byte destination, byte[] payload, TimeSpan timeout,
-        CancellationToken cancellationToken = default, byte priority = DefaultPriority)
+        CancellationToken cancellationToken = default, byte priority = DefaultPriority, byte? alsoAcceptFrom = null)
     {
         if (!service.IsService)
         {
@@ -107,6 +110,8 @@ public sealed class DroneCanNode : IDisposable
         var key = (service.Id, destination, tid);
         var tcs = new TaskCompletionSource<Transfer>(TaskCreationOptions.RunContinuationsAsynchronously);
         _pending[key] = tcs;
+        var altKey = (service.Id, alsoAcceptFrom ?? destination, tid);
+        bool hasAlt = alsoAcceptFrom is { } alt && alt != destination && _pending.TryAdd(altKey, tcs);
         try
         {
             uint canId = CanId.Service(priority, (byte)service.Id, request: true, destination, LocalNodeId);
@@ -133,16 +138,21 @@ public sealed class DroneCanNode : IDisposable
         finally
         {
             _pending.TryRemove(key, out _);
+            if (hasAlt)
+            {
+                _pending.TryRemove(altKey, out _);
+            }
         }
     }
 
     /// <summary>Like <see cref="RequestAsync"/> but retries on timeout.</summary>
     public async Task<Transfer?> RequestWithRetryAsync(DataTypeInfo service, byte destination, byte[] payload, TimeSpan timeout,
-        int attempts, CancellationToken cancellationToken = default)
+        int attempts, CancellationToken cancellationToken = default, byte? alsoAcceptFrom = null)
     {
         for (int i = 0; i < attempts; i++)
         {
-            var response = await RequestAsync(service, destination, payload, timeout, cancellationToken).ConfigureAwait(false);
+            var response = await RequestAsync(service, destination, payload, timeout, cancellationToken,
+                alsoAcceptFrom: alsoAcceptFrom).ConfigureAwait(false);
             if (response != null)
             {
                 return response;

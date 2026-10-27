@@ -46,7 +46,8 @@ public sealed class EscConfigWriter(DroneCanNode node)
     private static readonly TimeSpan ProbeTimeout = TimeSpan.FromMilliseconds(400);
     private const int Attempts = 3;
 
-    private sealed record CallResult(byte[]? Payload, IReadOnlyList<byte> Others, int SameIdAnswers)
+    /// <param name="Responder">Node the answer came from: the addressed one, or the new id after SetID.</param>
+    private sealed record CallResult(byte[]? Payload, byte Responder, IReadOnlyList<byte> Others, int SameIdAnswers)
     {
         public bool Duplicate => SameIdAnswers > 1;
     }
@@ -117,12 +118,18 @@ public sealed class EscConfigWriter(DroneCanNode node)
     {
         string what = $"node ID {newNodeId}, throttle channel {throttleChannel}";
         var request = new HwSetId(newNodeId, throttleChannel);
-        var call = await Call(DataTypes.HwSetId, nodeId, request.Encode(), ct);
+        // the ESC takes the new id before it answers, so the reply comes from the new node
+        var call = await Call(DataTypes.HwSetId, nodeId, request.Encode(), ct,
+            alsoAcceptFrom: newNodeId != nodeId ? newNodeId : null);
         if (call.Payload == null)
         {
             return NoResponse(nodeId, what, call);
         }
         var actual = HwSetId.Decode(call.Payload);
+        if (call.Responder != nodeId)
+        {
+            what += $" (now answers as node {call.Responder})";
+        }
         return Check(nodeId, what, actual == request, $"node ID {actual.NodeId}, throttle channel {actual.ThrottleChannel}", call);
     }
 
@@ -152,14 +159,15 @@ public sealed class EscConfigWriter(DroneCanNode node)
     }
 
     /// <summary>Performs the request and collects extra answers from other nodes (or duplicate ids) meanwhile.</summary>
+    /// <param name="alsoAcceptFrom">node id whose answer counts as the addressed ESC's (the new id after SetID)</param>
     private async Task<CallResult> Call(DataTypeInfo service, byte nodeId, byte[] request, CancellationToken ct,
-        TimeSpan? timeout = null, int attempts = Attempts)
+        TimeSpan? timeout = null, int attempts = Attempts, byte? alsoAcceptFrom = null)
     {
         var others = new HashSet<byte>();
         int duplicates = 0;
         void OnUnexpected(UnexpectedResponse u)
         {
-            if (u.DataTypeId != service.Id || u.IntendedNode != nodeId)
+            if (u.DataTypeId != service.Id || u.IntendedNode != nodeId && u.IntendedNode != alsoAcceptFrom)
             {
                 return;
             }
@@ -169,6 +177,10 @@ public sealed class EscConfigWriter(DroneCanNode node)
                 {
                     // every extra answer from the addressed id is one more device sharing it
                     duplicates++;
+                }
+                else if (u.RespondingNode == alsoAcceptFrom)
+                {
+                    // a late answer from the new id to an attempt that had already timed out: the same ESC, not another one
                 }
                 else
                 {
@@ -180,12 +192,12 @@ public sealed class EscConfigWriter(DroneCanNode node)
         node.UnexpectedResponse += OnUnexpected;
         try
         {
-            var response = await node.RequestWithRetryAsync(service, nodeId, request, timeout ?? Timeout, attempts, ct);
+            var response = await node.RequestWithRetryAsync(service, nodeId, request, timeout ?? Timeout, attempts, ct, alsoAcceptFrom);
             // other ESCs may answer a little later than the addressed one
             await Task.Delay(ExtraAnswerWindow, ct);
             lock (others)
             {
-                return new CallResult(response?.Payload, others.OrderBy(n => n).ToList(),
+                return new CallResult(response?.Payload, response?.SourceNodeId ?? nodeId, others.OrderBy(n => n).ToList(),
                     response != null ? 1 + duplicates : duplicates);
             }
         }

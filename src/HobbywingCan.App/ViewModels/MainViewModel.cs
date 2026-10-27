@@ -13,6 +13,8 @@ namespace HobbywingCan.App.ViewModels;
 public sealed partial class MainViewModel : ObservableObject
 {
     private const int MaxLogLines = 300;
+    // a node silent this long leaves the node pickers (NodeStatus comes once a second)
+    private static readonly TimeSpan ConfigNodeTimeout = TimeSpan.FromSeconds(3);
 
     private readonly IDispatcher _dispatcher;
     private readonly IDispatcherTimer _timer;
@@ -32,6 +34,8 @@ public sealed partial class MainViewModel : ObservableObject
     // node whose configuration was already read for the current selection; null → read on the next tick
     private byte? _autoReadNodeId;
     private byte? _readingNodeId;
+    // node ID the selected ESC was just moved to: selected as soon as it shows up
+    private byte? _followNodeId;
 
     private string? _selectedPort;
     private int _selectedBaud = 115200;
@@ -277,6 +281,7 @@ public sealed partial class MainViewModel : ObservableObject
         AutopilotRows.Clear();
         TrafficRows.Clear();
         ConfigNodes.Clear();
+        _followNodeId = null;
         _nodeInfoRequested.Clear();
         _loggedEscCounts.Clear();
         _majorConfigRequested.Clear();
@@ -360,10 +365,11 @@ public sealed partial class MainViewModel : ObservableObject
             }
             row.Update(state, now);
             LogEscCountChange(state);
-            UpdateConfigNode(state);
+            UpdateConfigNode(state, now);
             RequestNodeInfoOnce(state);
             RequestMajorConfigOnce(state);
         }
+        RemoveSilentConfigNodes(now);
         RefreshSelectedEscCount();
         SyncSettingsEditors();
         if (ShowPresets)
@@ -407,12 +413,18 @@ public sealed partial class MainViewModel : ObservableObject
         AddLog($"Node {state.NodeId}: {count} ESC ({state.DeviceCountEvidence})");
     }
 
-    private void UpdateConfigNode(NodeState state)
+    private void UpdateConfigNode(NodeState state, DateTime nowUtc)
     {
         var display = state.Info != null ? $"{state.NodeId} — {state.Info.Name}" : $"Node {state.NodeId}";
         int i = ConfigNodes.ToList().FindIndex(n => n.NodeId == state.NodeId);
         if (i >= 0 && ConfigNodes[i].Display == display)
         {
+            FollowMovedNode(ConfigNodes[i]);
+            return;
+        }
+        if (i < 0 && nowUtc - state.LastSeenUtc > ConfigNodeTimeout)
+        {
+            // gone from the bus: comes back into the pickers once it talks again
             return;
         }
         var choice = new NodeChoice(state.NodeId, display);
@@ -428,6 +440,42 @@ public sealed partial class MainViewModel : ObservableObject
         if (wasSelected || SelectedConfigNode == null && state.IsHobbywing)
         {
             SelectedConfigNode = choice;
+        }
+        FollowMovedNode(choice);
+    }
+
+    private void FollowMovedNode(NodeChoice choice)
+    {
+        if (choice.NodeId == _followNodeId && !IsWriting)
+        {
+            _followNodeId = null;
+            SelectedConfigNode = choice;
+        }
+    }
+
+    /// <summary>
+    /// Takes nodes that stopped talking (moved to another node ID, unplugged) out of the pickers, so only ESCs
+    /// that are on the bus can be chosen. Not while writing: the ESC goes quiet for a moment on ID and CAN speed changes.
+    /// </summary>
+    private void RemoveSilentConfigNodes(DateTime nowUtc)
+    {
+        if (IsWriting || _monitor == null)
+        {
+            return;
+        }
+        foreach (var choice in ConfigNodes.ToList())
+        {
+            if (_monitor.Get(choice.NodeId) is { } state && nowUtc - state.LastSeenUtc <= ConfigNodeTimeout)
+            {
+                continue;
+            }
+            if (SelectedConfigNode?.NodeId == choice.NodeId)
+            {
+                SelectedConfigNode = ConfigNodes.FirstOrDefault(n => n.NodeId == _followNodeId)
+                    ?? ConfigNodes.FirstOrDefault(n => n != choice && _monitor.Get(n.NodeId)?.IsHobbywing == true &&
+                        nowUtc - _monitor.Get(n.NodeId)!.LastSeenUtc <= ConfigNodeTimeout);
+            }
+            ConfigNodes.Remove(choice);
         }
     }
 

@@ -271,7 +271,6 @@ public sealed class SimulatedAutopilot : Stream
 
     private void Respond(Transfer t, SimEsc esc)
     {
-        byte replyFrom = esc.NodeId;
         byte[]? response = t.DataTypeId switch
         {
             1 => NodeInfoPayload(esc.NodeId),
@@ -296,7 +295,8 @@ public sealed class SimulatedAutopilot : Stream
             return;
         }
         var type = DataTypes.Find(true, t.DataTypeId)!;
-        uint id = CanId.Service(16, (byte)type.Id, request: false, t.SourceNodeId, replyFrom);
+        // after SetID this is already the new node id, as on the real ESC
+        uint id = CanId.Service(16, (byte)type.Id, request: false, t.SourceNodeId, esc.NodeId);
         foreach (var f in TransferEncoder.Encode(id, t.TransferId, response, type.Signature))
         {
             Forward(f);
@@ -361,7 +361,7 @@ public sealed class SimulatedAutopilot : Stream
 
     private static byte[] SetId(SimEsc esc, HwSetId request)
     {
-        // the reply still comes from the old node id; telemetry switches to the new one afterwards
+        // the real ESC takes the new node id at once: the reply already comes from it
         esc.ThrottleChannel = request.ThrottleChannel;
         esc.NodeId = request.NodeId;
         return request.Encode();

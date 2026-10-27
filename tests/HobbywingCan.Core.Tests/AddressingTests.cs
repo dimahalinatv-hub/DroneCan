@@ -27,12 +27,51 @@ public class AddressingTests
 
         var result = await new EscConfigWriter(node).SetIdAsync(3, newNodeId: 3, throttleChannel: 7);
 
-        // this is what the user saw: both ESCs now have node 3 / channel 7
+        // this is what the user saw: both ESCs now have node 3 / channel 7, and both answer from node 3
         Assert.All(fc.Escs, e => Assert.Equal(7, e.ThrottleChannel));
         Assert.True(result.AffectedOthers);
-        Assert.Equal([4], result.AlsoAnsweredBy);
-        Assert.Contains("node(s) 4 answered too", result.Message);
-        Assert.True(monitor.Get(4)!.IgnoresDestination);
+        Assert.Equal(2, result.SameIdAnswers);
+        Assert.Contains("2 ESCs answered from this node id", result.Message);
+
+        monitor.Dispose();
+        node.Dispose();
+        await link.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task SetId_NewNodeId_ReplyFromTheNewIdIsTheAnswer()
+    {
+        // the ESC takes the new id at once and replies from it (seen on hardware: 1 → 4)
+        var (fc, link, node, monitor) = await Start([1], setIdQuirk: false);
+
+        var result = await new EscConfigWriter(node).SetIdAsync(1, newNodeId: 4, throttleChannel: 4);
+
+        Assert.True(result.Success, result.Message);
+        Assert.False(result.AffectedOthers, result.Message);
+        Assert.Contains("now answers as node 4", result.Message);
+        Assert.Equal(4, fc.Escs[0].NodeId);
+        // answered on the first attempt, so SetID was not sent again
+        lock (fc.Requests)
+        {
+            Assert.Single(fc.Requests, r => r.Type == DataTypes.HwSetId.Id);
+        }
+
+        monitor.Dispose();
+        node.Dispose();
+        await link.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task SetId_NewNodeIdOnX8G2_ReportsEveryEscNowOnThatId()
+    {
+        var (fc, link, node, monitor) = await Start([3, 5], setIdQuirk: true);
+
+        var result = await new EscConfigWriter(node).SetIdAsync(3, newNodeId: 4, throttleChannel: 2);
+
+        Assert.True(result.Success, result.Message);
+        Assert.All(fc.Escs, e => Assert.Equal(4, e.NodeId));
+        Assert.True(result.DuplicateNodeId, result.Message);
+        Assert.Equal(2, result.SameIdAnswers);
 
         monitor.Dispose();
         node.Dispose();

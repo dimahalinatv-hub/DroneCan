@@ -584,6 +584,11 @@ public sealed partial class MainViewModel
                     break;
                 }
             }
+            if (nodeId != target.NodeId)
+            {
+                // the ESC now answers on another node: the pickers follow it there
+                _followNodeId = nodeId;
+            }
             if (anyWritten && refresh)
             {
                 await RefreshNodeSettingsAsync(_node, target.NodeId);
