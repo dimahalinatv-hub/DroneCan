@@ -120,6 +120,7 @@ public sealed partial class MainViewModel
     private SettingsPreset? _selectedPreset;
     private string _presetName = "";
     private bool _showPresets;
+    private string _presetChanges = "";
     private PresetMarks? _draftMarks;
     // the node the green marks were written to; another node chosen clears them
     private byte? _presetWrittenNode;
@@ -146,6 +147,21 @@ public sealed partial class MainViewModel
 
     public string PresetName { get => _presetName; set => SetProperty(ref _presetName, value); }
 
+    /// <summary>How the popup's values change the chosen saved preset ("Field: old → new" per line); empty when they don't.</summary>
+    public string PresetChanges
+    {
+        get => _presetChanges;
+        private set
+        {
+            if (SetProperty(ref _presetChanges, value))
+            {
+                OnPropertyChanged(nameof(HasPresetChanges));
+            }
+        }
+    }
+
+    public bool HasPresetChanges => PresetChanges.Length > 0;
+
     /// <summary>The saved preset chosen in the popup; choosing one loads it into <see cref="Draft"/>.</summary>
     public SettingsPreset? SelectedPreset
     {
@@ -161,6 +177,7 @@ public sealed partial class MainViewModel
                 PresetName = value.Name;
                 LoadDraft(value);
             }
+            RefreshPresetChanges();
             ((Command)DeletePresetCommand).ChangeCanExecute();
         }
     }
@@ -178,14 +195,18 @@ public sealed partial class MainViewModel
             AddLog(error);
         }
 
-        Draft.PropertyChanged += (_, _) => DraftMarks.Changed();
+        Draft.PropertyChanged += (_, _) =>
+        {
+            DraftMarks.Changed();
+            RefreshPresetChanges();
+        };
 
         OpenPresetsCommand = new Command(() =>
         {
-            // a fresh popup starts from the editor; a chosen preset stays as it was left
+            // with no preset chosen the popup starts empty ("From editor" fills it); a chosen preset stays as it was left
             if (SelectedPreset == null)
             {
-                DraftFromEditor();
+                ClearDraft();
             }
             RefreshPresetCurrent();
             ShowPresets = true;
@@ -329,10 +350,36 @@ public sealed partial class MainViewModel
         Draft.IncludeDirection = p.Direction != null;
     }
 
+    /// <summary>Empty values in every popup field; which fields are ticked stays.</summary>
+    private void ClearDraft()
+    {
+        DraftMarks.Clear();
+        Draft.CanBaud = null;
+        Draft.NodeIdText = "";
+        Draft.ThrottleChannelText = "";
+        Draft.ThrottleSource = null;
+        Draft.Msg1Rate = null;
+        Draft.Msg2Rate = null;
+        Draft.Msg3Rate = null;
+        Draft.LedColor = null;
+        Draft.LedBlink = null;
+        Draft.LedSave = true;
+        Draft.Direction = null;
+    }
+
     /// <summary>The ticked popup fields that have a value; null (and logged) when a number is invalid or nothing is left.</summary>
     /// <param name="empty">ticked fields left out because they have no value</param>
-    private SettingsPreset? PresetFromDraft(string name, out List<string> empty)
+    /// <param name="quiet">don't log why there is no preset</param>
+    private SettingsPreset? PresetFromDraft(string name, out List<string> empty, bool quiet = false)
     {
+        void Log(string message)
+        {
+            if (!quiet)
+            {
+                AddLog(message);
+            }
+        }
+
         var d = Draft;
         var missing = new List<string>();
         empty = missing;
@@ -358,7 +405,7 @@ public sealed partial class MainViewModel
         {
             if (!byte.TryParse(d.NodeIdText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var id) || id is < 1 or > 127)
             {
-                AddLog("Preset: node ID must be 1..127");
+                Log("Preset: node ID must be 1..127");
                 return null;
             }
             nodeId = id;
@@ -368,7 +415,7 @@ public sealed partial class MainViewModel
         {
             if (!byte.TryParse(d.ThrottleChannelText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var channel) || channel is < 1 or > 63)
             {
-                AddLog("Preset: throttle channel must be 1..63");
+                Log("Preset: throttle channel must be 1..63");
                 return null;
             }
             throttleChannel = channel;
@@ -388,41 +435,42 @@ public sealed partial class MainViewModel
             Direction: d.IncludeDirection ? d.Direction?.Value : null);
         if (preset == new SettingsPreset(name, LedSave: d.LedSave))
         {
-            AddLog("Preset is empty: tick at least one field and give it a value");
+            Log("Preset is empty: tick at least one field and give it a value");
             return null;
         }
         return preset;
     }
 
-    private string PresetText(SettingsPreset p, string separator)
+    /// <summary>Each field of the preset as (title, value text), in the popup's order; null value = not in the preset.</summary>
+    private List<(string Title, string? Text)> PresetFields(SettingsPreset p) =>
+    [
+        ("Node ID", p.NodeId?.ToString(CultureInfo.InvariantCulture)),
+        ("CAN speed", Opt(CanBaudOptions, p.CanBaud)?.Text),
+        ("Throttle channel", p.ThrottleChannel?.ToString(CultureInfo.InvariantCulture)),
+        ("Throttle source", Opt(ThrottleSourceOptions, p.ThrottleSource)?.Text),
+        ("StatusMsg1 rate", Opt(RateOptions, p.Msg1Rate)?.Text),
+        ("StatusMsg2 rate", Opt(RateOptions, p.Msg2Rate)?.Text),
+        ("StatusMsg3 rate", Opt(RateOptions, p.Msg3Rate)?.Text),
+        ("LED", Opt(LedColorOptions, p.LedColor) is { } color ? LedText(color, Opt(LedBlinkOptions, p.LedBlink), p.LedSave) : null),
+        ("Direction", Opt(DirectionOptions, p.Direction)?.Text),
+    ];
+
+    private string PresetText(SettingsPreset p, string separator) =>
+        string.Join(separator, PresetFields(p).Where(f => f.Text != null).Select(f => $"{f.Title}: {f.Text}"));
+
+    /// <summary>"Field: old → new" for each field that differs; "—" = not in the preset.</summary>
+    private List<string> PresetChangeLines(SettingsPreset from, SettingsPreset to) =>
+        PresetFields(from).Zip(PresetFields(to))
+            .Where(f => f.First.Text != f.Second.Text)
+            .Select(f => $"{f.First.Title}: {f.First.Text ?? "—"} → {f.Second.Text ?? "—"}")
+            .ToList();
+
+    /// <summary>Show how the popup's values would change the chosen saved preset.</summary>
+    private void RefreshPresetChanges()
     {
-        var parts = new List<string>();
-        void Add(string title, Option? option)
-        {
-            if (option != null)
-            {
-                parts.Add($"{title}: {option.Text}");
-            }
-        }
-        if (p.NodeId is { } id)
-        {
-            parts.Add($"Node ID: {id}");
-        }
-        Add("CAN speed", Opt(CanBaudOptions, p.CanBaud));
-        if (p.ThrottleChannel is { } channel)
-        {
-            parts.Add($"Throttle channel: {channel}");
-        }
-        Add("Throttle source", Opt(ThrottleSourceOptions, p.ThrottleSource));
-        Add("StatusMsg1 rate", Opt(RateOptions, p.Msg1Rate));
-        Add("StatusMsg2 rate", Opt(RateOptions, p.Msg2Rate));
-        Add("StatusMsg3 rate", Opt(RateOptions, p.Msg3Rate));
-        if (Opt(LedColorOptions, p.LedColor) is { } color)
-        {
-            parts.Add($"LED: {LedText(color, Opt(LedBlinkOptions, p.LedBlink), p.LedSave)}");
-        }
-        Add("Direction", Opt(DirectionOptions, p.Direction));
-        return string.Join(separator, parts);
+        PresetChanges = SelectedPreset is { } saved && PresetFromDraft(saved.Name, out _, quiet: true) is { } edited
+            ? string.Join("\n", PresetChangeLines(saved, edited))
+            : "";
     }
 
     private static Option? Opt(IEnumerable<Option> options, byte? value) => value is { } v ? Find(options, v) : null;
@@ -443,7 +491,9 @@ public sealed partial class MainViewModel
         int index = Presets.ToList().FindIndex(p => string.Equals(p.Name, name, StringComparison.CurrentCultureIgnoreCase));
         if (index >= 0)
         {
-            if (Ask != null && !await Ask($"Replace preset \"{Presets[index].Name}\"?", PresetText(Presets[index], "\n"), "Replace"))
+            var changes = PresetChangeLines(Presets[index], preset);
+            if (Ask != null && !await Ask($"Replace preset \"{Presets[index].Name}\"?",
+                    changes.Count > 0 ? string.Join("\n", changes) : "No value changes.", "Replace"))
             {
                 return;
             }

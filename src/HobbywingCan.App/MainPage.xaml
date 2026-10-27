@@ -447,6 +447,12 @@
                             <Label Grid.Row="10" Grid.Column="3" Text="{Binding PresetCurrent[Direction]}" FontFamily="Consolas" HorizontalTextAlignment="End" VerticalOptions="Center" />
                         </Grid>
 
+                        <!-- what Save would change in the chosen saved preset -->
+                        <VerticalStackLayout Spacing="2" IsVisible="{Binding HasPresetChanges}">
+                            <Label Text="Changes to the saved preset (Save to keep them):" FontSize="12" Opacity="0.65" />
+                            <Label Text="{Binding PresetChanges}" FontFamily="Consolas" />
+                        </VerticalStackLayout>
+
                         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
                             <Label Text="Name" />
                             <Entry Grid.Column="1" Text="{Binding PresetName}" Placeholder="e.g. Quad X, 200 Hz" />
