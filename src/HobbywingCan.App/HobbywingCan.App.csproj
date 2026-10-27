@@ -36,6 +36,9 @@
 		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
 		<ApplicationVersion>1</ApplicationVersion>
 
+		<!-- Resources/Strings/AppResources.resx is English; translations sit next to it (AppResources.uk.resx) -->
+		<NeutralLanguage>en</NeutralLanguage>
+
 		<!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
 		<WindowsPackageType>None</WindowsPackageType>
 

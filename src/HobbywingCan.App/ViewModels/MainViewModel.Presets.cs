@@ -4,6 +4,7 @@ using System.Windows.Input;
 using HobbywingCan.Core.DroneCan;
 using HobbywingCan.Core.Messages;
 using HobbywingCan.Core.Presets;
+using static HobbywingCan.App.Localization.Localizer;
 
 namespace HobbywingCan.App.ViewModels;
 
@@ -60,11 +61,13 @@ public sealed class PresetCurrentValues : ObservableObject
 {
     private Dictionary<string, object?> _values = new();
 
-    public string this[string field] => _values.GetValueOrDefault(field) switch
+    public string this[string field] => Text(_values.GetValueOrDefault(field));
+
+    private static string Text(object? value) => value switch
     {
-        null => "N/A",
+        null => Tr("Txt_NA"),
         Option option => option.Text,
-        var value => Convert.ToString(value, CultureInfo.InvariantCulture) ?? "N/A",
+        _ => Convert.ToString(value, CultureInfo.InvariantCulture) ?? Tr("Txt_NA"),
     };
 
     /// <summary>The reported value (an <see cref="Option"/> or a number); null when unknown.</summary>
@@ -72,13 +75,17 @@ public sealed class PresetCurrentValues : ObservableObject
 
     public void Set(Dictionary<string, object?> values)
     {
-        if (_values.Count == values.Count && _values.All(kv => Equals(kv.Value, values.GetValueOrDefault(kv.Key))))
+        // by the shown text: options are equal by value, but their text changes with the language
+        if (_values.Count == values.Count && _values.All(kv => Text(kv.Value) == Text(values.GetValueOrDefault(kv.Key))))
         {
             return;
         }
         _values = values;
-        OnPropertyChanged(string.Empty);
+        Changed();
     }
+
+    // empty name = every indexer binding re-reads
+    public void Changed() => OnPropertyChanged(string.Empty);
 }
 
 /// <summary>
@@ -371,22 +378,22 @@ public sealed partial class MainViewModel
                 missing.Add(title);
             }
         }
-        Check(d.IncludeNodeId, d.NodeIdText.Trim(), "Node ID");
-        Check(d.IncludeCanBaud, d.CanBaud, "CAN speed");
-        Check(d.IncludeThrottleChannel, d.ThrottleChannelText.Trim(), "Throttle channel");
-        Check(d.IncludeThrottleSource, d.ThrottleSource, "Throttle source");
-        Check(d.IncludeMsg1Rate, d.Msg1Rate, "StatusMsg1 rate");
-        Check(d.IncludeMsg2Rate, d.Msg2Rate, "StatusMsg2 rate");
-        Check(d.IncludeMsg3Rate, d.Msg3Rate, "StatusMsg3 rate");
+        Check(d.IncludeNodeId, d.NodeIdText.Trim(), Tr("Ui_NodeId"));
+        Check(d.IncludeCanBaud, d.CanBaud, Tr("Ui_CanSpeed"));
+        Check(d.IncludeThrottleChannel, d.ThrottleChannelText.Trim(), Tr("Ui_ThrottleChannel"));
+        Check(d.IncludeThrottleSource, d.ThrottleSource, Tr("Ui_ThrottleSource"));
+        Check(d.IncludeMsg1Rate, d.Msg1Rate, Tr("Ui_Msg1Rate"));
+        Check(d.IncludeMsg2Rate, d.Msg2Rate, Tr("Ui_Msg2Rate"));
+        Check(d.IncludeMsg3Rate, d.Msg3Rate, Tr("Ui_Msg3Rate"));
         Check(d.IncludeLed, d.LedColor, "LED");
-        Check(d.IncludeDirection, d.Direction, "Direction");
+        Check(d.IncludeDirection, d.Direction, Tr("Ui_Direction"));
 
         byte? nodeId = null;
         if (d.IncludeNodeId && d.NodeIdText.Trim().Length > 0)
         {
             if (!byte.TryParse(d.NodeIdText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var id) || id is < 1 or > 127)
             {
-                Log("Preset: node ID must be 1..127");
+                Log(Tr("Log_PresetNodeIdRange"));
                 return null;
             }
             nodeId = id;
@@ -396,7 +403,7 @@ public sealed partial class MainViewModel
         {
             if (!byte.TryParse(d.ThrottleChannelText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var channel) || channel is < 1 or > 63)
             {
-                Log("Preset: throttle channel must be 1..63");
+                Log(Tr("Log_PresetThrottleChannelRange"));
                 return null;
             }
             throttleChannel = channel;
@@ -416,7 +423,7 @@ public sealed partial class MainViewModel
             Direction: d.IncludeDirection ? d.Direction?.Value : null);
         if (preset == new SettingsPreset(name, LedSave: d.LedSave))
         {
-            Log("Preset is empty: tick at least one field and give it a value");
+            Log(Tr("Log_PresetEmpty"));
             return null;
         }
         return preset;
@@ -425,15 +432,15 @@ public sealed partial class MainViewModel
     /// <summary>Each field of the preset as (title, value text), in the popup's order; null value = not in the preset.</summary>
     private List<(string Title, string? Text)> PresetFields(SettingsPreset p) =>
     [
-        ("Node ID", p.NodeId?.ToString(CultureInfo.InvariantCulture)),
-        ("CAN speed", Opt(CanBaudOptions, p.CanBaud)?.Text),
-        ("Throttle channel", p.ThrottleChannel?.ToString(CultureInfo.InvariantCulture)),
-        ("Throttle source", Opt(ThrottleSourceOptions, p.ThrottleSource)?.Text),
-        ("StatusMsg1 rate", Opt(RateOptions, p.Msg1Rate)?.Text),
-        ("StatusMsg2 rate", Opt(RateOptions, p.Msg2Rate)?.Text),
-        ("StatusMsg3 rate", Opt(RateOptions, p.Msg3Rate)?.Text),
+        (Tr("Ui_NodeId"), p.NodeId?.ToString(CultureInfo.InvariantCulture)),
+        (Tr("Ui_CanSpeed"), Opt(CanBaudOptions, p.CanBaud)?.Text),
+        (Tr("Ui_ThrottleChannel"), p.ThrottleChannel?.ToString(CultureInfo.InvariantCulture)),
+        (Tr("Ui_ThrottleSource"), Opt(ThrottleSourceOptions, p.ThrottleSource)?.Text),
+        (Tr("Ui_Msg1Rate"), Opt(RateOptions, p.Msg1Rate)?.Text),
+        (Tr("Ui_Msg2Rate"), Opt(RateOptions, p.Msg2Rate)?.Text),
+        (Tr("Ui_Msg3Rate"), Opt(RateOptions, p.Msg3Rate)?.Text),
         ("LED", Opt(LedColorOptions, p.LedColor) is { } color ? LedText(color, Opt(LedBlinkOptions, p.LedBlink), p.LedSave) : null),
-        ("Direction", Opt(DirectionOptions, p.Direction)?.Text),
+        (Tr("Ui_Direction"), Opt(DirectionOptions, p.Direction)?.Text),
     ];
 
     private string PresetText(SettingsPreset p, string separator) =>
@@ -461,7 +468,7 @@ public sealed partial class MainViewModel
         string name = PresetName.Trim();
         if (name.Length == 0)
         {
-            AddLog("Enter a preset name");
+            AddLog(Tr("Log_EnterPresetName"));
             return;
         }
         if (PresetFromDraft(name, out var empty) is not { } preset)
@@ -473,8 +480,8 @@ public sealed partial class MainViewModel
         if (index >= 0)
         {
             var changes = PresetChangeLines(Presets[index], preset);
-            if (Ask != null && !await Ask($"Replace preset \"{Presets[index].Name}\"?",
-                    changes.Count > 0 ? string.Join("\n", changes) : "No value changes.", "Replace"))
+            if (Ask != null && !await Ask(Tr("Dlg_ReplacePresetTitle", Presets[index].Name),
+                    changes.Count > 0 ? string.Join("\n", changes) : Tr("Dlg_NoValueChanges"), Tr("Ui_Replace")))
             {
                 return;
             }
@@ -487,15 +494,15 @@ public sealed partial class MainViewModel
         SelectedPreset = preset;
         if (SavePresets())
         {
-            AddLog($"Preset \"{name}\" saved: {PresetText(preset, "; ")}" +
-                (empty.Count > 0 ? $". Not saved, no value: {string.Join(", ", empty)}" : ""));
+            AddLog(Tr("Log_PresetSaved", name, PresetText(preset, "; ")) +
+                (empty.Count > 0 ? Tr("Log_PresetNotSavedEmpty", string.Join(", ", empty)) : ""));
         }
     }
 
     private async Task DeletePresetAsync()
     {
         if (SelectedPreset is not { } preset ||
-            Ask != null && !await Ask($"Delete preset \"{preset.Name}\"?", PresetText(preset, "\n"), "Delete"))
+            Ask != null && !await Ask(Tr("Dlg_DeletePresetTitle", preset.Name), PresetText(preset, "\n"), Tr("Ui_Delete")))
         {
             return;
         }
@@ -504,7 +511,7 @@ public sealed partial class MainViewModel
         PresetName = "";
         if (SavePresets())
         {
-            AddLog($"Preset \"{preset.Name}\" deleted");
+            AddLog(Tr("Log_PresetDeleted", preset.Name));
         }
     }
 
@@ -517,7 +524,7 @@ public sealed partial class MainViewModel
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            AddLog($"Cannot save presets to {_presetStore.Path}: {ex.Message}");
+            AddLog(Tr("Log_CannotSavePresets", _presetStore.Path, ex.Message));
             return false;
         }
     }
@@ -526,13 +533,13 @@ public sealed partial class MainViewModel
     private async Task ApplyDraftAsync()
     {
         string name = PresetName.Trim();
-        if (PresetFromDraft(name.Length > 0 ? name : "unsaved", out var empty) is not { } preset)
+        if (PresetFromDraft(name.Length > 0 ? name : Tr("Txt_Unsaved"), out var empty) is not { } preset)
         {
             return;
         }
         if (empty.Count > 0)
         {
-            AddLog($"Preset \"{preset.Name}\": no value, not written: {string.Join(", ", empty)}");
+            AddLog(Tr("Log_PresetNoValue", preset.Name, string.Join(", ", empty)));
         }
         await ApplyPresetAsync(preset);
     }
@@ -565,11 +572,11 @@ public sealed partial class MainViewModel
             SelectedThrottleSource = source;
             if (state?.ThrottleSourcePwm is { } pwm && (pwm ? HwSetThrottleSource.Pwm : HwSetThrottleSource.Can) == source.Value)
             {
-                same.Add("throttle source");
+                same.Add(Tr("Txt_ThrottleSource"));
             }
             else
             {
-                steps.Add(new([nameof(SelectedThrottleSource)], $"Set throttle source to {source.Text}", ThrottleSourceWarning(source.Value),
+                steps.Add(new([nameof(SelectedThrottleSource)], Tr("Act_SetThrottleSource", source.Text), ThrottleSourceWarning(source.Value),
                     (w, node) => w.SetThrottleSourceAsync(node, source.Value)));
             }
         }
@@ -589,11 +596,11 @@ public sealed partial class MainViewModel
             }
             if (state != null && state.ReportingRateCodes.TryGetValue(messageId, out var current) && current == rate.Value)
             {
-                same.Add($"StatusMsg{message} rate");
+                same.Add(Tr("Txt_Rate", message));
             }
             else
             {
-                steps.Add(new([field], $"Set StatusMsg{message} rate to {rate.Text}", use,
+                steps.Add(new([field], Tr("Act_SetRate", message, rate.Text), use,
                     (w, node) => w.SetReportingRateAsync(node, messageId, rate.Value)));
             }
         }
@@ -610,7 +617,7 @@ public sealed partial class MainViewModel
             }
             else
             {
-                steps.Add(new([nameof(SelectedLedColor), nameof(SelectedLedBlink)], $"Set LED to {LedText(color, blink, preset.LedSave)}", LedWarning,
+                steps.Add(new([nameof(SelectedLedColor), nameof(SelectedLedBlink)], Tr("Act_SetLed", LedText(color, blink, preset.LedSave)), LedWarning,
                     (w, node) => w.SetLedAsync(node, color.Value, blink?.Value ?? 0, preset.LedSave)));
             }
         }
@@ -620,11 +627,11 @@ public sealed partial class MainViewModel
             SelectedDirection = direction;
             if (state?.CounterClockwise is { } ccw && (ccw ? HwSetDirection.CounterClockwise : HwSetDirection.Clockwise) == direction.Value)
             {
-                same.Add("direction");
+                same.Add(Tr("Txt_Direction"));
             }
             else
             {
-                steps.Add(new([nameof(SelectedDirection)], $"Set rotation direction to {direction.Text}", DirectionWarning,
+                steps.Add(new([nameof(SelectedDirection)], Tr("Act_SetDirection", direction.Text), DirectionWarning,
                     (w, node) => w.SetDirectionAsync(node, direction.Value)));
             }
         }
@@ -644,21 +651,21 @@ public sealed partial class MainViewModel
             }
             if ((preset.ThrottleChannel ?? state?.ThrottleChannel) is not { } channel)
             {
-                const string unknown = "Throttle channel of this ESC is unknown (enable Poll GetEscID or wait for the configuration read) — SetID needs it to keep it unchanged";
+                string unknown = Tr("Log_ThrottleChannelUnknown");
                 AddLog(unknown);
-                await ShowAlert($"Preset \"{preset.Name}\" not applied", $"Nothing was written to node {target.NodeId}.\n\n{unknown}");
+                await ShowAlert(Tr("Dlg_PresetNotApplied", preset.Name), $"{Tr("Dlg_NothingWritten", target.NodeId)}\n\n{unknown}");
                 return;
             }
             if (preset.ThrottleChannel != null)
             {
                 if (channel == state?.ThrottleChannel)
                 {
-                    same.Add("throttle channel");
+                    same.Add(Tr("Txt_ThrottleChannel"));
                 }
                 else
                 {
                     // the node ID stays, so the ESC is still on the same node for the next step
-                    steps.Add(new([nameof(ThrottleChannelText)], $"Set throttle channel to {channel}", ThrottleChannelWarning,
+                    steps.Add(new([nameof(ThrottleChannelText)], Tr("Act_SetThrottleChannel", channel), ThrottleChannelWarning,
                         (w, node) => w.SetIdAsync(node, node, channel), SetsId: true));
                 }
             }
@@ -666,7 +673,7 @@ public sealed partial class MainViewModel
             {
                 if (newId == target.NodeId)
                 {
-                    same.Add("node ID");
+                    same.Add(Tr("Txt_NodeId"));
                 }
                 else
                 {
@@ -674,7 +681,7 @@ public sealed partial class MainViewModel
                     {
                         return;
                     }
-                    steps.Add(new([nameof(NewNodeIdText)], $"Change node ID to {newId}", NodeIdWarning,
+                    steps.Add(new([nameof(NewNodeIdText)], Tr("Act_SetNodeId", newId), NodeIdWarning,
                         (w, node) => w.SetIdAsync(node, newId, channel),
                         RefreshAfter: false, SetsId: true, NewNodeId: newId));
                 }
@@ -685,21 +692,21 @@ public sealed partial class MainViewModel
         if (Opt(CanBaudOptions, preset.CanBaud) is { } baud)
         {
             SelectedCanBaud = baud;
-            steps.Add(new([nameof(SelectedCanBaud)], $"Set CAN speed to {baud.Text}", CanBaudWarning(baud),
+            steps.Add(new([nameof(SelectedCanBaud)], Tr("Act_SetCanBaud", baud.Text), CanBaudWarning(baud),
                 (w, node) => w.SetBaudAsync(node, baud.Value), RefreshAfter: false));
         }
 
         if (same.Count > 0)
         {
-            AddLog($"Preset \"{preset.Name}\": node {target.NodeId} already has the {string.Join(", ", same)} — not written again");
+            AddLog(Tr("Log_PresetAlreadyHas", preset.Name, target.NodeId, string.Join(", ", same)));
         }
         if (steps.Count == 0)
         {
-            AddLog($"Preset \"{preset.Name}\": nothing to write");
-            await ShowAlert($"Preset \"{preset.Name}\" applied", $"Nothing to write: node {target.NodeId} already has {string.Join(", ", same)}.");
+            AddLog(Tr("Log_PresetNothing", preset.Name));
+            await ShowAlert(Tr("Dlg_PresetApplied", preset.Name), Tr("Dlg_NothingToWrite", target.NodeId, string.Join(", ", same)));
             return;
         }
-        if (await WriteStepsAsync($"Apply preset \"{preset.Name}\" ({steps.Count} write{(steps.Count == 1 ? "" : "s")})", steps) is not { } results)
+        if (await WriteStepsAsync(Tr(steps.Count == 1 ? "Act_ApplyPreset1" : "Act_ApplyPresetN", preset.Name, steps.Count), steps) is not { } results)
         {
             // cancelled or blocked, already logged
             return;
@@ -721,12 +728,12 @@ public sealed partial class MainViewModel
             {
                 { Success: true } => $"✓ {steps[i].Description}",
                 { } failed => $"✗ {steps[i].Description}: {failed.Message}",
-                null => $"– {steps[i].Description}: not written (stopped after the failure)",
+                null => $"– {Tr("Res_NotWritten", steps[i].Description)}",
             });
         }
         if (same.Count > 0)
         {
-            lines.Add($"= Already set, not written again: {string.Join(", ", same)}");
+            lines.Add($"= {Tr("Res_AlreadySet", string.Join(", ", same))}");
         }
         _presetWrittenNode = nodeId;
         // after a node ID change the ESC answers on the new node: follow it once it is on the bus
@@ -737,10 +744,10 @@ public sealed partial class MainViewModel
         RefreshPresetCurrent();
 
         int written = results.Count(r => r is { Success: true });
-        string outcome = written == steps.Count ? "applied"
-            : written == 0 ? "not applied"
-            : "partly applied";
-        await ShowAlert($"Preset \"{preset.Name}\" {outcome}",
-            $"Node {target.NodeId}: {written} of {steps.Count} write{(steps.Count == 1 ? "" : "s")} succeeded.\n\n{string.Join("\n", lines)}");
+        string title = written == steps.Count ? "Dlg_PresetApplied"
+            : written == 0 ? "Dlg_PresetNotApplied"
+            : "Dlg_PresetPartlyApplied";
+        string summary = Tr(steps.Count == 1 ? "Dlg_Succeeded1" : "Dlg_SucceededN", target.NodeId, written, steps.Count);
+        await ShowAlert(Tr(title, preset.Name), $"{summary}\n\n{string.Join("\n", lines)}");
     }
 }

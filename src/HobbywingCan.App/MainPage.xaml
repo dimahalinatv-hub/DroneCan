@@ -7,9 +7,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:HobbywingCan.App.ViewModels"
              xmlns:mon="clr-namespace:HobbywingCan.Core.Monitoring;assembly=HobbywingCan.Core"
+             xmlns:loc="clr-namespace:HobbywingCan.App.Localization"
              x:Class="HobbywingCan.App.MainPage"
              x:DataType="vm:MainViewModel"
-             Title="Hobbywing X8 G2 — DroneCAN via ArduPilot">
+             Title="{loc:Tr Ui_PageTitle}">
 
     <ContentPage.Resources>
         <Style TargetType="Label">
@@ -49,24 +50,26 @@
 
         <!-- Connection bar -->
         <HorizontalStackLayout Grid.Row="0" Spacing="10">
-            <Label Text="Port" />
+            <Label Text="{loc:Tr Ui_Port}" />
             <Picker ItemsSource="{Binding Ports}" SelectedItem="{Binding SelectedPort}" WidthRequest="130"
                     IsEnabled="{Binding IsDisconnected}" />
-            <Button Text="↻" Command="{Binding RefreshPortsCommand}" ToolTipProperties.Text="Refresh COM ports" />
-            <Label Text="Baud" />
+            <Button Text="↻" Command="{Binding RefreshPortsCommand}" ToolTipProperties.Text="{loc:Tr Tip_RefreshPorts}" />
+            <Label Text="{loc:Tr Ui_Baud}" />
             <Picker ItemsSource="{Binding BaudRates}" SelectedItem="{Binding SelectedBaud}" WidthRequest="110"
                     IsEnabled="{Binding IsDisconnected}" />
-            <Label Text="FC CAN bus" />
+            <Label Text="{loc:Tr Ui_CanBus}" />
             <Picker ItemsSource="{Binding CanBuses}" SelectedItem="{Binding SelectedCanBus}" WidthRequest="70"
-                    IsEnabled="{Binding IsDisconnected}" ToolTipProperties.Text="Physical CAN port: CAN1 = CAN_P1, CAN2 = CAN_P2" />
-            <Label Text="App node ID" />
+                    IsEnabled="{Binding IsDisconnected}" ToolTipProperties.Text="{loc:Tr Tip_CanBus}" />
+            <Label Text="{loc:Tr Ui_AppNodeId}" />
             <Entry Text="{Binding LocalNodeIdText}" WidthRequest="60" Keyboard="Numeric" IsEnabled="{Binding IsDisconnected}"
-                   ToolTipProperties.Text="DroneCAN node ID used by this app for requests; must be unused on the bus" />
+                   ToolTipProperties.Text="{loc:Tr Tip_AppNodeId}" />
             <CheckBox IsChecked="{Binding UseFilter}" IsEnabled="{Binding IsDisconnected}" />
-            <Label Text="Forward only ESC traffic" ToolTipProperties.Text="Sends CAN_FILTER_MODIFY so the FC forwards only the DroneCAN types this app decodes (hides everything else from Bus traffic)" />
+            <Label Text="{loc:Tr Ui_UseFilter}" ToolTipProperties.Text="{loc:Tr Tip_UseFilter}" />
             <CheckBox IsChecked="{Binding PollEscIds}" />
-            <Label Text="Poll GetEscID" ToolTipProperties.Text="Broadcast com.hobbywing.esc.GetEscID once a second while disarmed to learn throttle channels" />
+            <Label Text="{loc:Tr Ui_PollEscIds}" ToolTipProperties.Text="{loc:Tr Tip_PollEscIds}" />
             <Button Text="{Binding ConnectButtonText}" Command="{Binding ConnectCommand}" WidthRequest="120" />
+            <Picker ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedLanguage}" WidthRequest="140"
+                    ToolTipProperties.Text="{loc:Tr Tip_Language}" />
         </HorizontalStackLayout>
 
         <!-- Status -->
@@ -76,32 +79,32 @@
         </HorizontalStackLayout>
 
         <!-- ESC table -->
-        <Label Grid.Row="2" Text="DroneCAN ESCs (live, decoded from forwarded CAN frames)" Style="{StaticResource Section}" />
+        <Label Grid.Row="2" Text="{loc:Tr Ui_EscSection}" Style="{StaticResource Section}" />
         <Grid Grid.Row="3" ColumnDefinitions="45,110,45,55,50,40,60,60,55,120,70,210,60,60,60,130,*" Style="{StaticResource HeaderRow}">
-            <Label Grid.Column="0" Text="Node" Style="{StaticResource Header}" />
-            <Label Grid.Column="1" Text="Name" Style="{StaticResource Header}" />
-            <Label Grid.Column="2" Text="Thr ch" Style="{StaticResource Header}" />
+            <Label Grid.Column="0" Text="{loc:Tr Ui_Node}" Style="{StaticResource Header}" />
+            <Label Grid.Column="1" Text="{loc:Tr Ui_Name}" Style="{StaticResource Header}" />
+            <Label Grid.Column="2" Text="{loc:Tr Ui_ThrCh}" Style="{StaticResource Header}" />
             <Label Grid.Column="3" Text="RPM" Style="{StaticResource Header}" />
             <Label Grid.Column="4" Text="PWM" Style="{StaticResource Header}" />
-            <Label Grid.Column="5" Text="Dir" Style="{StaticResource Header}"
-                   ToolTipProperties.Text="Direction setting reported by the ESC (SetDirection query / GetMajorConfig). Physical rotation also depends on motor phase wiring." />
-            <Label Grid.Column="6" Text="Voltage" Style="{StaticResource Header}" />
-            <Label Grid.Column="7" Text="Current" Style="{StaticResource Header}" />
-            <Label Grid.Column="8" Text="Temp" Style="{StaticResource Header}" />
-            <Label Grid.Column="9" Text="MOS / CAP / Motor" Style="{StaticResource Header}" />
-            <Label Grid.Column="10" Text="Status" Style="{StaticResource Header}" />
-            <Label Grid.Column="11" Text="Health / mode" Style="{StaticResource Header}"
-                   ToolTipProperties.Text="✓ 1 ESC / ⚠ N ESC = how many ESCs answer GetEscID as this node ID (counted while disarmed). ⚠ answers for others = this ESC answered a request addressed to another node." />
-            <Label Grid.Column="12" Text="Msg1 set" Style="{StaticResource Header}" ToolTipProperties.Text="StatusMsg1 (RPM, PWM, status) rate configured in the ESC" />
-            <Label Grid.Column="13" Text="Msg2 set" Style="{StaticResource Header}" ToolTipProperties.Text="StatusMsg2 (voltage, current, temperature) rate configured in the ESC" />
-            <Label Grid.Column="14" Text="Msg3 set" Style="{StaticResource Header}" ToolTipProperties.Text="StatusMsg3 (MOS / CAP / motor temperatures) rate configured in the ESC" />
-            <Label Grid.Column="15" Text="Measured, Hz" Style="{StaticResource Header}" ToolTipProperties.Text="Rates actually received from the ESC" />
-            <Label Grid.Column="16" Text="Updated" Style="{StaticResource Header}" />
+            <Label Grid.Column="5" Text="{loc:Tr Ui_Dir}" Style="{StaticResource Header}"
+                   ToolTipProperties.Text="{loc:Tr Tip_Dir}" />
+            <Label Grid.Column="6" Text="{loc:Tr Ui_Voltage}" Style="{StaticResource Header}" />
+            <Label Grid.Column="7" Text="{loc:Tr Ui_Current}" Style="{StaticResource Header}" />
+            <Label Grid.Column="8" Text="{loc:Tr Ui_Temp}" Style="{StaticResource Header}" />
+            <Label Grid.Column="9" Text="{loc:Tr Ui_ExtraTemps}" Style="{StaticResource Header}" />
+            <Label Grid.Column="10" Text="{loc:Tr Ui_Status}" Style="{StaticResource Header}" />
+            <Label Grid.Column="11" Text="{loc:Tr Ui_Health}" Style="{StaticResource Header}"
+                   ToolTipProperties.Text="{loc:Tr Tip_Health}" />
+            <Label Grid.Column="12" Text="{loc:Tr Ui_Msg1Set}" Style="{StaticResource Header}" ToolTipProperties.Text="{loc:Tr Tip_Msg1Set}" />
+            <Label Grid.Column="13" Text="{loc:Tr Ui_Msg2Set}" Style="{StaticResource Header}" ToolTipProperties.Text="{loc:Tr Tip_Msg2Set}" />
+            <Label Grid.Column="14" Text="{loc:Tr Ui_Msg3Set}" Style="{StaticResource Header}" ToolTipProperties.Text="{loc:Tr Tip_Msg3Set}" />
+            <Label Grid.Column="15" Text="{loc:Tr Ui_Measured}" Style="{StaticResource Header}" ToolTipProperties.Text="{loc:Tr Tip_Measured}" />
+            <Label Grid.Column="16" Text="{loc:Tr Ui_Updated}" Style="{StaticResource Header}" />
         </Grid>
         <ScrollView Grid.Row="4">
             <VerticalStackLayout BindableLayout.ItemsSource="{Binding EscRows}">
                 <BindableLayout.EmptyView>
-                    <Label Text="No DroneCAN nodes seen yet. Connect, then check the FC CAN bus number and the Bus traffic panel."
+                    <Label Text="{loc:Tr Ui_NoEscs}"
                            Style="{StaticResource Empty}" />
                 </BindableLayout.EmptyView>
                 <BindableLayout.ItemTemplate>
@@ -144,20 +147,20 @@
         <Grid Grid.Row="5" ColumnDefinitions="*,*,*" ColumnSpacing="16">
 
             <Grid Grid.Column="1" RowDefinitions="Auto,Auto,Auto,Auto,*">
-                <Label Grid.Row="0" Text="ArduPilot ESC telemetry" Style="{StaticResource Section}"
-                       ToolTipProperties.Text="ESC_TELEMETRY_x_TO_y as reported by the autopilot itself" />
+                <Label Grid.Row="0" Text="{loc:Tr Ui_ApTelemetry}" Style="{StaticResource Section}"
+                       ToolTipProperties.Text="{loc:Tr Tip_ApTelemetry}" />
                 <Grid Grid.Row="1" ColumnDefinitions="50,55,70,65,50,70,*" Style="{StaticResource HeaderRow}">
                     <Label Grid.Column="0" Text="ESC" Style="{StaticResource Header}" />
                     <Label Grid.Column="1" Text="RPM" Style="{StaticResource Header}" />
-                    <Label Grid.Column="2" Text="Voltage" Style="{StaticResource Header}" />
-                    <Label Grid.Column="3" Text="Current" Style="{StaticResource Header}" />
-                    <Label Grid.Column="4" Text="Temp" Style="{StaticResource Header}" />
-                    <Label Grid.Column="5" Text="Consumed" Style="{StaticResource Header}" />
-                    <Label Grid.Column="6" Text="Count" Style="{StaticResource Header}" />
+                    <Label Grid.Column="2" Text="{loc:Tr Ui_Voltage}" Style="{StaticResource Header}" />
+                    <Label Grid.Column="3" Text="{loc:Tr Ui_Current}" Style="{StaticResource Header}" />
+                    <Label Grid.Column="4" Text="{loc:Tr Ui_Temp}" Style="{StaticResource Header}" />
+                    <Label Grid.Column="5" Text="{loc:Tr Ui_Consumed}" Style="{StaticResource Header}" />
+                    <Label Grid.Column="6" Text="{loc:Tr Ui_Count}" Style="{StaticResource Header}" />
                 </Grid>
                 <VerticalStackLayout Grid.Row="2" BindableLayout.ItemsSource="{Binding AutopilotRows}">
                     <BindableLayout.EmptyView>
-                        <Label Text="No ESC_TELEMETRY from the autopilot yet." Style="{StaticResource Empty}" />
+                        <Label Text="{loc:Tr Ui_NoApTelemetry}" Style="{StaticResource Empty}" />
                     </BindableLayout.EmptyView>
                     <BindableLayout.ItemTemplate>
                         <DataTemplate x:DataType="vm:AutopilotEscRowViewModel">
@@ -174,8 +177,8 @@
                     </BindableLayout.ItemTemplate>
                 </VerticalStackLayout>
                 <HorizontalStackLayout Grid.Row="3" Spacing="10">
-                    <Label Text="Log" Style="{StaticResource Section}" />
-                    <Button Text="Clear" Command="{Binding ClearLogCommand}" VerticalOptions="Center" />
+                    <Label Text="{loc:Tr Ui_Log}" Style="{StaticResource Section}" />
+                    <Button Text="{loc:Tr Ui_Clear}" Command="{Binding ClearLogCommand}" VerticalOptions="Center" />
                 </HorizontalStackLayout>
                 <ScrollView Grid.Row="4">
                     <VerticalStackLayout BindableLayout.ItemsSource="{Binding Log}">
@@ -189,19 +192,19 @@
             </Grid>
 
             <Grid Grid.Column="2" RowDefinitions="Auto,Auto,*">
-                <Label Grid.Row="0" Text="Bus traffic (transfers per node and type)" Style="{StaticResource Section}" />
+                <Label Grid.Row="0" Text="{loc:Tr Ui_Traffic}" Style="{StaticResource Section}" />
                 <Grid Grid.Row="1" ColumnDefinitions="40,40,*,65,70,40" Style="{StaticResource HeaderRow}">
-                    <Label Grid.Column="0" Text="Node" Style="{StaticResource Header}" />
-                    <Label Grid.Column="1" Text="Kind" Style="{StaticResource Header}" />
-                    <Label Grid.Column="2" Text="Data type" Style="{StaticResource Header}" />
-                    <Label Grid.Column="3" Text="Rate" Style="{StaticResource Header}" />
-                    <Label Grid.Column="4" Text="Count" Style="{StaticResource Header}" />
-                    <Label Grid.Column="5" Text="Last" Style="{StaticResource Header}" />
+                    <Label Grid.Column="0" Text="{loc:Tr Ui_Node}" Style="{StaticResource Header}" />
+                    <Label Grid.Column="1" Text="{loc:Tr Ui_Kind}" Style="{StaticResource Header}" />
+                    <Label Grid.Column="2" Text="{loc:Tr Ui_DataType}" Style="{StaticResource Header}" />
+                    <Label Grid.Column="3" Text="{loc:Tr Ui_Rate}" Style="{StaticResource Header}" />
+                    <Label Grid.Column="4" Text="{loc:Tr Ui_Count}" Style="{StaticResource Header}" />
+                    <Label Grid.Column="5" Text="{loc:Tr Ui_Last}" Style="{StaticResource Header}" />
                 </Grid>
                 <ScrollView Grid.Row="2">
                     <VerticalStackLayout BindableLayout.ItemsSource="{Binding TrafficRows}">
                         <BindableLayout.EmptyView>
-                            <Label Text="No DroneCAN transfers yet." Style="{StaticResource Empty}" />
+                            <Label Text="{loc:Tr Ui_NoTraffic}" Style="{StaticResource Empty}" />
                         </BindableLayout.EmptyView>
                         <BindableLayout.ItemTemplate>
                             <DataTemplate x:DataType="vm:TrafficRowViewModel">
@@ -221,24 +224,24 @@
 
             <Grid Grid.Column="0" RowDefinitions="Auto,Auto,*" RowSpacing="6">
                 <VerticalStackLayout Grid.Row="0">
-                    <Label Text="ESC configuration" Style="{StaticResource Section}" />
+                    <Label Text="{loc:Tr Ui_EscConfig}" Style="{StaticResource Section}" />
                     <!-- FlexLayout rows wrap instead of pushing the page wider than the window -->
                     <FlexLayout Wrap="Wrap" AlignItems="Center">
                         <Button Text="↻" Command="{Binding ReadConfigCommand}" Margin="0,0,6,0"
-                                ToolTipProperties.Text="Read again (the configuration is read automatically when a node is selected)" />
-                        <Button Text="Copy report" Command="{Binding CopyReportCommand}" Margin="0,0,6,0" />
+                                ToolTipProperties.Text="{loc:Tr Tip_ReadConfig}" />
+                        <Button Text="{loc:Tr Ui_CopyReport}" Command="{Binding CopyReportCommand}" Margin="0,0,6,0" />
                         <!-- fixed width: "Report" and "Edit" must not move the buttons after it -->
-                        <Button Text="{Binding ToggleViewText}" Command="{Binding ToggleViewCommand}" Margin="0,0,6,0" WidthRequest="80"
-                                ToolTipProperties.Text="Switch between the read-only report and the settings editor" />
-                        <Button Text="Presets…" Command="{Binding OpenPresetsCommand}"
-                                ToolTipProperties.Text="Save the settings as a preset, or write a saved preset to this ESC" />
+                        <Button Text="{Binding ToggleViewText}" Command="{Binding ToggleViewCommand}" Margin="0,0,6,0" WidthRequest="90"
+                                ToolTipProperties.Text="{loc:Tr Tip_ToggleView}" />
+                        <Button Text="{loc:Tr Ui_Presets}" Command="{Binding OpenPresetsCommand}"
+                                ToolTipProperties.Text="{loc:Tr Tip_Presets}" />
                     </FlexLayout>
                 </VerticalStackLayout>
                 <Grid Grid.Row="1" ColumnDefinitions="Auto,*,70,Auto" ColumnSpacing="10">
-                    <Label Text="Node" />
+                    <Label Text="{loc:Tr Ui_Node}" />
                     <Picker MinimumHeightRequest="32" Grid.Column="1" ItemsSource="{Binding ConfigNodes}" SelectedItem="{Binding SelectedConfigNode}" />
                     <Label Grid.Column="2" TextColor="{Binding SelectedEscCount.Color}"
-                           ToolTipProperties.Text="How many ESCs answer as this node ID; a write reaches all of them">
+                           ToolTipProperties.Text="{loc:Tr Tip_EscCountWrite}">
                         <Label.FormattedText>
                             <FormattedString>
                                 <Span Text="{Binding SelectedEscCount.Icon}" FontAttributes="Bold" />
@@ -254,14 +257,14 @@
                 <Grid Grid.Row="2" RowDefinitions="Auto,*" RowSpacing="6" IsVisible="{Binding ShowReport}">
                     <HorizontalStackLayout Grid.Row="0" Spacing="6">
                         <CheckBox MinimumHeightRequest="32" IsChecked="{Binding IncludeParameters}" />
-                        <Label Text="Include params" ToolTipProperties.Text="Also enumerate uavcan.protocol.param.GetSet parameters" />
+                        <Label Text="{loc:Tr Ui_IncludeParams}" ToolTipProperties.Text="{loc:Tr Tip_IncludeParams}" />
                         <ActivityIndicator IsRunning="{Binding IsReading}" HeightRequest="20" WidthRequest="20" />
                         <Label Text="{Binding ConfigProgress}" />
                     </HorizontalStackLayout>
                     <ScrollView Grid.Row="1">
                         <VerticalStackLayout BindableLayout.ItemsSource="{Binding ConfigItems}">
                             <BindableLayout.EmptyView>
-                                <Label Text="The configuration of the selected ESC node (not the autopilot, usually node 10) is read automatically. The vehicle must be disarmed."
+                                <Label Text="{loc:Tr Ui_ConfigEmpty}"
                                        Style="{StaticResource Empty}" />
                             </BindableLayout.EmptyView>
                             <BindableLayout.ItemTemplate>
@@ -281,68 +284,68 @@
                 <ScrollView Grid.Row="2" IsVisible="{Binding ShowSettings}">
                     <!-- keep every row narrow: wide content here widens all three bottom columns -->
                     <!-- compact rows (32 px, not the app's 44) so all fields fit without scrolling -->
-                    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="130,*,60"
+                    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="130,*,70"
                           RowSpacing="2" ColumnSpacing="8" Padding="0,0,8,0">
                         <VerticalStackLayout Grid.Row="0" Grid.ColumnSpan="3" Spacing="2">
-                            <Label Style="{StaticResource Empty}" Margin="0" Text="Yellow = changed, not written · Green = written"
-                                   ToolTipProperties.Text="Set writes after a confirmation (disarmed only); each write is checked against the ESC's reply and logged" />
+                            <Label Style="{StaticResource Empty}" Margin="0" Text="{loc:Tr Ui_MarksLegend}"
+                                   ToolTipProperties.Text="{loc:Tr Tip_MarksLegend}" />
                             <Label Style="{StaticResource Empty}" Margin="0" Text="{Binding SettingsHint}" IsVisible="{Binding HasSettingsHint}"
-                                   ToolTipProperties.Text="There is no read-only query for throttle source and LED other than GetMajorConfig (242)" />
+                                   ToolTipProperties.Text="{loc:Tr Tip_SettingsHint}" />
                         </VerticalStackLayout>
 
                         <BoxView Grid.Row="1" Grid.ColumnSpan="2" Color="{Binding Marks[NewNodeIdText]}" CornerRadius="4" Margin="-4,-2" />
-                        <Label Grid.Row="1" Text="Node ID" />
+                        <Label Grid.Row="1" Text="{loc:Tr Ui_NodeId}" />
                         <Entry MinimumHeightRequest="32" Grid.Row="1" Grid.Column="1" Text="{Binding NewNodeIdText}" Keyboard="Numeric" />
-                        <Button Padding="8,2" Grid.Row="1" Grid.Column="2" Text="Set" Command="{Binding SetNodeIdCommand}" />
+                        <Button Padding="8,2" Grid.Row="1" Grid.Column="2" Text="{loc:Tr Ui_Set}" Command="{Binding SetNodeIdCommand}" />
 
                         <BoxView Grid.Row="2" Grid.ColumnSpan="2" Color="{Binding Marks[SelectedCanBaud]}" CornerRadius="4" Margin="-4,-2" />
-                        <Label Grid.Row="2" Text="CAN speed"
-                               ToolTipProperties.Text="ESC CAN bit rate (SetBaud). Cannot be read back; must match the flight controller's CAN_Px_BITRATE" />
+                        <Label Grid.Row="2" Text="{loc:Tr Ui_CanSpeed}"
+                               ToolTipProperties.Text="{loc:Tr Tip_CanSpeed}" />
                         <Picker MinimumHeightRequest="32" Grid.Row="2" Grid.Column="1" ItemsSource="{Binding CanBaudOptions}" SelectedItem="{Binding SelectedCanBaud}" />
-                        <Button Padding="8,2" Grid.Row="2" Grid.Column="2" Text="Set" Command="{Binding SetCanBaudCommand}" />
+                        <Button Padding="8,2" Grid.Row="2" Grid.Column="2" Text="{loc:Tr Ui_Set}" Command="{Binding SetCanBaudCommand}" />
 
                         <BoxView Grid.Row="3" Grid.ColumnSpan="2" Color="{Binding Marks[ThrottleChannelText]}" CornerRadius="4" Margin="-4,-2" />
-                        <Label Grid.Row="3" Text="Throttle channel" ToolTipProperties.Text="Motor output number ArduPilot uses for this ESC" />
+                        <Label Grid.Row="3" Text="{loc:Tr Ui_ThrottleChannel}" ToolTipProperties.Text="{loc:Tr Tip_ThrottleChannel}" />
                         <Entry MinimumHeightRequest="32" Grid.Row="3" Grid.Column="1" Text="{Binding ThrottleChannelText}" Keyboard="Numeric" />
-                        <Button Padding="8,2" Grid.Row="3" Grid.Column="2" Text="Set" Command="{Binding SetThrottleChannelCommand}" />
+                        <Button Padding="8,2" Grid.Row="3" Grid.Column="2" Text="{loc:Tr Ui_Set}" Command="{Binding SetThrottleChannelCommand}" />
 
                         <BoxView Grid.Row="4" Grid.ColumnSpan="2" Color="{Binding Marks[SelectedThrottleSource]}" CornerRadius="4" Margin="-4,-2" />
-                        <Label Grid.Row="4" Text="Throttle source" />
+                        <Label Grid.Row="4" Text="{loc:Tr Ui_ThrottleSource}" />
                         <Picker MinimumHeightRequest="32" Grid.Row="4" Grid.Column="1" ItemsSource="{Binding ThrottleSourceOptions}" SelectedItem="{Binding SelectedThrottleSource}" />
-                        <Button Padding="8,2" Grid.Row="4" Grid.Column="2" Text="Set" Command="{Binding SetThrottleSourceCommand}" />
+                        <Button Padding="8,2" Grid.Row="4" Grid.Column="2" Text="{loc:Tr Ui_Set}" Command="{Binding SetThrottleSourceCommand}" />
 
                         <BoxView Grid.Row="5" Grid.ColumnSpan="2" Color="{Binding Marks[SelectedMsg1Rate]}" CornerRadius="4" Margin="-4,-2" />
-                        <Label Grid.Row="5" Text="StatusMsg1 rate" ToolTipProperties.Text="RPM, PWM, status" />
+                        <Label Grid.Row="5" Text="{loc:Tr Ui_Msg1Rate}" ToolTipProperties.Text="{loc:Tr Tip_Msg1}" />
                         <Picker MinimumHeightRequest="32" Grid.Row="5" Grid.Column="1" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding SelectedMsg1Rate}" />
-                        <Button Padding="8,2" Grid.Row="5" Grid.Column="2" Text="Set" Command="{Binding SetRateCommand}" CommandParameter="1" />
+                        <Button Padding="8,2" Grid.Row="5" Grid.Column="2" Text="{loc:Tr Ui_Set}" Command="{Binding SetRateCommand}" CommandParameter="1" />
 
                         <BoxView Grid.Row="6" Grid.ColumnSpan="2" Color="{Binding Marks[SelectedMsg2Rate]}" CornerRadius="4" Margin="-4,-2" />
-                        <Label Grid.Row="6" Text="StatusMsg2 rate" ToolTipProperties.Text="Voltage, current, temperature" />
+                        <Label Grid.Row="6" Text="{loc:Tr Ui_Msg2Rate}" ToolTipProperties.Text="{loc:Tr Tip_Msg2}" />
                         <Picker MinimumHeightRequest="32" Grid.Row="6" Grid.Column="1" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding SelectedMsg2Rate}" />
-                        <Button Padding="8,2" Grid.Row="6" Grid.Column="2" Text="Set" Command="{Binding SetRateCommand}" CommandParameter="2" />
+                        <Button Padding="8,2" Grid.Row="6" Grid.Column="2" Text="{loc:Tr Ui_Set}" Command="{Binding SetRateCommand}" CommandParameter="2" />
 
                         <BoxView Grid.Row="7" Grid.ColumnSpan="2" Color="{Binding Marks[SelectedMsg3Rate]}" CornerRadius="4" Margin="-4,-2" />
-                        <Label Grid.Row="7" Text="StatusMsg3 rate" ToolTipProperties.Text="MOSFET / capacitor / motor temperatures" />
+                        <Label Grid.Row="7" Text="{loc:Tr Ui_Msg3Rate}" ToolTipProperties.Text="{loc:Tr Tip_Msg3}" />
                         <Picker MinimumHeightRequest="32" Grid.Row="7" Grid.Column="1" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding SelectedMsg3Rate}" />
-                        <Button Padding="8,2" Grid.Row="7" Grid.Column="2" Text="Set" Command="{Binding SetRateCommand}" CommandParameter="3" />
+                        <Button Padding="8,2" Grid.Row="7" Grid.Column="2" Text="{loc:Tr Ui_Set}" Command="{Binding SetRateCommand}" CommandParameter="3" />
 
                         <BoxView Grid.Row="8" Grid.ColumnSpan="2" Color="{Binding Marks[SelectedLedColor]}" CornerRadius="4" Margin="-4,-2" />
-                        <Label Grid.Row="8" Text="LED color" />
+                        <Label Grid.Row="8" Text="{loc:Tr Ui_LedColor}" />
                         <Picker MinimumHeightRequest="32" Grid.Row="8" Grid.Column="1" ItemsSource="{Binding LedColorOptions}" SelectedItem="{Binding SelectedLedColor}" />
 
                         <BoxView Grid.Row="9" Grid.ColumnSpan="2" Color="{Binding Marks[SelectedLedBlink]}" CornerRadius="4" Margin="-4,-2" />
-                        <Label Grid.Row="9" Text="LED mode" />
+                        <Label Grid.Row="9" Text="{loc:Tr Ui_LedMode}" />
                         <HorizontalStackLayout Grid.Row="9" Grid.Column="1" Spacing="6">
                             <Picker MinimumHeightRequest="32" ItemsSource="{Binding LedBlinkOptions}" SelectedItem="{Binding SelectedLedBlink}" WidthRequest="120" />
                             <CheckBox MinimumHeightRequest="32" IsChecked="{Binding LedSave}" />
-                            <Label Text="Save" />
+                            <Label Text="{loc:Tr Ui_Save}" />
                         </HorizontalStackLayout>
-                        <Button Padding="8,2" Grid.Row="9" Grid.Column="2" Text="Set" Command="{Binding SetLedCommand}" />
+                        <Button Padding="8,2" Grid.Row="9" Grid.Column="2" Text="{loc:Tr Ui_Set}" Command="{Binding SetLedCommand}" />
 
                         <BoxView Grid.Row="10" Grid.ColumnSpan="2" Color="{Binding Marks[SelectedDirection]}" CornerRadius="4" Margin="-4,-2" />
-                        <Label Grid.Row="10" Text="Direction" />
+                        <Label Grid.Row="10" Text="{loc:Tr Ui_Direction}" />
                         <Picker MinimumHeightRequest="32" Grid.Row="10" Grid.Column="1" ItemsSource="{Binding DirectionOptions}" SelectedItem="{Binding SelectedDirection}" />
-                        <Button Padding="8,2" Grid.Row="10" Grid.Column="2" Text="Set" Command="{Binding SetDirectionCommand}" />
+                        <Button Padding="8,2" Grid.Row="10" Grid.Column="2" Text="{loc:Tr Ui_Set}" Command="{Binding SetDirectionCommand}" />
                     </Grid>
                 </ScrollView>
             </Grid>
@@ -360,19 +363,19 @@
                     <!-- right padding: the scroll bar is drawn over the content -->
                     <VerticalStackLayout Spacing="6" Padding="0,0,18,0">
                         <Grid ColumnDefinitions="*,Auto">
-                            <Label Text="Settings presets" Style="{StaticResource Section}" Margin="0" />
+                            <Label Text="{loc:Tr Ui_PresetsTitle}" Style="{StaticResource Section}" Margin="0" />
                             <!-- every popup button: the same size, in one column at the right edge -->
-                            <Button Grid.Column="1" Text="Close" Command="{Binding ClosePresetsCommand}"
+                            <Button Grid.Column="1" Text="{loc:Tr Ui_Close}" Command="{Binding ClosePresetsCommand}"
                                     HeightRequest="32" WidthRequest="110" VerticalOptions="Center" />
                         </Grid>
 
                         <!-- the same selection as the page: the ESC whose values are shown on the right and that Apply writes to -->
                         <!-- the Node and Preset rows share their columns, so both pickers are the same width -->
                         <Grid ColumnDefinitions="50,*,70,20,110" ColumnSpacing="8">
-                            <Label Text="Node" />
+                            <Label Text="{loc:Tr Ui_Node}" />
                             <Picker MinimumHeightRequest="32" Grid.Column="1" ItemsSource="{Binding ConfigNodes}" SelectedItem="{Binding SelectedConfigNode}" />
                             <Label Grid.Column="2" TextColor="{Binding SelectedEscCount.Color}"
-                                   ToolTipProperties.Text="How many ESCs answer as this node ID; Apply reaches all of them">
+                                   ToolTipProperties.Text="{loc:Tr Tip_EscCountApply}">
                                 <Label.FormattedText>
                                     <FormattedString>
                                         <Span Text="{Binding SelectedEscCount.Icon}" FontAttributes="Bold" />
@@ -382,104 +385,104 @@
                                 </Label.FormattedText>
                             </Label>
                             <ActivityIndicator Grid.Column="3" IsRunning="{Binding IsWriting}" HeightRequest="20" WidthRequest="20" />
-                            <Button Grid.Column="4" Text="Apply to ESC" Command="{Binding ApplyPresetCommand}"
+                            <Button Grid.Column="4" Text="{loc:Tr Ui_Apply}" Command="{Binding ApplyPresetCommand}"
                                     HeightRequest="32" WidthRequest="110" VerticalOptions="Center" />
                         </Grid>
                         <Label Style="{StaticResource Empty}" Margin="0"
-                               Text="Apply writes the ticked fields to this node (disarmed only); values it already has are skipped." />
+                               Text="{loc:Tr Ui_ApplyHint}" />
 
                         <Grid ColumnDefinitions="50,*,70,20,110" ColumnSpacing="8">
-                            <Label Text="Preset" />
+                            <Label Text="{loc:Tr Ui_Preset}" />
                             <Picker MinimumHeightRequest="32" Grid.Column="1" ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" />
-                            <Button Grid.Column="4" Text="Delete" Command="{Binding DeletePresetCommand}"
+                            <Button Grid.Column="4" Text="{loc:Tr Ui_Delete}" Command="{Binding DeletePresetCommand}"
                                     HeightRequest="32" WidthRequest="110" VerticalOptions="Center" />
                         </Grid>
 
                         <Label Style="{StaticResource Empty}" Margin="0"
-                               Text="Yellow = differs from the ESC · Green = written · N/A = the ESC does not report it" />
+                               Text="{loc:Tr Ui_PresetLegend}" />
 
                         <!-- the same fields and order as the settings editor; on the right what the selected ESC reports now -->
                         <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="Auto,120,*,120"
                               RowSpacing="2" ColumnSpacing="6">
-                            <Label Grid.Row="0" Grid.Column="2" Text="Preset" FontSize="12" Opacity="0.65" />
-                            <Label Grid.Row="0" Grid.Column="3" Text="Current" HorizontalTextAlignment="End" FontSize="12" Opacity="0.65" />
+                            <Label Grid.Row="0" Grid.Column="2" Text="{loc:Tr Ui_Preset}" FontSize="12" Opacity="0.65" />
+                            <Label Grid.Row="0" Grid.Column="3" Text="{loc:Tr Ui_Now}" HorizontalTextAlignment="End" FontSize="12" Opacity="0.65" />
 
                             <BoxView Grid.Row="1" Grid.ColumnSpan="4" Color="{Binding DraftMarks[NodeIdText]}" CornerRadius="4" Margin="-4,-2" />
                             <CheckBox MinimumHeightRequest="32" Grid.Row="1" IsChecked="{Binding Draft.IncludeNodeId}" />
-                            <Label Grid.Row="1" Grid.Column="1" Text="Node ID" ToolTipProperties.Text="1..127" />
+                            <Label Grid.Row="1" Grid.Column="1" Text="{loc:Tr Ui_NodeId}" ToolTipProperties.Text="1..127" />
                             <Entry MinimumHeightRequest="32" Grid.Row="1" Grid.Column="2" Text="{Binding Draft.NodeIdText}" Keyboard="Numeric" />
                             <Label Grid.Row="1" Grid.Column="3" Text="{Binding PresetCurrent[NodeIdText]}" FontFamily="Consolas" HorizontalTextAlignment="End" VerticalOptions="Center" />
 
                             <BoxView Grid.Row="2" Grid.ColumnSpan="4" Color="{Binding DraftMarks[CanBaud]}" CornerRadius="4" Margin="-4,-2" />
                             <CheckBox MinimumHeightRequest="32" Grid.Row="2" IsChecked="{Binding Draft.IncludeCanBaud}" />
-                            <Label Grid.Row="2" Grid.Column="1" Text="CAN speed" ToolTipProperties.Text="Must match the flight controller's CAN_Px_BITRATE" />
+                            <Label Grid.Row="2" Grid.Column="1" Text="{loc:Tr Ui_CanSpeed}" ToolTipProperties.Text="{loc:Tr Tip_CanSpeedMatch}" />
                             <Picker MinimumHeightRequest="32" Grid.Row="2" Grid.Column="2" ItemsSource="{Binding CanBaudOptions}" SelectedItem="{Binding Draft.CanBaud}" />
                             <Label Grid.Row="2" Grid.Column="3" Text="{Binding PresetCurrent[CanBaud]}" FontFamily="Consolas" HorizontalTextAlignment="End" VerticalOptions="Center"
-                                   ToolTipProperties.Text="CAN speed cannot be read back from the ESC" />
+                                   ToolTipProperties.Text="{loc:Tr Tip_CanSpeedNoRead}" />
 
                             <BoxView Grid.Row="3" Grid.ColumnSpan="4" Color="{Binding DraftMarks[ThrottleChannelText]}" CornerRadius="4" Margin="-4,-2" />
                             <CheckBox MinimumHeightRequest="32" Grid.Row="3" IsChecked="{Binding Draft.IncludeThrottleChannel}" />
-                            <Label Grid.Row="3" Grid.Column="1" Text="Throttle channel" ToolTipProperties.Text="1..63, the motor output number" />
+                            <Label Grid.Row="3" Grid.Column="1" Text="{loc:Tr Ui_ThrottleChannel}" ToolTipProperties.Text="{loc:Tr Tip_ThrottleChannelRange}" />
                             <Entry MinimumHeightRequest="32" Grid.Row="3" Grid.Column="2" Text="{Binding Draft.ThrottleChannelText}" Keyboard="Numeric" />
                             <Label Grid.Row="3" Grid.Column="3" Text="{Binding PresetCurrent[ThrottleChannelText]}" FontFamily="Consolas" HorizontalTextAlignment="End" VerticalOptions="Center" />
 
                             <BoxView Grid.Row="4" Grid.ColumnSpan="4" Color="{Binding DraftMarks[ThrottleSource]}" CornerRadius="4" Margin="-4,-2" />
                             <CheckBox MinimumHeightRequest="32" Grid.Row="4" IsChecked="{Binding Draft.IncludeThrottleSource}" />
-                            <Label Grid.Row="4" Grid.Column="1" Text="Throttle source" />
+                            <Label Grid.Row="4" Grid.Column="1" Text="{loc:Tr Ui_ThrottleSource}" />
                             <Picker MinimumHeightRequest="32" Grid.Row="4" Grid.Column="2" ItemsSource="{Binding ThrottleSourceOptions}" SelectedItem="{Binding Draft.ThrottleSource}" />
                             <Label Grid.Row="4" Grid.Column="3" Text="{Binding PresetCurrent[ThrottleSource]}" FontFamily="Consolas" HorizontalTextAlignment="End" VerticalOptions="Center" />
 
                             <BoxView Grid.Row="5" Grid.ColumnSpan="4" Color="{Binding DraftMarks[Msg1Rate]}" CornerRadius="4" Margin="-4,-2" />
                             <CheckBox MinimumHeightRequest="32" Grid.Row="5" IsChecked="{Binding Draft.IncludeMsg1Rate}" />
-                            <Label Grid.Row="5" Grid.Column="1" Text="StatusMsg1 rate" ToolTipProperties.Text="RPM, PWM, status" />
+                            <Label Grid.Row="5" Grid.Column="1" Text="{loc:Tr Ui_Msg1Rate}" ToolTipProperties.Text="{loc:Tr Tip_Msg1}" />
                             <Picker MinimumHeightRequest="32" Grid.Row="5" Grid.Column="2" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding Draft.Msg1Rate}" />
                             <Label Grid.Row="5" Grid.Column="3" Text="{Binding PresetCurrent[Msg1Rate]}" FontFamily="Consolas" HorizontalTextAlignment="End" VerticalOptions="Center" />
 
                             <BoxView Grid.Row="6" Grid.ColumnSpan="4" Color="{Binding DraftMarks[Msg2Rate]}" CornerRadius="4" Margin="-4,-2" />
                             <CheckBox MinimumHeightRequest="32" Grid.Row="6" IsChecked="{Binding Draft.IncludeMsg2Rate}" />
-                            <Label Grid.Row="6" Grid.Column="1" Text="StatusMsg2 rate" ToolTipProperties.Text="Voltage, current, temperature" />
+                            <Label Grid.Row="6" Grid.Column="1" Text="{loc:Tr Ui_Msg2Rate}" ToolTipProperties.Text="{loc:Tr Tip_Msg2}" />
                             <Picker MinimumHeightRequest="32" Grid.Row="6" Grid.Column="2" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding Draft.Msg2Rate}" />
                             <Label Grid.Row="6" Grid.Column="3" Text="{Binding PresetCurrent[Msg2Rate]}" FontFamily="Consolas" HorizontalTextAlignment="End" VerticalOptions="Center" />
 
                             <BoxView Grid.Row="7" Grid.ColumnSpan="4" Color="{Binding DraftMarks[Msg3Rate]}" CornerRadius="4" Margin="-4,-2" />
                             <CheckBox MinimumHeightRequest="32" Grid.Row="7" IsChecked="{Binding Draft.IncludeMsg3Rate}" />
-                            <Label Grid.Row="7" Grid.Column="1" Text="StatusMsg3 rate" ToolTipProperties.Text="MOSFET / capacitor / motor temperatures" />
+                            <Label Grid.Row="7" Grid.Column="1" Text="{loc:Tr Ui_Msg3Rate}" ToolTipProperties.Text="{loc:Tr Tip_Msg3}" />
                             <Picker MinimumHeightRequest="32" Grid.Row="7" Grid.Column="2" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding Draft.Msg3Rate}" />
                             <Label Grid.Row="7" Grid.Column="3" Text="{Binding PresetCurrent[Msg3Rate]}" FontFamily="Consolas" HorizontalTextAlignment="End" VerticalOptions="Center" />
 
                             <!-- one tick for colour and mode: SetLED writes both -->
                             <BoxView Grid.Row="8" Grid.ColumnSpan="4" Color="{Binding DraftMarks[LedColor]}" CornerRadius="4" Margin="-4,-2" />
                             <CheckBox MinimumHeightRequest="32" Grid.Row="8" IsChecked="{Binding Draft.IncludeLed}" />
-                            <Label Grid.Row="8" Grid.Column="1" Text="LED color" />
+                            <Label Grid.Row="8" Grid.Column="1" Text="{loc:Tr Ui_LedColor}" />
                             <Picker MinimumHeightRequest="32" Grid.Row="8" Grid.Column="2" ItemsSource="{Binding LedColorOptions}" SelectedItem="{Binding Draft.LedColor}" />
                             <Label Grid.Row="8" Grid.Column="3" Text="{Binding PresetCurrent[LedColor]}" FontFamily="Consolas" HorizontalTextAlignment="End" VerticalOptions="Center" />
 
                             <BoxView Grid.Row="9" Grid.ColumnSpan="4" Color="{Binding DraftMarks[LedBlink]}" CornerRadius="4" Margin="-4,-2" />
-                            <Label Grid.Row="9" Grid.Column="1" Text="LED mode" />
+                            <Label Grid.Row="9" Grid.Column="1" Text="{loc:Tr Ui_LedMode}" />
                             <HorizontalStackLayout Grid.Row="9" Grid.Column="2" Spacing="6">
                                 <Picker MinimumHeightRequest="32" ItemsSource="{Binding LedBlinkOptions}" SelectedItem="{Binding Draft.LedBlink}" WidthRequest="140" />
                                 <CheckBox MinimumHeightRequest="32" IsChecked="{Binding Draft.LedSave}" />
-                                <Label Text="Save" />
+                                <Label Text="{loc:Tr Ui_Save}" />
                             </HorizontalStackLayout>
                             <Label Grid.Row="9" Grid.Column="3" Text="{Binding PresetCurrent[LedBlink]}" FontFamily="Consolas" HorizontalTextAlignment="End" VerticalOptions="Center" />
 
                             <BoxView Grid.Row="10" Grid.ColumnSpan="4" Color="{Binding DraftMarks[Direction]}" CornerRadius="4" Margin="-4,-2" />
                             <CheckBox MinimumHeightRequest="32" Grid.Row="10" IsChecked="{Binding Draft.IncludeDirection}" />
-                            <Label Grid.Row="10" Grid.Column="1" Text="Direction" />
+                            <Label Grid.Row="10" Grid.Column="1" Text="{loc:Tr Ui_Direction}" />
                             <Picker MinimumHeightRequest="32" Grid.Row="10" Grid.Column="2" ItemsSource="{Binding DirectionOptions}" SelectedItem="{Binding Draft.Direction}" />
                             <Label Grid.Row="10" Grid.Column="3" Text="{Binding PresetCurrent[Direction]}" FontFamily="Consolas" HorizontalTextAlignment="End" VerticalOptions="Center" />
                         </Grid>
 
                         <!-- what Save would change in the chosen saved preset -->
                         <VerticalStackLayout Spacing="2" IsVisible="{Binding HasPresetChanges}">
-                            <Label Text="Changes to the saved preset (Save to keep them):" FontSize="12" Opacity="0.65" />
+                            <Label Text="{loc:Tr Ui_PresetChanges}" FontSize="12" Opacity="0.65" />
                             <Label Text="{Binding PresetChanges}" FontFamily="Consolas" />
                         </VerticalStackLayout>
 
                         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-                            <Label Text="Name" />
-                            <Entry MinimumHeightRequest="32" Grid.Column="1" Text="{Binding PresetName}" Placeholder="e.g. Quad X, 200 Hz" />
-                            <Button Grid.Column="2" Text="Save" Command="{Binding SavePresetCommand}"
+                            <Label Text="{loc:Tr Ui_Name}" />
+                            <Entry MinimumHeightRequest="32" Grid.Column="1" Text="{Binding PresetName}" Placeholder="{loc:Tr Ui_PresetNamePlaceholder}" />
+                            <Button Grid.Column="2" Text="{loc:Tr Ui_Save}" Command="{Binding SavePresetCommand}"
                                     HeightRequest="32" WidthRequest="110" VerticalOptions="Center" />
                         </Grid>
                     </VerticalStackLayout>

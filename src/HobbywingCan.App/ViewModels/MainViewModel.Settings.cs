@@ -4,11 +4,17 @@ using System.Windows.Input;
 using HobbywingCan.Core.DroneCan;
 using HobbywingCan.Core.Messages;
 using HobbywingCan.Core.Monitoring;
+using static HobbywingCan.App.Localization.Localizer;
 
 namespace HobbywingCan.App.ViewModels;
 
 public sealed record Option(byte Value, string Text)
 {
+    // equal by value: the text follows the language, the setting it stands for does not
+    public bool Equals(Option? other) => other is not null && other.Value == Value;
+
+    public override int GetHashCode() => Value.GetHashCode();
+
     // Picker shows ToString()
     public override string ToString() => Text;
 }
@@ -43,18 +49,17 @@ public sealed partial class MainViewModel
     /// <summary>Shows an important message the user must acknowledge (title, message); set by the page.</summary>
     public Func<string, string, Task>? Alert { get; set; }
 
-    public IReadOnlyList<Option> ThrottleSourceOptions { get; } =
-        [new(HwSetThrottleSource.Can, "CAN (digital)"), new(HwSetThrottleSource.Pwm, "PWM")];
+    // these four are rebuilt in the new language by RelocalizeOptions()
+    public IReadOnlyList<Option> ThrottleSourceOptions { get; private set; } = [];
 
     public IReadOnlyList<Option> DirectionOptions { get; } =
         [new(HwSetDirection.Clockwise, "CW"), new(HwSetDirection.CounterClockwise, "CCW")];
 
-    public IReadOnlyList<Option> RateOptions { get; } =
-        HwRate.Options.Select(o => new Option(o.Code, o.Hz == 0 ? "Off (0 Hz)" : $"{o.Hz} Hz")).ToList();
+    public IReadOnlyList<Option> RateOptions { get; private set; } = [];
 
-    public IReadOnlyList<Option> LedColorOptions { get; } = HwSetLed.Colors.Select(c => new Option(c.Color, c.Name)).ToList();
+    public IReadOnlyList<Option> LedColorOptions { get; private set; } = [];
 
-    public IReadOnlyList<Option> LedBlinkOptions { get; } = HwSetLed.BlinkModes.Select(b => new Option(b.Blink, b.Name)).ToList();
+    public IReadOnlyList<Option> LedBlinkOptions { get; private set; } = [];
 
     public IReadOnlyList<Option> CanBaudOptions { get; } = HwSetBaud.Options.Select(o => new Option(o.Code, o.Name)).ToList();
 
@@ -83,7 +88,7 @@ public sealed partial class MainViewModel
     public bool ShowReport => !ShowSettings;
 
     /// <summary>The view the toggle button switches to.</summary>
-    public string ToggleViewText => ShowSettings ? "Report" : "Edit";
+    public string ToggleViewText => ShowSettings ? Tr("Ui_Report") : Tr("Ui_Edit");
 
     public bool IsWriting
     {
@@ -150,8 +155,57 @@ public sealed partial class MainViewModel
 
     public bool HasSettingsHint => SettingsHint.Length > 0;
 
+    private void BuildOptions()
+    {
+        ThrottleSourceOptions = [new(HwSetThrottleSource.Can, Tr("Opt_ThrottleCan")), new(HwSetThrottleSource.Pwm, "PWM")];
+        RateOptions = HwRate.Options.Select(o => new Option(o.Code, o.Hz == 0 ? Tr("Opt_RateOff") : $"{o.Hz} Hz")).ToList();
+        LedColorOptions = HwSetLed.Colors.Select(c => new Option(c.Color, Tr($"Opt_LedColor{c.Color}"))).ToList();
+        LedBlinkOptions = HwSetLed.BlinkModes.Select(b => new Option(b.Blink, Tr($"Opt_LedBlink{b.Blink}"))).ToList();
+    }
+
+    /// <summary>The option texts in the new language; every selection keeps its value.</summary>
+    private void RelocalizeOptions()
+    {
+        var editors = (SelectedThrottleSource, SelectedMsg1Rate, SelectedMsg2Rate, SelectedMsg3Rate, SelectedLedColor, SelectedLedBlink);
+        var d = Draft;
+        var draft = (d.ThrottleSource, d.Msg1Rate, d.Msg2Rate, d.Msg3Rate, d.LedColor, d.LedBlink);
+        // options are equal by value, so a Picker only takes the new item after the old one was cleared
+        SelectedThrottleSource = null;
+        SelectedMsg1Rate = null;
+        SelectedMsg2Rate = null;
+        SelectedMsg3Rate = null;
+        SelectedLedColor = null;
+        SelectedLedBlink = null;
+        d.ThrottleSource = null;
+        d.Msg1Rate = null;
+        d.Msg2Rate = null;
+        d.Msg3Rate = null;
+        d.LedColor = null;
+        d.LedBlink = null;
+
+        BuildOptions();
+        OnPropertyChanged(nameof(ThrottleSourceOptions));
+        OnPropertyChanged(nameof(RateOptions));
+        OnPropertyChanged(nameof(LedColorOptions));
+        OnPropertyChanged(nameof(LedBlinkOptions));
+
+        SelectedThrottleSource = Opt(ThrottleSourceOptions, editors.SelectedThrottleSource?.Value);
+        SelectedMsg1Rate = Opt(RateOptions, editors.SelectedMsg1Rate?.Value);
+        SelectedMsg2Rate = Opt(RateOptions, editors.SelectedMsg2Rate?.Value);
+        SelectedMsg3Rate = Opt(RateOptions, editors.SelectedMsg3Rate?.Value);
+        SelectedLedColor = Opt(LedColorOptions, editors.SelectedLedColor?.Value);
+        SelectedLedBlink = Opt(LedBlinkOptions, editors.SelectedLedBlink?.Value);
+        d.ThrottleSource = Opt(ThrottleSourceOptions, draft.ThrottleSource?.Value);
+        d.Msg1Rate = Opt(RateOptions, draft.Msg1Rate?.Value);
+        d.Msg2Rate = Opt(RateOptions, draft.Msg2Rate?.Value);
+        d.Msg3Rate = Opt(RateOptions, draft.Msg3Rate?.Value);
+        d.LedColor = Opt(LedColorOptions, draft.LedColor?.Value);
+        d.LedBlink = Opt(LedBlinkOptions, draft.LedBlink?.Value);
+    }
+
     private void InitSettings()
     {
+        BuildOptions();
         ToggleViewCommand = new Command(() =>
         {
             ShowSettings = !ShowSettings;
@@ -162,12 +216,12 @@ public sealed partial class MainViewModel
         });
 
         SetThrottleSourceCommand = new Command(async () => await WriteAsync(
-            [nameof(SelectedThrottleSource)], SelectedThrottleSource, o => $"Set throttle source to {o.Text}",
+            [nameof(SelectedThrottleSource)], SelectedThrottleSource, o => Tr("Act_SetThrottleSource", o.Text),
             o => ThrottleSourceWarning(o.Value),
             (w, node, o) => w.SetThrottleSourceAsync(node, o.Value)), CanWrite);
 
         SetDirectionCommand = new Command(async () => await WriteAsync(
-            [nameof(SelectedDirection)], SelectedDirection, o => $"Set rotation direction to {o.Text}",
+            [nameof(SelectedDirection)], SelectedDirection, o => Tr("Act_SetDirection", o.Text),
             _ => DirectionWarning,
             (w, node, o) => w.SetDirectionAsync(node, o.Value)), CanWrite);
 
@@ -177,46 +231,38 @@ public sealed partial class MainViewModel
         SetNodeIdCommand = new Command(async () => await SetNodeIdAsync(), CanWrite);
 
         SetLedCommand = new Command(async () => await WriteAsync(
-            [nameof(SelectedLedColor), nameof(SelectedLedBlink)], SelectedLedColor, o => $"Set LED to {LedText(o, SelectedLedBlink, LedSave)}",
+            [nameof(SelectedLedColor), nameof(SelectedLedBlink)], SelectedLedColor, o => Tr("Act_SetLed", LedText(o, SelectedLedBlink, LedSave)),
             _ => LedWarning,
             (w, node, o) => w.SetLedAsync(node, o.Value, SelectedLedBlink?.Value ?? 0, LedSave)), CanWrite);
 
         // no read exists, and after the change the ESC is off this bus until the FC runs at the same speed
         SetCanBaudCommand = new Command(async () => await WriteAsync(
-            [nameof(SelectedCanBaud)], SelectedCanBaud, o => $"Set CAN speed to {o.Text}",
+            [nameof(SelectedCanBaud)], SelectedCanBaud, o => Tr("Act_SetCanBaud", o.Text),
             o => CanBaudWarning(o),
             (w, node, o) => w.SetBaudAsync(node, o.Value),
             refreshAfter: false), CanWrite);
     }
 
-    private const string DirectionWarning = "The motor will spin the other way. Check the frame's motor order and propellers before flying.";
-    private const string LedWarning = "Only changes the ESC's status LED.";
-    private const string ThrottleChannelWarning =
-        "ArduPilot maps Hobbywing ESCs by throttle channel (= motor output number). A wrong channel makes this ESC follow another motor's throttle.";
-    private const string NodeIdWarning =
-        "The ESC will answer on the new node ID and show up as a new row; the old row goes stale. Some ESCs need a power cycle.";
+    private static string DirectionWarning => Tr("Warn_Direction");
+    private static string LedWarning => Tr("Warn_Led");
+    private static string ThrottleChannelWarning => Tr("Warn_ThrottleChannel");
+    private static string NodeIdWarning => Tr("Warn_NodeId");
 
-    private static string ThrottleSourceWarning(byte source) => source == HwSetThrottleSource.Pwm
-        ? "With PWM the ESC ignores DroneCAN throttle from ArduPilot and only follows the PWM signal wire. The motor will not respond to the flight controller over CAN."
-        : "The ESC will take throttle from DroneCAN (ArduPilot) again.";
+    private static string ThrottleSourceWarning(byte source) =>
+        Tr(source == HwSetThrottleSource.Pwm ? "Warn_ThrottlePwm" : "Warn_ThrottleCan");
 
-    private static string CanBaudWarning(Option baud) =>
-        $"The ESC will only talk at {baud.Text}. Unless the flight controller's CAN_Px_BITRATE is set to the same speed, " +
-        "the ESC drops off the bus: no throttle, no telemetry, and this app cannot reach it to change it back. " +
-        "Some ESCs apply it only after a power cycle.";
+    private static string CanBaudWarning(Option baud) => Tr("Warn_CanBaud", baud.Text);
 
     /// <param name="message">"1", "2" or "3"</param>
     private static (ushort MessageId, string Field, string Use) RateInfo(string? message) => message switch
     {
-        "1" => (DataTypes.HwStatusMsg1.Id, nameof(SelectedMsg1Rate),
-            "StatusMsg1 carries RPM. ArduPilot uses it for ESC RPM telemetry and the RPM-based harmonic notch; a low rate or Off degrades that."),
-        "2" => (DataTypes.HwStatusMsg2.Id, nameof(SelectedMsg2Rate),
-            "StatusMsg2 carries voltage, current and temperature used by ArduPilot's ESC telemetry."),
-        _ => (DataTypes.HwStatusMsg3.Id, nameof(SelectedMsg3Rate),
-            "StatusMsg3 carries MOSFET / capacitor / motor temperatures (ArduPilot does not use it)."),
+        "1" => (DataTypes.HwStatusMsg1.Id, nameof(SelectedMsg1Rate), Tr("Warn_Rate1")),
+        "2" => (DataTypes.HwStatusMsg2.Id, nameof(SelectedMsg2Rate), Tr("Warn_Rate2")),
+        _ => (DataTypes.HwStatusMsg3.Id, nameof(SelectedMsg3Rate), Tr("Warn_Rate3")),
     };
 
-    private static string LedText(Option color, Option? blink, bool save) => $"{color.Text}, {blink?.Text ?? "steady"}{(save ? " (saved)" : "")}";
+    private static string LedText(Option color, Option? blink, bool save) =>
+        $"{color.Text}, {blink?.Text ?? Tr("Txt_Steady")}{(save ? Tr("Txt_Saved") : "")}";
 
     private bool CanWrite() => IsConnected && SelectedConfigNode != null && !IsReading && !IsWriting;
 
@@ -265,7 +311,7 @@ public sealed partial class MainViewModel
         var unknown = new List<string>();
         if (state.ThrottleSourcePwm == null)
         {
-            unknown.Add("throttle source");
+            unknown.Add(Tr("Txt_ThrottleSource"));
         }
         if (state.LedColor == null)
         {
@@ -273,7 +319,7 @@ public sealed partial class MainViewModel
         }
         SettingsHint = unknown.Count == 0
             ? ""
-            : $"Current {string.Join(" and ", unknown)} unknown: the ESC has not answered GetMajorConfig. Shown after a Set.";
+            : Tr("Hint_Unknown", string.Join(Tr("Txt_And"), unknown));
         if (state.CounterClockwise is { } ccw)
         {
             SelectedDirection = Marks.Loaded(nameof(SelectedDirection),
@@ -363,7 +409,7 @@ public sealed partial class MainViewModel
     {
         var (messageId, field, use) = RateInfo(message);
         var option = message switch { "1" => SelectedMsg1Rate, "2" => SelectedMsg2Rate, _ => SelectedMsg3Rate };
-        await WriteAsync([field], option, o => $"Set StatusMsg{message} rate to {o.Text}", _ => use,
+        await WriteAsync([field], option, o => Tr("Act_SetRate", message, o.Text), _ => use,
             (w, node, o) => w.SetReportingRateAsync(node, messageId, o.Value));
     }
 
@@ -371,11 +417,11 @@ public sealed partial class MainViewModel
     {
         if (!byte.TryParse(ThrottleChannelText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var channel) || channel is < 1 or > 63)
         {
-            AddLog("Throttle channel must be 1..63");
+            AddLog(Tr("Log_ThrottleChannelRange"));
             return;
         }
         var option = new Option(channel, channel.ToString(CultureInfo.InvariantCulture));
-        await WriteAsync([nameof(ThrottleChannelText)], option, o => $"Set throttle channel to {o.Text}",
+        await WriteAsync([nameof(ThrottleChannelText)], option, o => Tr("Act_SetThrottleChannel", o.Text),
             _ => ThrottleChannelWarning,
             (w, node, o) => w.SetIdAsync(node, node, o.Value),
             setsId: true);
@@ -385,12 +431,12 @@ public sealed partial class MainViewModel
     {
         if (!byte.TryParse(NewNodeIdText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var newId) || newId is < 1 or > 127)
         {
-            AddLog("Node ID must be 1..127");
+            AddLog(Tr("Log_NodeIdRange"));
             return;
         }
         if (SelectedConfigNode is { } target && _monitor?.Get(target.NodeId)?.ThrottleChannel is not { } channel)
         {
-            AddLog("Throttle channel of this ESC is unknown (enable Poll GetEscID or wait for the configuration read) — SetID needs it to keep it unchanged");
+            AddLog(Tr("Log_ThrottleChannelUnknown"));
             return;
         }
         if (!await ConfirmNodeIdFreeAsync(newId))
@@ -398,7 +444,7 @@ public sealed partial class MainViewModel
             return;
         }
         var option = new Option(newId, newId.ToString(CultureInfo.InvariantCulture));
-        await WriteAsync([nameof(NewNodeIdText)], option, o => $"Change node ID to {o.Text}",
+        await WriteAsync([nameof(NewNodeIdText)], option, o => Tr("Act_SetNodeId", o.Text),
             _ => NodeIdWarning,
             (w, node, o) => w.SetIdAsync(node, o.Value, _monitor!.Get(node)!.ThrottleChannel!.Value),
             refreshAfter: false, setsId: true, newNodeId: newId);
@@ -408,10 +454,9 @@ public sealed partial class MainViewModel
     private async Task<bool> ConfirmNodeIdFreeAsync(byte newId)
     {
         if (_monitor?.Get(newId) != null && newId != SelectedConfigNode?.NodeId && Confirm != null &&
-            !await Confirm($"Node ID {newId} is already used on the bus. Continue?",
-                "Two ESCs with the same node ID cannot be told apart: they show as one row and both take every request sent to that ID."))
+            !await Confirm(Tr("Dlg_NodeIdUsedTitle", newId), Tr("Dlg_NodeIdUsed")))
         {
-            AddLog($"Cancelled: node ID {newId} is already used on the bus");
+            AddLog(Tr("Log_NodeIdUsedCancelled", newId));
             return false;
         }
         return true;
@@ -421,12 +466,12 @@ public sealed partial class MainViewModel
     {
         if (_link?.Vehicle == null)
         {
-            AddLog("No heartbeat from the flight controller yet");
+            AddLog(Tr("Log_NoHeartbeat"));
             return false;
         }
         if (_link.IsArmed)
         {
-            AddLog("Vehicle is ARMED — settings changes are blocked for safety");
+            AddLog(Tr("Log_ArmedBlocked"));
             return false;
         }
         return true;
@@ -450,12 +495,11 @@ public sealed partial class MainViewModel
             return null;
         }
         string who = others.Count > 0
-            ? $"Other ESCs on the bus: node {string.Join(", ", others)}."
+            ? Tr("Warn_OtherEscs", string.Join(", ", others))
             : state?.DeviceCount is >= 2 and var count
-                ? $"Node {target} is {count} ESCs sharing one node ID."
-                : $"Node {target} looks like several ESCs sharing one node ID.";
-        return "Hobbywing X8 G2 applies SetID to EVERY ESC on the CAN bus, whichever node it is addressed to. " +
-            $"{who} They will all get the same node ID and throttle channel.";
+                ? Tr("Warn_SharedCount", target, count)
+                : Tr("Warn_SharedSuspected", target);
+        return Tr("Warn_SetIdAll", who);
     }
 
     private Task ShowAlert(string title, string message) => Alert?.Invoke(title, message) ?? Task.CompletedTask;
@@ -472,7 +516,7 @@ public sealed partial class MainViewModel
     {
         if (value == null)
         {
-            AddLog("Choose a value first");
+            AddLog(Tr("Log_ChooseValue"));
             return;
         }
         await WriteStepsAsync(describe(value),
@@ -504,8 +548,7 @@ public sealed partial class MainViewModel
             if (probe.Inconclusive)
             {
                 // not every firmware answers the read requests; that must not stop the write
-                unverified = $"Could not check which ESCs this reaches: node {target.NodeId} did not answer any read request " +
-                    "(rate read, GetMajorConfig, GetNodeInfo).";
+                unverified = Tr("Warn_Unverified", target.NodeId);
                 AddLog(unverified);
             }
 
@@ -518,16 +561,16 @@ public sealed partial class MainViewModel
             int sharing = Math.Max(probe.SameIdAnswers, _monitor.Get(target.NodeId)?.DeviceCount ?? 0);
             if (sharing > 1)
             {
-                reach.Add($"{sharing} ESCs answer as node {target.NodeId} (shared node ID) — all of them will be changed.");
+                reach.Add(Tr("Warn_SharingAll", sharing, target.NodeId));
             }
             if (probe.OtherResponders.Count > 0)
             {
-                reach.Add($"Node(s) {string.Join(", ", probe.OtherResponders)} also answer requests addressed to node {target.NodeId} — they will be changed too.");
+                reach.Add(Tr("Warn_OtherResponders", string.Join(", ", probe.OtherResponders), target.NodeId));
             }
 
             string title = reach.Count == 0
-                ? $"{action} on node {target.NodeId}?"
-                : $"{action} — this will affect SEVERAL ESCs. Continue?";
+                ? Tr("Dlg_WriteTitle", action, target.NodeId)
+                : Tr("Dlg_WriteSeveralTitle", action);
             var notes = reach.Select(r => $"⚠ {r}").ToList();
             if (unverified != null)
             {
@@ -538,12 +581,12 @@ public sealed partial class MainViewModel
                 : steps.Select((s, i) => $"{i + 1}. {s.Description}. {s.Warning}"));
             if (Confirm != null && !await Confirm(title, string.Join("\n\n", notes)))
             {
-                AddLog($"Cancelled: {action}");
+                AddLog(Tr("Log_Cancelled", action));
                 return null;
             }
             if (reach.Count > 0)
             {
-                AddLog($"Writing to several ESCs on purpose: {string.Join(" ", reach)}");
+                AddLog(Tr("Log_WritingSeveral", string.Join(" ", reach)));
             }
 
             byte nodeId = target.NodeId;
@@ -572,14 +615,13 @@ public sealed partial class MainViewModel
                 {
                     // nothing suggested this beforehand, so make sure it is noticed
                     alerted = true;
-                    await ShowAlert("Other ESCs changed too",
-                        $"{result.Message}\n\nCheck every ESC in the table (Report) before flying.");
+                    await ShowAlert(Tr("Dlg_OthersChangedTitle"), $"{result.Message}\n\n{Tr("Dlg_CheckEveryEsc")}");
                 }
                 if (!result.Success)
                 {
                     if (i < steps.Count - 1)
                     {
-                        AddLog($"{action}: stopped, {steps.Count - i - 1} later step(s) not written");
+                        AddLog(Tr("Log_Stopped", action, steps.Count - i - 1));
                     }
                     break;
                 }

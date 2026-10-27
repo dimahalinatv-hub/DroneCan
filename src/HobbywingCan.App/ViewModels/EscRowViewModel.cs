@@ -3,6 +3,7 @@ using HobbywingCan.Core.DroneCan;
 using HobbywingCan.Core.Mavlink;
 using HobbywingCan.Core.Messages;
 using HobbywingCan.Core.Monitoring;
+using static HobbywingCan.App.Localization.Localizer;
 
 namespace HobbywingCan.App.ViewModels;
 
@@ -60,7 +61,7 @@ public sealed class EscRowViewModel(byte nodeId) : ObservableObject
         Health = s.Status is { } st ? $"{st.HealthText} / {st.ModeText}" : "–";
         if (s.IgnoresDestination)
         {
-            Health = "⚠ answers for others";
+            Health = Tr("Row_AnswersForOthers");
         }
         EscCount = EscCountBadge.For(s);
         Direction = s.CounterClockwise switch
@@ -83,7 +84,7 @@ public sealed class EscRowViewModel(byte nodeId) : ObservableObject
         else if (s.EscStatus is { } es)
         {
             Rpm = es.Rpm.ToString(Inv);
-            Status = $"err {es.ErrorCount}, {es.PowerRatingPct}%";
+            Status = Tr("Row_EscStatus", es.ErrorCount, es.PowerRatingPct);
         }
 
         if (s.Msg2 is { } m2)
@@ -111,12 +112,12 @@ public sealed class EscRowViewModel(byte nodeId) : ObservableObject
         }
         else if (s.EscStatusExtended is { } ext)
         {
-            ExtraTemperatures = $"motor {ext.MotorTemperatureC} °C, in {ext.InputPct}% out {ext.OutputPct}%";
+            ExtraTemperatures = Tr("Row_ExtendedStatus", ext.MotorTemperatureC, ext.InputPct, ext.OutputPct);
         }
 
         double age = (nowUtc - s.LastSeenUtc).TotalSeconds;
         IsStale = age > 2;
-        Age = age < 1 ? "live" : $"{age:F0} s ago";
+        Age = age < 1 ? Tr("Row_Live") : Tr("Row_Ago", age);
 
         double dt = (nowUtc - _lastRateUpdate).TotalSeconds;
         if (dt >= 1)
@@ -151,8 +152,8 @@ public sealed class EscRowViewModel(byte nodeId) : ObservableObject
         s.ReportingRateCodes.TryGetValue(messageId, out var code)
             ? HwRate.ToHz(code) switch
             {
-                null => $"code {code}",
-                0 => "off",
+                null => Tr("Row_Code", code),
+                0 => Tr("Row_Off"),
                 var hz => $"{hz} Hz",
             }
             : "–";
@@ -241,7 +242,7 @@ public sealed class TrafficRowViewModel(byte nodeId, TransferKind kind, ushort d
     {
         Count = e.Count.ToString(CultureInfo.InvariantCulture);
         double age = (nowUtc - e.LastUtc).TotalSeconds;
-        Age = age < 1 ? "live" : $"{age:F0} s";
+        Age = age < 1 ? Tr("Row_Live") : Tr("Row_AgeShort", age);
         double dt = (nowUtc - _lastRateUpdate).TotalSeconds;
         if (dt >= 1)
         {

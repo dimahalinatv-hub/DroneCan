@@ -1,0 +1,669 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Ui_PageTitle" xml:space="preserve">
+    <value>Hobbywing X8 G2 — DroneCAN через ArduPilot</value>
+  </data>
+  <data name="Ui_Port" xml:space="preserve">
+    <value>Порт</value>
+  </data>
+  <data name="Tip_RefreshPorts" xml:space="preserve">
+    <value>Оновити список COM-портів</value>
+  </data>
+  <data name="Ui_Baud" xml:space="preserve">
+    <value>Швидкість</value>
+  </data>
+  <data name="Ui_CanBus" xml:space="preserve">
+    <value>Шина CAN FC</value>
+  </data>
+  <data name="Tip_CanBus" xml:space="preserve">
+    <value>Фізичний порт CAN: CAN1 = CAN_P1, CAN2 = CAN_P2</value>
+  </data>
+  <data name="Ui_AppNodeId" xml:space="preserve">
+    <value>ID вузла програми</value>
+  </data>
+  <data name="Tip_AppNodeId" xml:space="preserve">
+    <value>ID вузла DroneCAN, з яким ця програма надсилає запити; не має бути зайнятий на шині</value>
+  </data>
+  <data name="Ui_UseFilter" xml:space="preserve">
+    <value>Лише трафік ESC</value>
+  </data>
+  <data name="Tip_UseFilter" xml:space="preserve">
+    <value>Надсилає CAN_FILTER_MODIFY, щоб FC пересилав лише ті типи DroneCAN, які декодує ця програма (решти не буде видно в «Трафік шини»)</value>
+  </data>
+  <data name="Ui_PollEscIds" xml:space="preserve">
+    <value>Опитувати GetEscID</value>
+  </data>
+  <data name="Tip_PollEscIds" xml:space="preserve">
+    <value>Щосекунди, поки не заармлено, розсилати com.hobbywing.esc.GetEscID, щоб дізнатися канали газу</value>
+  </data>
+  <data name="Ui_Connect" xml:space="preserve">
+    <value>Підключити</value>
+  </data>
+  <data name="Ui_Disconnect" xml:space="preserve">
+    <value>Відключити</value>
+  </data>
+  <data name="Tip_Language" xml:space="preserve">
+    <value>Мова інтерфейсу</value>
+  </data>
+  <data name="Ui_NotConnected" xml:space="preserve">
+    <value>Не підключено</value>
+  </data>
+  <data name="Ui_HeartbeatLost" xml:space="preserve">
+    <value>Немає heartbeat ({0:F0} с)</value>
+  </data>
+  <data name="Ui_Vehicle" xml:space="preserve">
+    <value>FC sys {0} — {1}</value>
+  </data>
+  <data name="Ui_Armed" xml:space="preserve">
+    <value>ЗААРМЛЕНО (запити вимкнено)</value>
+  </data>
+  <data name="Ui_Disarmed" xml:space="preserve">
+    <value>не заармлено</value>
+  </data>
+  <data name="Ui_Stats" xml:space="preserve">
+    <value>MAVLink {0} пак., помилок CRC {1} | CAN rx {2} tx {3} | передач {4}, помилок CRC {5}, неповних відповідей {6}</value>
+  </data>
+  <data name="Ui_EscSection" xml:space="preserve">
+    <value>ESC на DroneCAN (наживо, з пересланих кадрів CAN)</value>
+  </data>
+  <data name="Ui_Node" xml:space="preserve">
+    <value>Вузол</value>
+  </data>
+  <data name="Ui_NodeN" xml:space="preserve">
+    <value>Вузол {0}</value>
+  </data>
+  <data name="Ui_Name" xml:space="preserve">
+    <value>Назва</value>
+  </data>
+  <data name="Ui_ThrCh" xml:space="preserve">
+    <value>Газ</value>
+  </data>
+  <data name="Ui_Dir" xml:space="preserve">
+    <value>Напр.</value>
+  </data>
+  <data name="Tip_Dir" xml:space="preserve">
+    <value>Напрямок, який повідомляє ESC (запит SetDirection / GetMajorConfig). Фактичне обертання залежить і від підключення фаз мотора.</value>
+  </data>
+  <data name="Ui_Voltage" xml:space="preserve">
+    <value>Напруга</value>
+  </data>
+  <data name="Ui_Current" xml:space="preserve">
+    <value>Струм</value>
+  </data>
+  <data name="Ui_Temp" xml:space="preserve">
+    <value>Темп.</value>
+  </data>
+  <data name="Ui_ExtraTemps" xml:space="preserve">
+    <value>MOS / CAP / мотор</value>
+  </data>
+  <data name="Ui_Status" xml:space="preserve">
+    <value>Стан</value>
+  </data>
+  <data name="Ui_Health" xml:space="preserve">
+    <value>Здоров'я / режим</value>
+  </data>
+  <data name="Tip_Health" xml:space="preserve">
+    <value>✓ 1 ESC / ⚠ N ESC = скільки ESC відповідають на GetEscID з цим ID вузла (рахується, поки не заармлено). ⚠ відповідає за інших = цей ESC відповів на запит, адресований іншому вузлу.</value>
+  </data>
+  <data name="Ui_Msg1Set" xml:space="preserve">
+    <value>Msg1</value>
+  </data>
+  <data name="Ui_Msg2Set" xml:space="preserve">
+    <value>Msg2</value>
+  </data>
+  <data name="Ui_Msg3Set" xml:space="preserve">
+    <value>Msg3</value>
+  </data>
+  <data name="Tip_Msg1Set" xml:space="preserve">
+    <value>Частота StatusMsg1 (RPM, PWM, стан), налаштована в ESC</value>
+  </data>
+  <data name="Tip_Msg2Set" xml:space="preserve">
+    <value>Частота StatusMsg2 (напруга, струм, температура), налаштована в ESC</value>
+  </data>
+  <data name="Tip_Msg3Set" xml:space="preserve">
+    <value>Частота StatusMsg3 (температури MOS / CAP / мотора), налаштована в ESC</value>
+  </data>
+  <data name="Ui_Measured" xml:space="preserve">
+    <value>Виміряно, Hz</value>
+  </data>
+  <data name="Tip_Measured" xml:space="preserve">
+    <value>З якою частотою повідомлення від ESC приходять насправді</value>
+  </data>
+  <data name="Ui_Updated" xml:space="preserve">
+    <value>Оновлено</value>
+  </data>
+  <data name="Ui_NoEscs" xml:space="preserve">
+    <value>Вузлів DroneCAN ще не видно. Підключіться, потім перевірте номер шини CAN FC і панель «Трафік шини».</value>
+  </data>
+  <data name="Row_AnswersForOthers" xml:space="preserve">
+    <value>⚠ відповідає за інших</value>
+  </data>
+  <data name="Row_EscStatus" xml:space="preserve">
+    <value>пом. {0}, {1}%</value>
+  </data>
+  <data name="Row_ExtendedStatus" xml:space="preserve">
+    <value>мотор {0} °C, вх. {1}% вих. {2}%</value>
+  </data>
+  <data name="Row_Live" xml:space="preserve">
+    <value>зараз</value>
+  </data>
+  <data name="Row_Ago" xml:space="preserve">
+    <value>{0:F0} с тому</value>
+  </data>
+  <data name="Row_AgeShort" xml:space="preserve">
+    <value>{0:F0} с</value>
+  </data>
+  <data name="Row_Code" xml:space="preserve">
+    <value>код {0}</value>
+  </data>
+  <data name="Row_Off" xml:space="preserve">
+    <value>вимк.</value>
+  </data>
+  <data name="Ui_ApTelemetry" xml:space="preserve">
+    <value>Телеметрія ESC від ArduPilot</value>
+  </data>
+  <data name="Tip_ApTelemetry" xml:space="preserve">
+    <value>ESC_TELEMETRY_x_TO_y так, як її повідомляє сам автопілот</value>
+  </data>
+  <data name="Ui_Consumed" xml:space="preserve">
+    <value>Витрачено</value>
+  </data>
+  <data name="Ui_Count" xml:space="preserve">
+    <value>Кількість</value>
+  </data>
+  <data name="Ui_NoApTelemetry" xml:space="preserve">
+    <value>Від автопілота ще немає ESC_TELEMETRY.</value>
+  </data>
+  <data name="Ui_Log" xml:space="preserve">
+    <value>Журнал</value>
+  </data>
+  <data name="Ui_Clear" xml:space="preserve">
+    <value>Очистити</value>
+  </data>
+  <data name="Ui_Traffic" xml:space="preserve">
+    <value>Трафік шини (передачі за вузлом і типом)</value>
+  </data>
+  <data name="Ui_Kind" xml:space="preserve">
+    <value>Вид</value>
+  </data>
+  <data name="Ui_DataType" xml:space="preserve">
+    <value>Тип даних</value>
+  </data>
+  <data name="Ui_Rate" xml:space="preserve">
+    <value>Частота</value>
+  </data>
+  <data name="Ui_Last" xml:space="preserve">
+    <value>Ост.</value>
+  </data>
+  <data name="Ui_NoTraffic" xml:space="preserve">
+    <value>Передач DroneCAN ще немає.</value>
+  </data>
+  <data name="Ui_EscConfig" xml:space="preserve">
+    <value>Конфігурація ESC</value>
+  </data>
+  <data name="Tip_ReadConfig" xml:space="preserve">
+    <value>Прочитати ще раз (конфігурація читається автоматично, коли вибрано вузол)</value>
+  </data>
+  <data name="Ui_CopyReport" xml:space="preserve">
+    <value>Копіювати звіт</value>
+  </data>
+  <data name="Ui_Report" xml:space="preserve">
+    <value>Звіт</value>
+  </data>
+  <data name="Ui_Edit" xml:space="preserve">
+    <value>Змінити</value>
+  </data>
+  <data name="Tip_ToggleView" xml:space="preserve">
+    <value>Перемкнути між звітом (лише перегляд) і редактором налаштувань</value>
+  </data>
+  <data name="Ui_Presets" xml:space="preserve">
+    <value>Пресети…</value>
+  </data>
+  <data name="Tip_Presets" xml:space="preserve">
+    <value>Зберегти налаштування як пресет або записати збережений пресет у цей ESC</value>
+  </data>
+  <data name="Tip_EscCountWrite" xml:space="preserve">
+    <value>Скільки ESC відповідають з цим ID вузла; запис дійде до всіх них</value>
+  </data>
+  <data name="Ui_IncludeParams" xml:space="preserve">
+    <value>З параметрами</value>
+  </data>
+  <data name="Tip_IncludeParams" xml:space="preserve">
+    <value>Також перелічити параметри uavcan.protocol.param.GetSet</value>
+  </data>
+  <data name="Ui_ConfigEmpty" xml:space="preserve">
+    <value>Конфігурація вибраного вузла ESC (не автопілота, він зазвичай вузол 10) читається автоматично. Апарат має бути не заармлений.</value>
+  </data>
+  <data name="Ui_MarksLegend" xml:space="preserve">
+    <value>Жовтий = змінено, не записано · Зелений = записано</value>
+  </data>
+  <data name="Tip_MarksLegend" xml:space="preserve">
+    <value>«Задати» записує після підтвердження (лише коли не заармлено); кожен запис звіряється з відповіддю ESC і пишеться в журнал</value>
+  </data>
+  <data name="Tip_SettingsHint" xml:space="preserve">
+    <value>Окрім GetMajorConfig (242), немає запиту, який лише читає джерело газу і LED</value>
+  </data>
+  <data name="Hint_Unknown" xml:space="preserve">
+    <value>Невідомо: {0} — ESC не відповів на GetMajorConfig. З'явиться після «Задати».</value>
+  </data>
+  <data name="Txt_And" xml:space="preserve">
+    <value> і </value>
+  </data>
+  <data name="Ui_NodeId" xml:space="preserve">
+    <value>ID вузла</value>
+  </data>
+  <data name="Ui_Set" xml:space="preserve">
+    <value>Задати</value>
+  </data>
+  <data name="Ui_CanSpeed" xml:space="preserve">
+    <value>Швидкість CAN</value>
+  </data>
+  <data name="Tip_CanSpeed" xml:space="preserve">
+    <value>Бітрейт CAN у ESC (SetBaud). Прочитати його не можна; має збігатися з CAN_Px_BITRATE польотного контролера</value>
+  </data>
+  <data name="Ui_ThrottleChannel" xml:space="preserve">
+    <value>Канал газу</value>
+  </data>
+  <data name="Tip_ThrottleChannel" xml:space="preserve">
+    <value>Номер виходу мотора, який ArduPilot використовує для цього ESC</value>
+  </data>
+  <data name="Ui_ThrottleSource" xml:space="preserve">
+    <value>Джерело газу</value>
+  </data>
+  <data name="Ui_Msg1Rate" xml:space="preserve">
+    <value>Частота Msg1</value>
+  </data>
+  <data name="Ui_Msg2Rate" xml:space="preserve">
+    <value>Частота Msg2</value>
+  </data>
+  <data name="Ui_Msg3Rate" xml:space="preserve">
+    <value>Частота Msg3</value>
+  </data>
+  <data name="Tip_Msg1" xml:space="preserve">
+    <value>StatusMsg1: RPM, PWM, стан</value>
+  </data>
+  <data name="Tip_Msg2" xml:space="preserve">
+    <value>StatusMsg2: напруга, струм, температура</value>
+  </data>
+  <data name="Tip_Msg3" xml:space="preserve">
+    <value>StatusMsg3: температури MOSFET / конденсаторів / мотора</value>
+  </data>
+  <data name="Ui_LedColor" xml:space="preserve">
+    <value>Колір LED</value>
+  </data>
+  <data name="Ui_LedMode" xml:space="preserve">
+    <value>Режим LED</value>
+  </data>
+  <data name="Ui_Save" xml:space="preserve">
+    <value>Зберегти</value>
+  </data>
+  <data name="Ui_Direction" xml:space="preserve">
+    <value>Напрямок</value>
+  </data>
+  <data name="Opt_ThrottleCan" xml:space="preserve">
+    <value>CAN (цифровий)</value>
+  </data>
+  <data name="Opt_RateOff" xml:space="preserve">
+    <value>Вимк. (0 Hz)</value>
+  </data>
+  <data name="Opt_LedColor0" xml:space="preserve">
+    <value>Вимкнено</value>
+  </data>
+  <data name="Opt_LedColor1" xml:space="preserve">
+    <value>Синій</value>
+  </data>
+  <data name="Opt_LedColor2" xml:space="preserve">
+    <value>Зелений</value>
+  </data>
+  <data name="Opt_LedColor3" xml:space="preserve">
+    <value>Блакитний (G+B)</value>
+  </data>
+  <data name="Opt_LedColor4" xml:space="preserve">
+    <value>Червоний</value>
+  </data>
+  <data name="Opt_LedColor5" xml:space="preserve">
+    <value>Пурпуровий (R+B)</value>
+  </data>
+  <data name="Opt_LedColor6" xml:space="preserve">
+    <value>Жовтий (R+G)</value>
+  </data>
+  <data name="Opt_LedColor7" xml:space="preserve">
+    <value>Білий (R+G+B)</value>
+  </data>
+  <data name="Opt_LedBlink0" xml:space="preserve">
+    <value>Постійно</value>
+  </data>
+  <data name="Opt_LedBlink1" xml:space="preserve">
+    <value>Блимання 1 Hz</value>
+  </data>
+  <data name="Opt_LedBlink2" xml:space="preserve">
+    <value>Блимання 2 Hz</value>
+  </data>
+  <data name="Opt_LedBlink5" xml:space="preserve">
+    <value>Блимання 5 Hz</value>
+  </data>
+  <data name="Txt_Steady" xml:space="preserve">
+    <value>постійно</value>
+  </data>
+  <data name="Txt_Saved" xml:space="preserve">
+    <value> (зі збереженням)</value>
+  </data>
+  <data name="Act_SetThrottleSource" xml:space="preserve">
+    <value>Задати джерело газу {0}</value>
+  </data>
+  <data name="Act_SetDirection" xml:space="preserve">
+    <value>Задати напрямок обертання {0}</value>
+  </data>
+  <data name="Act_SetLed" xml:space="preserve">
+    <value>Задати LED: {0}</value>
+  </data>
+  <data name="Act_SetCanBaud" xml:space="preserve">
+    <value>Задати швидкість CAN {0}</value>
+  </data>
+  <data name="Act_SetRate" xml:space="preserve">
+    <value>Задати частоту StatusMsg{0}: {1}</value>
+  </data>
+  <data name="Act_SetThrottleChannel" xml:space="preserve">
+    <value>Задати канал газу {0}</value>
+  </data>
+  <data name="Act_SetNodeId" xml:space="preserve">
+    <value>Змінити ID вузла на {0}</value>
+  </data>
+  <data name="Act_ApplyPreset1" xml:space="preserve">
+    <value>Застосувати пресет «{0}» (записів: 1)</value>
+  </data>
+  <data name="Act_ApplyPresetN" xml:space="preserve">
+    <value>Застосувати пресет «{0}» (записів: {1})</value>
+  </data>
+  <data name="Warn_Direction" xml:space="preserve">
+    <value>Мотор обертатиметься в інший бік. Перед польотом перевірте порядок моторів рами і пропелери.</value>
+  </data>
+  <data name="Warn_Led" xml:space="preserve">
+    <value>Змінює лише світлодіод стану ESC.</value>
+  </data>
+  <data name="Warn_ThrottleChannel" xml:space="preserve">
+    <value>ArduPilot зіставляє ESC Hobbywing за каналом газу (= номер виходу мотора). З неправильним каналом цей ESC слухатиме газ іншого мотора.</value>
+  </data>
+  <data name="Warn_NodeId" xml:space="preserve">
+    <value>ESC відповідатиме з новим ID вузла і з'явиться окремим рядком; старий рядок застаріє. Деяким ESC потрібно перевімкнути живлення.</value>
+  </data>
+  <data name="Warn_ThrottlePwm" xml:space="preserve">
+    <value>З PWM ESC ігнорує газ DroneCAN від ArduPilot і слухає лише сигнальний дріт PWM. Мотор не реагуватиме на польотний контролер через CAN.</value>
+  </data>
+  <data name="Warn_ThrottleCan" xml:space="preserve">
+    <value>ESC знову братиме газ з DroneCAN (ArduPilot).</value>
+  </data>
+  <data name="Warn_CanBaud" xml:space="preserve">
+    <value>ESC працюватиме лише на {0}. Якщо CAN_Px_BITRATE польотного контролера не має такої самої швидкості, ESC випаде з шини: ні газу, ні телеметрії, і ця програма не зможе до нього достукатися, щоб повернути налаштування. Деякі ESC застосовують це лише після перевімкнення живлення.</value>
+  </data>
+  <data name="Warn_Rate1" xml:space="preserve">
+    <value>StatusMsg1 несе RPM. ArduPilot використовує його для телеметрії RPM і гармонійного notch-фільтра за RPM; низька частота або «Вимк.» це погіршує.</value>
+  </data>
+  <data name="Warn_Rate2" xml:space="preserve">
+    <value>StatusMsg2 несе напругу, струм і температуру для телеметрії ESC в ArduPilot.</value>
+  </data>
+  <data name="Warn_Rate3" xml:space="preserve">
+    <value>StatusMsg3 несе температури MOSFET / конденсаторів / мотора (ArduPilot його не використовує).</value>
+  </data>
+  <data name="Warn_OtherEscs" xml:space="preserve">
+    <value>Інші ESC на шині: вузол {0}.</value>
+  </data>
+  <data name="Warn_SharedCount" xml:space="preserve">
+    <value>Вузол {0} — це {1} ESC з одним спільним ID вузла.</value>
+  </data>
+  <data name="Warn_SharedSuspected" xml:space="preserve">
+    <value>Вузол {0} схожий на кілька ESC з одним спільним ID вузла.</value>
+  </data>
+  <data name="Warn_SetIdAll" xml:space="preserve">
+    <value>Hobbywing X8 G2 застосовує SetID до КОЖНОГО ESC на шині CAN, хоч би якому вузлу його адресовано. {0} Усі вони отримають однаковий ID вузла і канал газу.</value>
+  </data>
+  <data name="Warn_Unverified" xml:space="preserve">
+    <value>Не вдалося перевірити, до яких ESC це дійде: вузол {0} не відповів на жоден запит читання (читання частоти, GetMajorConfig, GetNodeInfo).</value>
+  </data>
+  <data name="Warn_SharingAll" xml:space="preserve">
+    <value>{0} ESC відповідають як вузол {1} (спільний ID вузла) — зміниться кожен із них.</value>
+  </data>
+  <data name="Warn_OtherResponders" xml:space="preserve">
+    <value>Вузли {0} теж відповідають на запити до вузла {1} — їх теж буде змінено.</value>
+  </data>
+  <data name="Ui_Write" xml:space="preserve">
+    <value>Записати</value>
+  </data>
+  <data name="Ui_Cancel" xml:space="preserve">
+    <value>Скасувати</value>
+  </data>
+  <data name="Ui_Replace" xml:space="preserve">
+    <value>Замінити</value>
+  </data>
+  <data name="Ui_Delete" xml:space="preserve">
+    <value>Видалити</value>
+  </data>
+  <data name="Dlg_WriteTitle" xml:space="preserve">
+    <value>{0} на вузлі {1}?</value>
+  </data>
+  <data name="Dlg_WriteSeveralTitle" xml:space="preserve">
+    <value>{0} — це зачепить КІЛЬКА ESC. Продовжити?</value>
+  </data>
+  <data name="Dlg_NodeIdUsedTitle" xml:space="preserve">
+    <value>ID вузла {0} уже зайнятий на шині. Продовжити?</value>
+  </data>
+  <data name="Dlg_NodeIdUsed" xml:space="preserve">
+    <value>Два ESC з однаковим ID вузла неможливо розрізнити: вони показуються одним рядком і обидва виконують кожен запит до цього ID.</value>
+  </data>
+  <data name="Dlg_OthersChangedTitle" xml:space="preserve">
+    <value>Змінилися й інші ESC</value>
+  </data>
+  <data name="Dlg_CheckEveryEsc" xml:space="preserve">
+    <value>Перед польотом перевірте кожен ESC у таблиці («Звіт»).</value>
+  </data>
+  <data name="Dlg_ReplacePresetTitle" xml:space="preserve">
+    <value>Замінити пресет «{0}»?</value>
+  </data>
+  <data name="Dlg_NoValueChanges" xml:space="preserve">
+    <value>Значення не змінюються.</value>
+  </data>
+  <data name="Dlg_DeletePresetTitle" xml:space="preserve">
+    <value>Видалити пресет «{0}»?</value>
+  </data>
+  <data name="Dlg_PresetApplied" xml:space="preserve">
+    <value>Пресет «{0}» застосовано</value>
+  </data>
+  <data name="Dlg_PresetNotApplied" xml:space="preserve">
+    <value>Пресет «{0}» не застосовано</value>
+  </data>
+  <data name="Dlg_PresetPartlyApplied" xml:space="preserve">
+    <value>Пресет «{0}» застосовано частково</value>
+  </data>
+  <data name="Dlg_NothingWritten" xml:space="preserve">
+    <value>У вузол {0} нічого не записано.</value>
+  </data>
+  <data name="Dlg_NothingToWrite" xml:space="preserve">
+    <value>Нічого записувати: у вузлі {0} уже є {1}.</value>
+  </data>
+  <data name="Dlg_Succeeded1" xml:space="preserve">
+    <value>Вузол {0}: успішних записів — {1} з {2}.</value>
+  </data>
+  <data name="Dlg_SucceededN" xml:space="preserve">
+    <value>Вузол {0}: успішних записів — {1} з {2}.</value>
+  </data>
+  <data name="Res_NotWritten" xml:space="preserve">
+    <value>{0}: не записано (зупинено після помилки)</value>
+  </data>
+  <data name="Res_AlreadySet" xml:space="preserve">
+    <value>Уже встановлено, повторно не записано: {0}</value>
+  </data>
+  <data name="Ui_PresetsTitle" xml:space="preserve">
+    <value>Пресети налаштувань</value>
+  </data>
+  <data name="Ui_Close" xml:space="preserve">
+    <value>Закрити</value>
+  </data>
+  <data name="Tip_EscCountApply" xml:space="preserve">
+    <value>Скільки ESC відповідають з цим ID вузла; «Застосувати» дійде до всіх них</value>
+  </data>
+  <data name="Ui_Apply" xml:space="preserve">
+    <value>Застосувати</value>
+  </data>
+  <data name="Ui_ApplyHint" xml:space="preserve">
+    <value>«Застосувати» записує позначені поля в цей вузол (лише коли не заармлено); значення, які вже є, пропускаються.</value>
+  </data>
+  <data name="Ui_Preset" xml:space="preserve">
+    <value>Пресет</value>
+  </data>
+  <data name="Ui_PresetLegend" xml:space="preserve">
+    <value>Жовтий = відрізняється від ESC · Зелений = записано · Н/Д = ESC цього не повідомляє</value>
+  </data>
+  <data name="Ui_Now" xml:space="preserve">
+    <value>Зараз</value>
+  </data>
+  <data name="Tip_CanSpeedMatch" xml:space="preserve">
+    <value>Має збігатися з CAN_Px_BITRATE польотного контролера</value>
+  </data>
+  <data name="Tip_CanSpeedNoRead" xml:space="preserve">
+    <value>Швидкість CAN неможливо прочитати з ESC</value>
+  </data>
+  <data name="Tip_ThrottleChannelRange" xml:space="preserve">
+    <value>1..63, номер виходу мотора</value>
+  </data>
+  <data name="Ui_PresetChanges" xml:space="preserve">
+    <value>Зміни до збереженого пресету («Зберегти», щоб їх залишити):</value>
+  </data>
+  <data name="Ui_PresetNamePlaceholder" xml:space="preserve">
+    <value>напр. Quad X, 200 Hz</value>
+  </data>
+  <data name="Txt_NA" xml:space="preserve">
+    <value>Н/Д</value>
+  </data>
+  <data name="Txt_Unsaved" xml:space="preserve">
+    <value>незбережений</value>
+  </data>
+  <data name="Txt_ThrottleSource" xml:space="preserve">
+    <value>джерело газу</value>
+  </data>
+  <data name="Txt_ThrottleChannel" xml:space="preserve">
+    <value>канал газу</value>
+  </data>
+  <data name="Txt_NodeId" xml:space="preserve">
+    <value>ID вузла</value>
+  </data>
+  <data name="Txt_Direction" xml:space="preserve">
+    <value>напрямок</value>
+  </data>
+  <data name="Txt_Rate" xml:space="preserve">
+    <value>частота StatusMsg{0}</value>
+  </data>
+  <data name="Log_Disconnected" xml:space="preserve">
+    <value>Відключено</value>
+  </data>
+  <data name="Log_SelectPort" xml:space="preserve">
+    <value>Спершу виберіть COM-порт</value>
+  </data>
+  <data name="Log_AppNodeIdRange" xml:space="preserve">
+    <value>ID вузла програми має бути 1..127 і не збігатися з ID вузлів автопілота чи ESC</value>
+  </data>
+  <data name="Log_CannotOpen" xml:space="preserve">
+    <value>Не вдалося відкрити {0}: {1}</value>
+  </data>
+  <data name="Log_LinkError" xml:space="preserve">
+    <value>Помилка зв'язку: {0}</value>
+  </data>
+  <data name="Log_Opened" xml:space="preserve">
+    <value>Відкрито {0} @ {1}, CAN{2}, ID вузла програми {3}. Чекаю на heartbeat…</value>
+  </data>
+  <data name="Log_ForwardingEnabled" xml:space="preserve">
+    <value>Пересилання CAN увімкнено на CAN{0}</value>
+  </data>
+  <data name="Log_ForwardingRejected" xml:space="preserve">
+    <value>Автопілот відхилив пересилання CAN (MAV_RESULT {0}). Перевірте номер шини і що CAN_P{1}_DRIVER задано.</value>
+  </data>
+  <data name="Log_EscCount" xml:space="preserve">
+    <value>Вузол {0}: {1} ESC ({2})</value>
+  </data>
+  <data name="Log_Reading" xml:space="preserve">
+    <value>Читаю конфігурацію вузла {0}…</value>
+  </data>
+  <data name="Log_ReadFinished" xml:space="preserve">
+    <value>Вузол {0}: читання завершено, помилок: {1}, параметрів: {2}</value>
+  </data>
+  <data name="Log_ReadCancelled" xml:space="preserve">
+    <value>Вузол {0}: читання скасовано</value>
+  </data>
+  <data name="Log_ReportCopied" xml:space="preserve">
+    <value>Звіт скопійовано в буфер обміну</value>
+  </data>
+  <data name="Log_ThrottleChannelRange" xml:space="preserve">
+    <value>Канал газу має бути 1..63</value>
+  </data>
+  <data name="Log_NodeIdRange" xml:space="preserve">
+    <value>ID вузла має бути 1..127</value>
+  </data>
+  <data name="Log_ThrottleChannelUnknown" xml:space="preserve">
+    <value>Канал газу цього ESC невідомий (увімкніть «Опитувати GetEscID» або дочекайтеся читання конфігурації) — SetID потребує його, щоб лишити без змін</value>
+  </data>
+  <data name="Log_NodeIdUsedCancelled" xml:space="preserve">
+    <value>Скасовано: ID вузла {0} уже зайнятий на шині</value>
+  </data>
+  <data name="Log_NoHeartbeat" xml:space="preserve">
+    <value>Від польотного контролера ще немає heartbeat</value>
+  </data>
+  <data name="Log_ArmedBlocked" xml:space="preserve">
+    <value>Апарат ЗААРМЛЕНО — зміну налаштувань заблоковано з міркувань безпеки</value>
+  </data>
+  <data name="Log_ChooseValue" xml:space="preserve">
+    <value>Спершу виберіть значення</value>
+  </data>
+  <data name="Log_Cancelled" xml:space="preserve">
+    <value>Скасовано: {0}</value>
+  </data>
+  <data name="Log_WritingSeveral" xml:space="preserve">
+    <value>Свідомий запис у кілька ESC: {0}</value>
+  </data>
+  <data name="Log_Stopped" xml:space="preserve">
+    <value>{0}: зупинено, наступних кроків не записано: {1}</value>
+  </data>
+  <data name="Log_PresetNodeIdRange" xml:space="preserve">
+    <value>Пресет: ID вузла має бути 1..127</value>
+  </data>
+  <data name="Log_PresetThrottleChannelRange" xml:space="preserve">
+    <value>Пресет: канал газу має бути 1..63</value>
+  </data>
+  <data name="Log_PresetEmpty" xml:space="preserve">
+    <value>Пресет порожній: позначте хоча б одне поле і задайте йому значення</value>
+  </data>
+  <data name="Log_EnterPresetName" xml:space="preserve">
+    <value>Введіть назву пресету</value>
+  </data>
+  <data name="Log_PresetSaved" xml:space="preserve">
+    <value>Пресет «{0}» збережено: {1}</value>
+  </data>
+  <data name="Log_PresetNotSavedEmpty" xml:space="preserve">
+    <value>. Не збережено, немає значення: {0}</value>
+  </data>
+  <data name="Log_PresetDeleted" xml:space="preserve">
+    <value>Пресет «{0}» видалено</value>
+  </data>
+  <data name="Log_CannotSavePresets" xml:space="preserve">
+    <value>Не вдалося зберегти пресети в {0}: {1}</value>
+  </data>
+  <data name="Log_PresetNoValue" xml:space="preserve">
+    <value>Пресет «{0}»: немає значення, не записано: {1}</value>
+  </data>
+  <data name="Log_PresetAlreadyHas" xml:space="preserve">
+    <value>Пресет «{0}»: у вузлі {1} уже є {2} — повторно не записано</value>
+  </data>
+  <data name="Log_PresetNothing" xml:space="preserve">
+    <value>Пресет «{0}»: нічого записувати</value>
+  </data>
+</root>

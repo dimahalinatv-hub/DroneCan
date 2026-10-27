@@ -2,11 +2,13 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Text;
 using System.Windows.Input;
+using HobbywingCan.App.Localization;
 using HobbywingCan.Core.DroneCan;
 using HobbywingCan.Core.Link;
 using HobbywingCan.Core.Mavlink;
 using HobbywingCan.Core.Monitoring;
 using HobbywingCan.Core.Simulation;
+using static HobbywingCan.App.Localization.Localizer;
 
 namespace HobbywingCan.App.ViewModels;
 
@@ -45,7 +47,7 @@ public sealed partial class MainViewModel : ObservableObject
     private bool _pollEscIds = true;
     private bool _isConnected;
     private bool _isBusy;
-    private string _vehicleText = "Not connected";
+    private string _vehicleText = Tr("Ui_NotConnected");
     private string _statsText = "";
     private NodeChoice? _selectedConfigNode;
     private EscCountBadge _selectedEscCount = EscCountBadge.Unknown;
@@ -67,6 +69,7 @@ public sealed partial class MainViewModel : ObservableObject
         ClearLogCommand = new Command(() => Log.Clear());
         InitSettings();
         InitPresets();
+        Instance.LanguageChanged += OnLanguageChanged;
 
         RefreshPorts();
 
@@ -97,6 +100,14 @@ public sealed partial class MainViewModel : ObservableObject
     public ICommand ReadConfigCommand { get; }
     public ICommand CopyReportCommand { get; }
     public ICommand ClearLogCommand { get; }
+
+    public IReadOnlyList<LanguageChoice> Languages => Instance.Languages;
+
+    public LanguageChoice SelectedLanguage
+    {
+        get => Instance.Language;
+        set => Instance.Language = value;
+    }
 
     public string? SelectedPort { get => _selectedPort; set => SetProperty(ref _selectedPort, value); }
     public int SelectedBaud { get => _selectedBaud; set => SetProperty(ref _selectedBaud, value); }
@@ -131,7 +142,7 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     public bool IsDisconnected => !IsConnected;
-    public string ConnectButtonText => IsConnected ? "Disconnect" : "Connect";
+    public string ConnectButtonText => IsConnected ? Tr("Ui_Disconnect") : Tr("Ui_Connect");
     public string VehicleText { get => _vehicleText; private set => SetProperty(ref _vehicleText, value); }
     public string StatsText { get => _statsText; private set => SetProperty(ref _statsText, value); }
 
@@ -213,7 +224,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             if (IsConnected)
             {
-                await DisconnectAsync("Disconnected");
+                await DisconnectAsync(Tr("Log_Disconnected"));
             }
             else
             {
@@ -231,12 +242,12 @@ public sealed partial class MainViewModel : ObservableObject
     {
         if (string.IsNullOrEmpty(SelectedPort))
         {
-            AddLog("Select a COM port first");
+            AddLog(Tr("Log_SelectPort"));
             return;
         }
         if (!byte.TryParse(LocalNodeIdText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var localId) || localId is < 1 or > 127)
         {
-            AddLog("App node ID must be 1..127 and must not collide with the autopilot or ESC node IDs");
+            AddLog(Tr("Log_AppNodeIdRange"));
             return;
         }
 
@@ -258,7 +269,7 @@ public sealed partial class MainViewModel : ObservableObject
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
             {
-                AddLog($"Cannot open {port}: {ex.Message}");
+                AddLog(Tr("Log_CannotOpen", port, ex.Message));
                 return;
             }
         }
@@ -270,7 +281,7 @@ public sealed partial class MainViewModel : ObservableObject
         });
         _link.StatusTextReceived += text => Post(() => AddLog($"FC: {text}"));
         _link.CommandAckReceived += OnCommandAck;
-        _link.Faulted += ex => Post(async () => await DisconnectAsync($"Link error: {ex.Message}"));
+        _link.Faulted += ex => Post(async () => await DisconnectAsync(Tr("Log_LinkError", ex.Message)));
         _node = new DroneCanNode(_link, localId);
         _monitor = new EscMonitor(_node, _link) { PollEscIds = PollEscIds };
         _reader = new EscConfigReader(_node);
@@ -294,7 +305,7 @@ public sealed partial class MainViewModel : ObservableObject
         _lastForwardAckResult = null;
         IsConnected = true;
         _timer.Start();
-        AddLog($"Opened {port} @ {SelectedBaud}, CAN{SelectedCanBus}, app node ID {localId}. Waiting for heartbeat…");
+        AddLog(Tr("Log_Opened", port, SelectedBaud, SelectedCanBus, localId));
     }
 
     private async Task DisconnectAsync(string reason)
@@ -320,7 +331,7 @@ public sealed partial class MainViewModel : ObservableObject
         _reader = null;
         _writer = null;
         IsConnected = false;
-        VehicleText = "Not connected";
+        VehicleText = Tr("Ui_NotConnected");
         _disconnecting = false;
         AddLog(reason);
     }
@@ -333,8 +344,8 @@ public sealed partial class MainViewModel : ObservableObject
         }
         _lastForwardAckResult = result;
         Post(() => AddLog(result == 0
-            ? $"CAN forwarding enabled on CAN{SelectedCanBus}"
-            : $"Autopilot rejected CAN forwarding (MAV_RESULT {result}). Check the bus number and that CAN_P{SelectedCanBus}_DRIVER is set."));
+            ? Tr("Log_ForwardingEnabled", SelectedCanBus)
+            : Tr("Log_ForwardingRejected", result, SelectedCanBus)));
     }
 
     private void Refresh()
@@ -349,10 +360,11 @@ public sealed partial class MainViewModel : ObservableObject
         {
             double age = (now - _link.LastHeartbeatUtc).TotalSeconds;
             VehicleText = age > 3
-                ? $"Heartbeat lost ({age:F0} s)"
-                : $"FC sys {v.SystemId} — {(v.IsArmed ? "ARMED (requests disabled)" : "disarmed")}";
+                ? Tr("Ui_HeartbeatLost", age)
+                : Tr("Ui_Vehicle", v.SystemId, v.IsArmed ? Tr("Ui_Armed") : Tr("Ui_Disarmed"));
         }
-        StatsText = $"MAVLink {_link.MavlinkPackets} pkts, CRC err {_link.MavlinkCrcErrors} | CAN rx {_link.CanFramesReceived} tx {_link.CanFramesSent} | transfers {_node.TransfersReceived}, CRC err {_node.CrcErrors}, incomplete answers {_node.IncompleteResponses}";
+        StatsText = Tr("Ui_Stats", _link.MavlinkPackets, _link.MavlinkCrcErrors, _link.CanFramesReceived, _link.CanFramesSent,
+            _node.TransfersReceived, _node.CrcErrors, _node.IncompleteResponses);
 
         foreach (var state in _monitor.Nodes)
         {
@@ -410,12 +422,12 @@ public sealed partial class MainViewModel : ObservableObject
             return;
         }
         _loggedEscCounts[state.NodeId] = count;
-        AddLog($"Node {state.NodeId}: {count} ESC ({state.DeviceCountEvidence})");
+        AddLog(Tr("Log_EscCount", state.NodeId, count, state.DeviceCountEvidence));
     }
 
     private void UpdateConfigNode(NodeState state, DateTime nowUtc)
     {
-        var display = state.Info != null ? $"{state.NodeId} — {state.Info.Name}" : $"Node {state.NodeId}";
+        var display = state.Info != null ? $"{state.NodeId} — {state.Info.Name}" : Tr("Ui_NodeN", state.NodeId);
         int i = ConfigNodes.ToList().FindIndex(n => n.NodeId == state.NodeId);
         if (i >= 0 && ConfigNodes[i].Display == display)
         {
@@ -533,7 +545,7 @@ public sealed partial class MainViewModel : ObservableObject
         bool shown = false;
         try
         {
-            AddLog($"Reading configuration of node {target.NodeId}…");
+            AddLog(Tr("Log_Reading", target.NodeId));
             var report = await _reader.ReadAsync(target.NodeId, IncludeParameters, progress, _readCts.Token);
 
             if (SelectedConfigNode?.NodeId != target.NodeId)
@@ -549,12 +561,12 @@ public sealed partial class MainViewModel : ObservableObject
             {
                 ConfigItems.Add(item);
             }
-            AddLog($"Node {target.NodeId}: read finished, {report.Errors.Count} error(s), {report.Parameters.Count} parameter(s)");
+            AddLog(Tr("Log_ReadFinished", target.NodeId, report.Errors.Count, report.Parameters.Count));
             LoadSettingsFromNode();
         }
         catch (OperationCanceledException)
         {
-            AddLog($"Node {target.NodeId}: read cancelled");
+            AddLog(Tr("Log_ReadCancelled", target.NodeId));
         }
         finally
         {
@@ -588,7 +600,7 @@ public sealed partial class MainViewModel : ObservableObject
             }
         }
         await Clipboard.Default.SetTextAsync(sb.ToString());
-        AddLog("Report copied to clipboard");
+        AddLog(Tr("Log_ReportCopied"));
     }
 
     private void AddLog(string text)
@@ -598,6 +610,22 @@ public sealed partial class MainViewModel : ObservableObject
         {
             Log.RemoveAt(Log.Count - 1);
         }
+    }
+
+    /// <summary>The texts built here follow the language picker; log lines already written stay as they are.</summary>
+    private void OnLanguageChanged()
+    {
+        OnPropertyChanged(nameof(ConnectButtonText));
+        OnPropertyChanged(nameof(ToggleViewText));
+        if (_link?.Vehicle == null)
+        {
+            VehicleText = Tr("Ui_NotConnected");
+        }
+        RelocalizeOptions();
+        LoadSettingsFromNode();
+        RefreshPresetCurrent();
+        PresetCurrent.Changed();
+        RefreshPresetChanges();
     }
 
     private void Post(Action action) => _dispatcher.Dispatch(action);
