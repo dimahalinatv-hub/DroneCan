@@ -138,7 +138,6 @@ public sealed partial class MainViewModel
 
     public ICommand OpenPresetsCommand { get; private set; } = null!;
     public ICommand ClosePresetsCommand { get; private set; } = null!;
-    public ICommand DraftFromEditorCommand { get; private set; } = null!;
     public ICommand SavePresetCommand { get; private set; } = null!;
     public ICommand ApplyPresetCommand { get; private set; } = null!;
     public ICommand DeletePresetCommand { get; private set; } = null!;
@@ -203,7 +202,7 @@ public sealed partial class MainViewModel
 
         OpenPresetsCommand = new Command(() =>
         {
-            // with no preset chosen the popup starts empty ("From editor" fills it); a chosen preset stays as it was left
+            // with no preset chosen the popup starts empty; a chosen preset stays as it was left
             if (SelectedPreset == null)
             {
                 ClearDraft();
@@ -212,7 +211,6 @@ public sealed partial class MainViewModel
             ShowPresets = true;
         });
         ClosePresetsCommand = new Command(() => ShowPresets = false);
-        DraftFromEditorCommand = new Command(DraftFromEditor);
         SavePresetCommand = new Command(async () => await SavePresetAsync());
         ApplyPresetCommand = new Command(async () => await ApplyDraftAsync(), CanWrite);
         DeletePresetCommand = new Command(async () => await DeletePresetAsync(), () => SelectedPreset != null);
@@ -306,23 +304,6 @@ public sealed partial class MainViewModel
             DraftMarks.Clear();
         }
         RefreshPresetCurrent();
-    }
-
-    /// <summary>Copy the values of the settings editor into the popup; which fields are ticked stays.</summary>
-    private void DraftFromEditor()
-    {
-        DraftMarks.Clear();
-        Draft.CanBaud = SelectedCanBaud;
-        Draft.NodeIdText = NewNodeIdText;
-        Draft.ThrottleChannelText = ThrottleChannelText;
-        Draft.ThrottleSource = SelectedThrottleSource;
-        Draft.Msg1Rate = SelectedMsg1Rate;
-        Draft.Msg2Rate = SelectedMsg2Rate;
-        Draft.Msg3Rate = SelectedMsg3Rate;
-        Draft.LedColor = SelectedLedColor;
-        Draft.LedBlink = SelectedLedBlink;
-        Draft.LedSave = LedSave;
-        Draft.Direction = SelectedDirection;
     }
 
     private void LoadDraft(SettingsPreset p)

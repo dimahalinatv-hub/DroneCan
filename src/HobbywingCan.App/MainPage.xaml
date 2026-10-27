@@ -352,24 +352,20 @@
                         </Grid>
 
                         <!-- the same selection as the page: the ESC whose values are shown on the right and that Apply writes to -->
-                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                        <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
                             <Label Text="Node" />
                             <Picker Grid.Column="1" ItemsSource="{Binding ConfigNodes}" SelectedItem="{Binding SelectedConfigNode}" Title="Choose the ESC" />
-                            <ActivityIndicator Grid.Column="2" IsRunning="{Binding IsWriting}" HeightRequest="20" WidthRequest="20" />
+                            <Button Grid.Column="2" Text="Apply to ESC" Command="{Binding ApplyPresetCommand}" />
+                            <ActivityIndicator Grid.Column="3" IsRunning="{Binding IsWriting}" HeightRequest="20" WidthRequest="20" />
                         </Grid>
+                        <Label Style="{StaticResource Empty}" Margin="0"
+                               Text="Apply writes the ticked fields to this node (disarmed only); values it already has are skipped." />
 
                         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
                             <Label Text="Preset" />
                             <Picker Grid.Column="1" ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" />
                             <Button Grid.Column="2" Text="Delete" Command="{Binding DeletePresetCommand}"
                                     Padding="8,2" MinimumHeightRequest="24" FontSize="12" VerticalOptions="Center" />
-                        </Grid>
-
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                            <Label Style="{StaticResource Empty}" Margin="0"
-                                   Text="Ticked fields belong to the preset; set their values here. Unticked fields are left as they are in the ESC." />
-                            <Button Grid.Column="1" Text="From editor" Command="{Binding DraftFromEditorCommand}"
-                                    ToolTipProperties.Text="Copy the values of the settings editor (what the ESC reported, plus your edits) into these fields" />
                         </Grid>
 
                         <Label Style="{StaticResource Empty}" Margin="0"
@@ -458,12 +454,6 @@
                             <Entry Grid.Column="1" Text="{Binding PresetName}" Placeholder="e.g. Quad X, 200 Hz" />
                             <Button Grid.Column="2" Text="Save" Command="{Binding SavePresetCommand}" />
                         </Grid>
-
-                        <BoxView HeightRequest="1" Margin="0,6" Color="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}" />
-
-                        <Label Style="{StaticResource Empty}" Margin="0"
-                               Text="Apply writes the ticked fields above to the selected node as they are now (saved or not): one confirmation, then one write after another (disarmed only). Values the ESC already reports are skipped; it stops at the first failed write and shows what was saved." />
-                        <Button Text="Apply to ESC" Command="{Binding ApplyPresetCommand}" HorizontalOptions="Start" />
                     </VerticalStackLayout>
                 </ScrollView>
             </Border>
