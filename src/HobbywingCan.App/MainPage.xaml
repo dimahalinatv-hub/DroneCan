@@ -232,14 +232,14 @@
                 </FlexLayout>
                 <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
                     <Label Text="Node" />
-                    <Picker Grid.Column="1" ItemsSource="{Binding ConfigNodes}" SelectedItem="{Binding SelectedConfigNode}" />
+                    <Picker MinimumHeightRequest="32" Grid.Column="1" ItemsSource="{Binding ConfigNodes}" SelectedItem="{Binding SelectedConfigNode}" />
                     <ActivityIndicator Grid.Column="2" IsRunning="{Binding IsWriting}" HeightRequest="20" WidthRequest="20" />
                 </Grid>
 
                 <!-- Read-only report -->
                 <Grid Grid.Row="2" RowDefinitions="Auto,*" RowSpacing="6" IsVisible="{Binding ShowReport}">
                     <HorizontalStackLayout Grid.Row="0" Spacing="6">
-                        <CheckBox IsChecked="{Binding IncludeParameters}" />
+                        <CheckBox MinimumHeightRequest="32" IsChecked="{Binding IncludeParameters}" />
                         <Label Text="Include params" ToolTipProperties.Text="Also enumerate uavcan.protocol.param.GetSet parameters" />
                         <ActivityIndicator IsRunning="{Binding IsReading}" HeightRequest="20" WidthRequest="20" />
                         <Label Text="{Binding ConfigProgress}" />
@@ -266,70 +266,69 @@
                 <!-- Settings (writes to the ESC) -->
                 <ScrollView Grid.Row="2" IsVisible="{Binding ShowSettings}">
                     <!-- keep every row narrow: wide content here widens all three bottom columns -->
+                    <!-- compact rows (32 px, not the app's 44) so all fields fit without scrolling -->
                     <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="130,*,60"
-                          RowSpacing="6" ColumnSpacing="8" Padding="0,0,8,0">
+                          RowSpacing="2" ColumnSpacing="8" Padding="0,0,8,0">
                         <VerticalStackLayout Grid.Row="0" Grid.ColumnSpan="3" Spacing="2">
-                            <Label Style="{StaticResource Empty}" Margin="0"
-                                   Text="Set = write after confirmation (disarmed only)"
-                                   ToolTipProperties.Text="Each write is checked against the ESC's reply and logged" />
-                            <Label Style="{StaticResource Empty}" Margin="0" Text="Yellow = changed, not written · Green = written" />
+                            <Label Style="{StaticResource Empty}" Margin="0" Text="Yellow = changed, not written · Green = written"
+                                   ToolTipProperties.Text="Set writes after a confirmation (disarmed only); each write is checked against the ESC's reply and logged" />
                             <Label Style="{StaticResource Empty}" Margin="0" Text="{Binding SettingsHint}" IsVisible="{Binding HasSettingsHint}"
                                    ToolTipProperties.Text="There is no read-only query for throttle source and LED other than GetMajorConfig (242)" />
                         </VerticalStackLayout>
 
                         <BoxView Grid.Row="1" Grid.ColumnSpan="2" Color="{Binding Marks[NewNodeIdText]}" CornerRadius="4" Margin="-4,-2" />
                         <Label Grid.Row="1" Text="Node ID" />
-                        <Entry Grid.Row="1" Grid.Column="1" Text="{Binding NewNodeIdText}" Keyboard="Numeric" />
-                        <Button Grid.Row="1" Grid.Column="2" Text="Set" Command="{Binding SetNodeIdCommand}" />
+                        <Entry MinimumHeightRequest="32" Grid.Row="1" Grid.Column="1" Text="{Binding NewNodeIdText}" Keyboard="Numeric" />
+                        <Button Padding="8,2" Grid.Row="1" Grid.Column="2" Text="Set" Command="{Binding SetNodeIdCommand}" />
 
                         <BoxView Grid.Row="2" Grid.ColumnSpan="2" Color="{Binding Marks[SelectedCanBaud]}" CornerRadius="4" Margin="-4,-2" />
                         <Label Grid.Row="2" Text="CAN speed"
                                ToolTipProperties.Text="ESC CAN bit rate (SetBaud). Cannot be read back; must match the flight controller's CAN_Px_BITRATE" />
-                        <Picker Grid.Row="2" Grid.Column="1" ItemsSource="{Binding CanBaudOptions}" SelectedItem="{Binding SelectedCanBaud}" />
-                        <Button Grid.Row="2" Grid.Column="2" Text="Set" Command="{Binding SetCanBaudCommand}" />
+                        <Picker MinimumHeightRequest="32" Grid.Row="2" Grid.Column="1" ItemsSource="{Binding CanBaudOptions}" SelectedItem="{Binding SelectedCanBaud}" />
+                        <Button Padding="8,2" Grid.Row="2" Grid.Column="2" Text="Set" Command="{Binding SetCanBaudCommand}" />
 
                         <BoxView Grid.Row="3" Grid.ColumnSpan="2" Color="{Binding Marks[ThrottleChannelText]}" CornerRadius="4" Margin="-4,-2" />
                         <Label Grid.Row="3" Text="Throttle channel" ToolTipProperties.Text="Motor output number ArduPilot uses for this ESC" />
-                        <Entry Grid.Row="3" Grid.Column="1" Text="{Binding ThrottleChannelText}" Keyboard="Numeric" />
-                        <Button Grid.Row="3" Grid.Column="2" Text="Set" Command="{Binding SetThrottleChannelCommand}" />
+                        <Entry MinimumHeightRequest="32" Grid.Row="3" Grid.Column="1" Text="{Binding ThrottleChannelText}" Keyboard="Numeric" />
+                        <Button Padding="8,2" Grid.Row="3" Grid.Column="2" Text="Set" Command="{Binding SetThrottleChannelCommand}" />
 
                         <BoxView Grid.Row="4" Grid.ColumnSpan="2" Color="{Binding Marks[SelectedThrottleSource]}" CornerRadius="4" Margin="-4,-2" />
                         <Label Grid.Row="4" Text="Throttle source" />
-                        <Picker Grid.Row="4" Grid.Column="1" ItemsSource="{Binding ThrottleSourceOptions}" SelectedItem="{Binding SelectedThrottleSource}" />
-                        <Button Grid.Row="4" Grid.Column="2" Text="Set" Command="{Binding SetThrottleSourceCommand}" />
+                        <Picker MinimumHeightRequest="32" Grid.Row="4" Grid.Column="1" ItemsSource="{Binding ThrottleSourceOptions}" SelectedItem="{Binding SelectedThrottleSource}" />
+                        <Button Padding="8,2" Grid.Row="4" Grid.Column="2" Text="Set" Command="{Binding SetThrottleSourceCommand}" />
 
                         <BoxView Grid.Row="5" Grid.ColumnSpan="2" Color="{Binding Marks[SelectedMsg1Rate]}" CornerRadius="4" Margin="-4,-2" />
                         <Label Grid.Row="5" Text="StatusMsg1 rate" ToolTipProperties.Text="RPM, PWM, status" />
-                        <Picker Grid.Row="5" Grid.Column="1" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding SelectedMsg1Rate}" />
-                        <Button Grid.Row="5" Grid.Column="2" Text="Set" Command="{Binding SetRateCommand}" CommandParameter="1" />
+                        <Picker MinimumHeightRequest="32" Grid.Row="5" Grid.Column="1" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding SelectedMsg1Rate}" />
+                        <Button Padding="8,2" Grid.Row="5" Grid.Column="2" Text="Set" Command="{Binding SetRateCommand}" CommandParameter="1" />
 
                         <BoxView Grid.Row="6" Grid.ColumnSpan="2" Color="{Binding Marks[SelectedMsg2Rate]}" CornerRadius="4" Margin="-4,-2" />
                         <Label Grid.Row="6" Text="StatusMsg2 rate" ToolTipProperties.Text="Voltage, current, temperature" />
-                        <Picker Grid.Row="6" Grid.Column="1" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding SelectedMsg2Rate}" />
-                        <Button Grid.Row="6" Grid.Column="2" Text="Set" Command="{Binding SetRateCommand}" CommandParameter="2" />
+                        <Picker MinimumHeightRequest="32" Grid.Row="6" Grid.Column="1" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding SelectedMsg2Rate}" />
+                        <Button Padding="8,2" Grid.Row="6" Grid.Column="2" Text="Set" Command="{Binding SetRateCommand}" CommandParameter="2" />
 
                         <BoxView Grid.Row="7" Grid.ColumnSpan="2" Color="{Binding Marks[SelectedMsg3Rate]}" CornerRadius="4" Margin="-4,-2" />
                         <Label Grid.Row="7" Text="StatusMsg3 rate" ToolTipProperties.Text="MOSFET / capacitor / motor temperatures" />
-                        <Picker Grid.Row="7" Grid.Column="1" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding SelectedMsg3Rate}" />
-                        <Button Grid.Row="7" Grid.Column="2" Text="Set" Command="{Binding SetRateCommand}" CommandParameter="3" />
+                        <Picker MinimumHeightRequest="32" Grid.Row="7" Grid.Column="1" ItemsSource="{Binding RateOptions}" SelectedItem="{Binding SelectedMsg3Rate}" />
+                        <Button Padding="8,2" Grid.Row="7" Grid.Column="2" Text="Set" Command="{Binding SetRateCommand}" CommandParameter="3" />
 
                         <BoxView Grid.Row="8" Grid.ColumnSpan="2" Color="{Binding Marks[SelectedLedColor]}" CornerRadius="4" Margin="-4,-2" />
                         <Label Grid.Row="8" Text="LED color" />
-                        <Picker Grid.Row="8" Grid.Column="1" ItemsSource="{Binding LedColorOptions}" SelectedItem="{Binding SelectedLedColor}" />
+                        <Picker MinimumHeightRequest="32" Grid.Row="8" Grid.Column="1" ItemsSource="{Binding LedColorOptions}" SelectedItem="{Binding SelectedLedColor}" />
 
                         <BoxView Grid.Row="9" Grid.ColumnSpan="2" Color="{Binding Marks[SelectedLedBlink]}" CornerRadius="4" Margin="-4,-2" />
                         <Label Grid.Row="9" Text="LED mode" />
                         <HorizontalStackLayout Grid.Row="9" Grid.Column="1" Spacing="6">
-                            <Picker ItemsSource="{Binding LedBlinkOptions}" SelectedItem="{Binding SelectedLedBlink}" WidthRequest="120" />
-                            <CheckBox IsChecked="{Binding LedSave}" />
+                            <Picker MinimumHeightRequest="32" ItemsSource="{Binding LedBlinkOptions}" SelectedItem="{Binding SelectedLedBlink}" WidthRequest="120" />
+                            <CheckBox MinimumHeightRequest="32" IsChecked="{Binding LedSave}" />
                             <Label Text="Save" />
                         </HorizontalStackLayout>
-                        <Button Grid.Row="9" Grid.Column="2" Text="Set" Command="{Binding SetLedCommand}" />
+                        <Button Padding="8,2" Grid.Row="9" Grid.Column="2" Text="Set" Command="{Binding SetLedCommand}" />
 
                         <BoxView Grid.Row="10" Grid.ColumnSpan="2" Color="{Binding Marks[SelectedDirection]}" CornerRadius="4" Margin="-4,-2" />
                         <Label Grid.Row="10" Text="Direction" />
-                        <Picker Grid.Row="10" Grid.Column="1" ItemsSource="{Binding DirectionOptions}" SelectedItem="{Binding SelectedDirection}" />
-                        <Button Grid.Row="10" Grid.Column="2" Text="Set" Command="{Binding SetDirectionCommand}" />
+                        <Picker MinimumHeightRequest="32" Grid.Row="10" Grid.Column="1" ItemsSource="{Binding DirectionOptions}" SelectedItem="{Binding SelectedDirection}" />
+                        <Button Padding="8,2" Grid.Row="10" Grid.Column="2" Text="Set" Command="{Binding SetDirectionCommand}" />
                     </Grid>
                 </ScrollView>
             </Grid>
