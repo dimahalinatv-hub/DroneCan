@@ -216,18 +216,65 @@ public class AddressingTests
     }
 
     [Fact]
-    public async Task GetEscId_TwoEscsNotInStep_AreTwoEscs()
+    public async Task GetEscId_OneEscCopyingEachPollersId_IsOneEsc()
     {
-        // one ESC was plugged in later, so its replies are numbered differently; each answers two pollers
+        // X8 G2: the reply takes the query's transfer id, so the app's polls and ArduPilot's give two sequences
         var (fc, link, node, monitor) = await Start([4], setIdQuirk: false);
 
-        var seen = await Replies(fc, monitor, Enumerable.Range(0, 12).Select(i => new[] { (byte)i, (byte)((i + 17) & 0x1F) }));
+        var seen = await Replies(fc, monitor, Enumerable.Range(0, 12).SelectMany(i => new[] { new[] { (byte)i }, [(byte)((i + 17) & 0x1F)] }));
 
-        Assert.All(seen.Skip(1), c => Assert.Equal(2, c));
+        Assert.All(seen, c => Assert.Equal(1, c));
 
         monitor.Dispose();
         node.Dispose();
         await link.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task GetEscId_TwoEscsCopyingEachPollersId_AreTwoEscs()
+    {
+        // both answer both pollers with the poller's id; ArduPilot's pair of replies always merges on CAN
+        var (fc, link, node, monitor) = await Start([4], setIdQuirk: false);
+
+        var seen = await Replies(fc, monitor, Enumerable.Range(0, 12).SelectMany(i => new[] { new[] { (byte)i, (byte)i }, [(byte)((i + 17) & 0x1F)] }));
+
+        Assert.All(seen, c => Assert.Equal(2, c));
+
+        monitor.Dispose();
+        node.Dispose();
+        await link.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task GetEscId_TwoEscsNotInStep_AreTwoEscs()
+    {
+        // one ESC was plugged in later: its own replies only match the other's ids by chance, but its uptime differs
+        var (fc, link, node, monitor) = await Start([4], setIdQuirk: false);
+
+        for (uint i = 0; i < 3; i++)
+        {
+            fc.ForwardBroadcast(1, DataTypes.NodeStatus, NodeStatusPayload(500 + i));
+            fc.ForwardBroadcast(1, DataTypes.NodeStatus, NodeStatusPayload(20 + i));
+            await Task.Delay(20);
+        }
+        var seen = await Replies(fc, monitor, Enumerable.Range(0, 4).Select(i => new[] { (byte)i }));
+
+        Assert.All(seen, c => Assert.Equal(2, c));
+
+        monitor.Dispose();
+        node.Dispose();
+        await link.DisposeAsync();
+    }
+
+    private static byte[] NodeStatusPayload(uint uptime)
+    {
+        var w = new BitWriter();
+        w.WriteUnsigned(uptime, 32);
+        w.WriteUnsigned(0, 2);
+        w.WriteUnsigned(0, 3);
+        w.WriteUnsigned(0, 3);
+        w.WriteU16(0);
+        return w.ToArray();
     }
 
     [Fact]

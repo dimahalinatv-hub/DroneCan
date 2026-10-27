@@ -17,6 +17,8 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly IDispatcher _dispatcher;
     private readonly IDispatcherTimer _timer;
     private readonly HashSet<byte> _nodeInfoRequested = new();
+    // ESC count last written to the log per node, so the log shows what each change was based on
+    private readonly Dictionary<byte, int> _loggedEscCounts = new();
 
     private IDisposable? _connection;
     private MavlinkCanLink? _link;
@@ -276,6 +278,7 @@ public sealed partial class MainViewModel : ObservableObject
         TrafficRows.Clear();
         ConfigNodes.Clear();
         _nodeInfoRequested.Clear();
+        _loggedEscCounts.Clear();
         _majorConfigRequested.Clear();
         _autoReadNodeId = null;
         _lastReport = null;
@@ -356,6 +359,7 @@ public sealed partial class MainViewModel : ObservableObject
                 EscRows.Insert(index, row);
             }
             row.Update(state, now);
+            LogEscCountChange(state);
             UpdateConfigNode(state);
             RequestNodeInfoOnce(state);
             RequestMajorConfigOnce(state);
@@ -391,6 +395,16 @@ public sealed partial class MainViewModel : ObservableObject
             }
             row.Update(t);
         }
+    }
+
+    private void LogEscCountChange(NodeState state)
+    {
+        if (state.DeviceCount is not { } count || _loggedEscCounts.GetValueOrDefault(state.NodeId) == count)
+        {
+            return;
+        }
+        _loggedEscCounts[state.NodeId] = count;
+        AddLog($"Node {state.NodeId}: {count} ESC ({state.DeviceCountEvidence})");
     }
 
     private void UpdateConfigNode(NodeState state)

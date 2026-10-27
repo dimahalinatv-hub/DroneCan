@@ -74,34 +74,57 @@ public sealed class NodeState(byte nodeId)
     public bool IgnoresDestination { get; internal set; }
 
     /// <summary>
-    /// How many devices answer GetEscID as this node id, told apart by the transfer ids of their replies (see
+    /// How many devices answer GetEscID as this node id: the most copies of one reply transfer id (see
     /// <see cref="EscIdTrack"/>). Counting replies per query is not enough: ArduPilot polls GetEscID too, and its
-    /// queries may never reach this app, so one ESC can answer twice between two of our queries. Null until a
-    /// reply was seen (GetEscID is only polled while disarmed); frozen while nobody polls.
+    /// queries may never reach this app, so one ESC can answer twice between two of our queries. Sequences are not
+    /// added up either: on the real X8 G2 one ESC gives one sequence per poller. An ESC that is out of step with the
+    /// others (plugged in later) has the same transfer ids only by chance, so interleaved NodeStatus uptimes count
+    /// as at least two devices. Null until a reply was seen (GetEscID is only polled while disarmed).
     /// </summary>
     public int? DeviceCount
     {
         get
         {
+            int? copies;
             lock (EscIdTracks)
             {
-                return EscIdTracks.Count == 0 ? null : EscIdTracks.Sum(t => t.Devices);
+                copies = EscIdTracks.Count == 0 ? null : EscIdTracks.Max(t => t.Devices);
             }
+            return UptimeInterleaved ? Math.Max(copies ?? 0, 2) : copies;
         }
     }
 
+    /// <summary>What <see cref="DeviceCount"/> is based on, for the log: copies per reply sequence and the uptime.</summary>
+    public string DeviceCountEvidence
+    {
+        get
+        {
+            string tracks;
+            lock (EscIdTracks)
+            {
+                tracks = string.Join(", ", EscIdTracks.Select(t => $"id {t.LastTransferId} ×{t.Devices}"));
+            }
+            return $"GetEscID reply sequences: {(tracks.Length > 0 ? tracks : "none")}" +
+                (UptimeInterleaved ? "; NodeStatus uptime jumps back and forth" : "");
+        }
+    }
+
+    /// <summary>NodeStatus uptimes of two devices interleaved recently.</summary>
+    private bool UptimeInterleaved => UptimeInterleavedUtc is { } t && DateTime.UtcNow - t < TimeSpan.FromSeconds(15);
+
     internal uint? LastUptime;
     internal readonly Queue<DateTime> UptimeRegressions = new();
+    internal DateTime? UptimeInterleavedUtc;
 
     internal readonly List<EscIdTrack> EscIdTracks = new();
 }
 
 /// <summary>
-/// One sequence of GetEscID reply transfer ids. Each ESC numbers its replies, one higher per reply, whoever asked,
-/// so one ESC answering two pollers gives consecutive ids, while a second ESC gives a sequence of its own. ESCs
-/// powered up together answer in lockstep: the same id at the same moment, so they share a track and are counted
-/// by the copies of each id. Such identical frames sent at the same instant merge on CAN, so the most copies over
-/// the last few ids is taken.
+/// One sequence of GetEscID reply transfer ids, one higher per reply. Firmware either numbers its replies itself or,
+/// like the X8 G2 seems to, copies the id of the query, which gives one sequence per poller (this app, ArduPilot).
+/// Either way every ESC on the node id answers each query with the same id at the same moment, so the devices are
+/// the copies of each id. Identical frames sent at the same instant merge on CAN, so the most copies over the last
+/// few ids is taken.
 /// </summary>
 internal sealed class EscIdTrack(byte transferId, DateTime nowUtc)
 {
@@ -364,6 +387,7 @@ public sealed class EscMonitor : IDisposable
         if (state.UptimeRegressions.Count >= 2)
         {
             state.DuplicateSuspected = true;
+            state.UptimeInterleavedUtc = now;
         }
     }
 
