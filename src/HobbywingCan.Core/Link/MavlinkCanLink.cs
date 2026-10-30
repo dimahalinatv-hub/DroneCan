@@ -50,6 +50,7 @@ public sealed class MavlinkCanLink : ICanBus, IAsyncDisposable
     public event Action<AutopilotEscTelemetry[]>? EscTelemetryReceived;
     public event Action<string>? StatusTextReceived;
     public event Action<ushort, byte>? CommandAckReceived;
+    public event Action<AutopilotParam>? ParamValueReceived;
     public event Action<Exception>? Faulted;
 
     public VehicleHeartbeat? Vehicle { get; private set; }
@@ -78,6 +79,19 @@ public sealed class MavlinkCanLink : ICanBus, IAsyncDisposable
         Write(MavlinkIds.CanFrame, payload);
         CanFramesSent++;
     }
+
+    /// <summary>Asks for one flight controller parameter; the answer comes as <see cref="ParamValueReceived"/>.</summary>
+    public void RequestParam(string name) =>
+        Write(MavlinkIds.ParamRequestRead, MavlinkMessages.EncodeParamRequestRead(TargetSystem, TargetComponent, name));
+
+    /// <summary>ArduPilot stores the value at once and echoes it back as PARAM_VALUE.</summary>
+    public void SetParam(string name, float value, byte type) =>
+        Write(MavlinkIds.ParamSet, MavlinkMessages.EncodeParamSet(TargetSystem, TargetComponent, name, value, type));
+
+    /// <summary>MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN with param1 = 1 (reboot the autopilot); ArduPilot refuses it while armed.</summary>
+    public void RebootAutopilot() =>
+        Write(MavlinkIds.CommandLong, MavlinkMessages.EncodeCommandLong(
+            TargetSystem, TargetComponent, MavlinkIds.MavCmdPreflightRebootShutdown, 1));
 
     /// <summary>Synchronous so that frames of a multi-frame transfer leave in order.</summary>
     private void Write(uint messageId, byte[] payload)
@@ -175,6 +189,10 @@ public sealed class MavlinkCanLink : ICanBus, IAsyncDisposable
             case MavlinkIds.CommandAck:
                 var (command, result) = MavlinkMessages.DecodeCommandAck(packet);
                 CommandAckReceived?.Invoke(command, result);
+                break;
+
+            case MavlinkIds.ParamValue:
+                ParamValueReceived?.Invoke(MavlinkMessages.DecodeParamValue(packet));
                 break;
         }
     }

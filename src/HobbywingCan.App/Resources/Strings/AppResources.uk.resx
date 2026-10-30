@@ -688,19 +688,16 @@
     <value>Налаштування ArduPilot для ESC по CAN</value>
   </data>
   <data name="Help_Intro" xml:space="preserve">
-    <value>Під'єднайте ESC ланцюжком до порту CAN1 (або CAN2) польотника, на останній ESC поставте термінатор. Потім задайте параметри нижче в Mission Planner (Config → Full Parameter List). Приклади — для порту CAN1 і драйвера 1.</value>
-  </data>
-  <data name="Help_ParamsSection" xml:space="preserve">
-    <value>Параметри польотника</value>
+    <value>Під'єднайте ESC ланцюжком до порту CAN1 (або CAN2) польотника, на останній ESC поставте термінатор. Коли програма під'єднана до польотника, це вікно читає його параметри й змінює їх («Задати» для кожного параметра, «Застосувати рекомендовані» — усе, що відрізняється). Без підключення це довідка: задайте ті самі значення в Mission Planner (Config → Full Parameter List). Рекомендовані значення — для квадрокоптера, BetaFlight X Reversed, з чотирма Hobbywing ESC на DroneCAN.</value>
   </data>
   <data name="Help_Driver" xml:space="preserve">
-    <value>Драйвер 1 на порту CAN1. Для порту CAN2: CAN_P2_DRIVER = 1 (і «Шина CAN FC» = 2 у цій програмі).</value>
+    <value>Який драйвер використовує порт CAN: 1 = перший драйвер, його налаштування — CAN_D1_* нижче. Порт — це «Шина CAN FC» цієї програми.</value>
   </data>
   <data name="Help_Bitrate" xml:space="preserve">
-    <value>Швидкість шини; має збігатися зі «Швидкістю CAN» кожного ESC. З заводу Hobbywing ESC працюють на 500000: для першого налаштування задайте тут 500000, переведіть ESC на 1 Мбіт/с і поверніть 1000000.</value>
+    <value>Швидкість шини; має збігатися зі «Швидкістю CAN» кожного ESC. З заводу Hobbywing ESC працюють на 500000. Щоб змінити швидкість шини: спершу задайте нову швидкість кожному ESC («Змінити» → Швидкість CAN; ESC зникне з шини), потім тут, потім перезавантажте польотник.</value>
   </data>
   <data name="Help_Protocol" xml:space="preserve">
-    <value>DroneCAN.</value>
+    <value>1 = DroneCAN.</value>
   </data>
   <data name="Help_EscBm" xml:space="preserve">
     <value>Які виходи (SERVOn) передаються на ESC по CAN, біт 0 = вихід 1: 15 = виходи 1–4, 63 = 1–6, 255 = 1–8.</value>
@@ -718,13 +715,10 @@
     <value>ID вузла самого польотника (типово 10). ESC і ця програма («ID вузла програми») мають використовувати інші ID.</value>
   </data>
   <data name="Help_ServoFunction" xml:space="preserve">
-    <value>Motor1 = 33, Motor2 = 34, … на виходах моторів; зазвичай їх задають FRAME_CLASS / FRAME_TYPE.</value>
+    <value>BetaFlight X Reversed: Motor1..4 (33..36) на виходах 1..4, тож ESC з каналом газу N крутить мотор N.</value>
   </data>
   <data name="Help_Notch" xml:space="preserve">
     <value>За бажанням, разом з INS_HNTCH_ENABLE = 1: гармонічний notch-фільтр, що йде за обертами ESC. Потрібен StatusMsg1 (оберти) від кожного ESC.</value>
-  </data>
-  <data name="Help_Reboot" xml:space="preserve">
-    <value>Після зміни параметрів CAN_* перезавантажте польотник.</value>
   </data>
   <data name="Help_EscSection" xml:space="preserve">
     <value>Налаштування ESC (кнопка «Змінити» у цій програмі)</value>
@@ -751,5 +745,167 @@
   </data>
   <data name="Help_CheckText" xml:space="preserve">
     <value>Зніміть пропелери! Mission Planner → Setup → Optional Hardware → Motor Test: кожен мотор крутиться по черзі й у правильний бік. Оберти, напруга і струм кожного ESC видно на вкладці Status у Mission Planner і в таблиці «Телеметрія ESC від ArduPilot» цієї програми.</value>
+  </data>
+  <data name="Help_PortOptions" xml:space="preserve">
+    <value>Біт 0 «LogAllFrames»: писати кожен CAN-кадр у лог на SD-карті. Зазвичай 0.</value>
+  </data>
+  <data name="Help_SrvBm" xml:space="preserve">
+    <value>Виходи, що передаються по DroneCAN як серво. Не мають перетинатися з ESC_BM; 0, якщо на CAN лише ESC.</value>
+  </data>
+  <data name="Help_SrvRt" xml:space="preserve">
+    <value>Найбільша частота (Гц) виходів серво по DroneCAN.</value>
+  </data>
+  <data name="Help_NtfRt" xml:space="preserve">
+    <value>Частота (Гц) повідомлень notify (світлодіоди, бузер) для CAN-пристроїв.</value>
+  </data>
+  <data name="Help_Pool" xml:space="preserve">
+    <value>Пам'ять (байт) для DroneCAN; більше для завантаженої шини. Лишіть типове, якщо ArduPilot не скаржиться на нестачу.</value>
+  </data>
+  <data name="Help_LogLevel" xml:space="preserve">
+    <value>Налагоджувальні повідомлення CAN-драйвера. 0 у звичайній роботі.</value>
+  </data>
+  <data name="Help_FrameClass" xml:space="preserve">
+    <value>1 = Quad (квадрокоптер).</value>
+  </data>
+  <data name="Help_FrameType" xml:space="preserve">
+    <value>18 = BetaFlight X Reversed: порядок моторів як у BetaFlight, кожен мотор крутиться у зворотний бік ("props out"). Див. схему моторів нижче.</value>
+  </data>
+  <data name="Ui_ReadFc" xml:space="preserve">
+    <value>Прочитати</value>
+  </data>
+  <data name="Tip_ReadFc" xml:space="preserve">
+    <value>Ще раз прочитати параметри з польотника</value>
+  </data>
+  <data name="Ui_RebootFc" xml:space="preserve">
+    <value>Перезавантажити</value>
+  </data>
+  <data name="Tip_RebootFc" xml:space="preserve">
+    <value>Перезавантажити польотник (лише роззброєний); параметри CAN діють після цього</value>
+  </data>
+  <data name="Ui_ApplyRecommended" xml:space="preserve">
+    <value>Застосувати рекомендовані</value>
+  </data>
+  <data name="Tip_ApplyRecommended" xml:space="preserve">
+    <value>Записати рекомендоване значення кожного параметра, що відрізняється (одне підтвердження). Для CAN_Px_BITRATE його немає.</value>
+  </data>
+  <data name="Ui_FcLegend" xml:space="preserve">
+    <value>Жовтий = відрізняється від польотника · Зелений = записано · Крапка: зелена = рекомендоване значення, жовта = ні · N/A = у польотника (поки) немає такого параметра</value>
+  </data>
+  <data name="Ui_FcParam" xml:space="preserve">
+    <value>Параметр</value>
+  </data>
+  <data name="Ui_FcNew" xml:space="preserve">
+    <value>Нове значення</value>
+  </data>
+  <data name="Ui_FcNow" xml:space="preserve">
+    <value>Зараз у FC</value>
+  </data>
+  <data name="Ui_FcRecommended" xml:space="preserve">
+    <value>Рекомендовано</value>
+  </data>
+  <data name="Fc_GroupCanPort" xml:space="preserve">
+    <value>Порт CAN</value>
+  </data>
+  <data name="Fc_GroupDroneCan" xml:space="preserve">
+    <value>Драйвер DroneCAN</value>
+  </data>
+  <data name="Fc_GroupFrame" xml:space="preserve">
+    <value>Рама і мотори</value>
+  </data>
+  <data name="Fc_Front" xml:space="preserve">
+    <value>▲ перед</value>
+  </data>
+  <data name="Fc_Motor" xml:space="preserve">
+    <value>M{0} (SERVO{0}={1}) {2}</value>
+  </data>
+  <data name="Fc_MotorsText" xml:space="preserve">
+    <value>BetaFlight X Reversed, вигляд згори. ESC мотора N — канал газу N і напрям зі схеми («Змінити» → Напрямок). Фактичний напрям залежить ще й від того, як під'єднані фази мотора: перевірте кожен мотор у Motor Test без пропелерів і змініть напрям ESC там, де він неправильний.</value>
+  </data>
+  <data name="Fc_NeedsReboot" xml:space="preserve">
+    <value>Діє після перезавантаження.</value>
+  </data>
+  <data name="Fc_NotConnected" xml:space="preserve">
+    <value>Немає підключення: показано рекомендовані значення, нічого не читається й не записується.</value>
+  </data>
+  <data name="Fc_WaitingHeartbeat" xml:space="preserve">
+    <value>Очікування польотника…</value>
+  </data>
+  <data name="Fc_Reading" xml:space="preserve">
+    <value>Читання параметра {0} з {1}…</value>
+  </data>
+  <data name="Fc_ReadDone" xml:space="preserve">
+    <value>Польотник: прочитано {0} параметрів</value>
+  </data>
+  <data name="Fc_ReadMissing" xml:space="preserve">
+    <value>Польотник: прочитано {0} параметрів, {1} немає (CAN_Dn_* з'являються після CAN_Pn_DRIVER, CAN_Dn_PROTOCOL = 1 і перезавантаження)</value>
+  </data>
+  <data name="Fc_RebootNeeded" xml:space="preserve">
+    <value>Перезавантажте польотник, щоб зміни подіяли.</value>
+  </data>
+  <data name="Act_SetFcParam" xml:space="preserve">
+    <value>Задати {0} = {1}</value>
+  </data>
+  <data name="Act_ApplyRecommendedFc" xml:space="preserve">
+    <value>Застосувати рекомендовані параметри польотника</value>
+  </data>
+  <data name="Dlg_FcWriteTitle" xml:space="preserve">
+    <value>{0}?</value>
+  </data>
+  <data name="Warn_FcBitrate" xml:space="preserve">
+    <value>Польотник змінює швидкість CAN після перезавантаження. ESC з іншою швидкістю тоді зникнуть з шини: ні газу, ні телеметрії. Спершу задайте ту саму швидкість кожному ESC («Змінити» → Швидкість CAN).</value>
+  </data>
+  <data name="Warn_FcDriver" xml:space="preserve">
+    <value>Драйвер / протокол: неправильне значення після перезавантаження вимкне DroneCAN на цьому порту — разом з ESC і доступом програми до них.</value>
+  </data>
+  <data name="Warn_FcFrame" xml:space="preserve">
+    <value>Рама / виходи моторів змінюють, який мотор отримує який газ. Перевірте кожен мотор у Motor Test без пропелерів.</value>
+  </data>
+  <data name="Warn_FcReboot" xml:space="preserve">
+    <value>Частина з них діє лише після перезавантаження польотника («Перезавантажити»).</value>
+  </data>
+  <data name="Log_FcValueRange" xml:space="preserve">
+    <value>{0}: введіть число від {1} до {2}</value>
+  </data>
+  <data name="Log_FcAllRecommended" xml:space="preserve">
+    <value>Польотник: усі параметри вже мають рекомендовані значення</value>
+  </data>
+  <data name="Log_FcNothing" xml:space="preserve">
+    <value>{0}: у польотнику вже ці значення</value>
+  </data>
+  <data name="Log_FcSet" xml:space="preserve">
+    <value>FC {0}: {1} → {2} — OK</value>
+  </data>
+  <data name="Log_FcMismatch" xml:space="preserve">
+    <value>FC {0}: записано {1}, у польотнику {2}</value>
+  </data>
+  <data name="Log_FcNotFound" xml:space="preserve">
+    <value>FC {0}: у польотнику немає такого параметра</value>
+  </data>
+  <data name="Log_FcNoResponse" xml:space="preserve">
+    <value>FC {0}: немає відповіді на запис</value>
+  </data>
+  <data name="Dlg_RebootTitle" xml:space="preserve">
+    <value>Перезавантажити польотник?</value>
+  </data>
+  <data name="Dlg_Reboot" xml:space="preserve">
+    <value>Польотник перезапуститься, і його USB-порт на кілька секунд зникне: програма відключиться, після цього підключіться знову. Параметри CAN (швидкість, драйвер, протокол, ID вузла) і рама діють після перезавантаження.</value>
+  </data>
+  <data name="Log_FcRebootSent" xml:space="preserve">
+    <value>Команду перезавантаження надіслано польотнику</value>
+  </data>
+  <data name="Log_FcRebootNoAck" xml:space="preserve">
+    <value>Польотник не підтвердив перезавантаження</value>
+  </data>
+  <data name="Log_FcRebootRejected" xml:space="preserve">
+    <value>Польотник відмовився перезавантажуватися (результат {0})</value>
+  </data>
+  <data name="Log_FcRebooting" xml:space="preserve">
+    <value>Польотник перезавантажується: відключено. Підключіться знову за кілька секунд.</value>
+  </data>
+  <data name="Fc_NoBits" xml:space="preserve">
+    <value>нічого</value>
+  </data>
+  <data name="Fc_Outputs" xml:space="preserve">
+    <value>виходи {0}</value>
   </data>
 </root>

@@ -11,6 +11,9 @@ public sealed record VehicleHeartbeat(byte SystemId, byte ComponentId, byte Type
 /// <summary>One ESC slot of ESC_TELEMETRY_x_TO_y as published by ArduPilot.</summary>
 public sealed record AutopilotEscTelemetry(int Index, double Voltage, double Current, int ConsumedMah, int Rpm, int Count, int TemperatureC);
 
+/// <summary>One PARAM_VALUE: ArduPilot sends integer parameters as a float of the same value.</summary>
+public sealed record AutopilotParam(string Name, float Value, byte Type, ushort Count, ushort Index);
+
 /// <summary>Pack/unpack helpers for the handful of MAVLink messages this app uses (wire order = sorted by type size).</summary>
 public static class MavlinkMessages
 {
@@ -113,6 +116,58 @@ public static class MavlinkMessages
                 TemperatureC: p.U8(40 + i));
         }
         return result;
+    }
+
+    /// <summary>PARAM_REQUEST_READ by name (param_index = -1).</summary>
+    public static byte[] EncodeParamRequestRead(byte targetSystem, byte targetComponent, string name)
+    {
+        var b = new byte[20];
+        BinaryPrimitives.WriteInt16LittleEndian(b, -1);
+        b[2] = targetSystem;
+        b[3] = targetComponent;
+        WriteParamId(b.AsSpan(4), name);
+        return b;
+    }
+
+    public static byte[] EncodeParamSet(byte targetSystem, byte targetComponent, string name, float value, byte type)
+    {
+        var b = new byte[23];
+        BinaryPrimitives.WriteSingleLittleEndian(b, value);
+        b[4] = targetSystem;
+        b[5] = targetComponent;
+        WriteParamId(b.AsSpan(6), name);
+        b[22] = type;
+        return b;
+    }
+
+    public static byte[] EncodeParamValue(AutopilotParam param)
+    {
+        var b = new byte[25];
+        BinaryPrimitives.WriteSingleLittleEndian(b, param.Value);
+        BinaryPrimitives.WriteUInt16LittleEndian(b.AsSpan(4), param.Count);
+        BinaryPrimitives.WriteUInt16LittleEndian(b.AsSpan(6), param.Index);
+        WriteParamId(b.AsSpan(8), param.Name);
+        b[24] = param.Type;
+        return b;
+    }
+
+    public static AutopilotParam DecodeParamValue(MavlinkPacket p) =>
+        new(ReadParamId(p.Bytes(8, 16)), BinaryPrimitives.ReadSingleLittleEndian(p.Bytes(0, 4)), p.U8(24), p.U16(4), p.U16(6));
+
+    /// <summary>16 ASCII chars, zero-padded; a 16-char name has no terminator.</summary>
+    private static void WriteParamId(Span<byte> target, string name)
+    {
+        if (name.Length > 16)
+        {
+            throw new ArgumentException("A parameter name is at most 16 characters", nameof(name));
+        }
+        Encoding.ASCII.GetBytes(name, target);
+    }
+
+    private static string ReadParamId(byte[] raw)
+    {
+        int end = Array.IndexOf(raw, (byte)0);
+        return Encoding.ASCII.GetString(raw, 0, end < 0 ? raw.Length : end);
     }
 
     public static (byte Severity, string Text) DecodeStatusText(MavlinkPacket p)

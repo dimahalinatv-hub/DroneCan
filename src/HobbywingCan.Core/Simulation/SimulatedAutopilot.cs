@@ -25,6 +25,32 @@ public sealed class SimulatedAutopilot : Stream
     private byte[] _pending = [];
     private byte _tid;
     private bool _forwarding;
+    private readonly Dictionary<string, (float Value, byte Type)> _params = new()
+    {
+        ["CAN_P1_DRIVER"] = (1, MavlinkIds.MavParamTypeInt8),
+        ["CAN_P1_BITRATE"] = (1000000, MavlinkIds.MavParamTypeInt32),
+        ["CAN_P1_OPTIONS"] = (0, MavlinkIds.MavParamTypeInt16),
+        ["CAN_P2_DRIVER"] = (0, MavlinkIds.MavParamTypeInt8),
+        ["CAN_P2_BITRATE"] = (1000000, MavlinkIds.MavParamTypeInt32),
+        ["CAN_P2_OPTIONS"] = (0, MavlinkIds.MavParamTypeInt16),
+        ["CAN_D1_PROTOCOL"] = (1, MavlinkIds.MavParamTypeInt8),
+        ["CAN_D1_UC_NODE"] = (AutopilotNodeId, MavlinkIds.MavParamTypeInt8),
+        ["CAN_D1_UC_ESC_BM"] = (0, MavlinkIds.MavParamTypeInt32),
+        ["CAN_D1_UC_OPTION"] = (0, MavlinkIds.MavParamTypeInt16),
+        ["CAN_D1_UC_ESC_OF"] = (0, MavlinkIds.MavParamTypeInt8),
+        ["CAN_D1_UC_ESC_RV"] = (0, MavlinkIds.MavParamTypeInt32),
+        ["CAN_D1_UC_SRV_BM"] = (0, MavlinkIds.MavParamTypeInt32),
+        ["CAN_D1_UC_SRV_RT"] = (50, MavlinkIds.MavParamTypeInt16),
+        ["CAN_D1_UC_NTF_RT"] = (20, MavlinkIds.MavParamTypeInt16),
+        ["CAN_D1_UC_POOL"] = (8192, MavlinkIds.MavParamTypeInt32),
+        ["CAN_LOGLEVEL"] = (0, MavlinkIds.MavParamTypeInt8),
+        ["FRAME_CLASS"] = (1, MavlinkIds.MavParamTypeInt8),
+        ["FRAME_TYPE"] = (1, MavlinkIds.MavParamTypeInt8),
+        ["SERVO1_FUNCTION"] = (33, MavlinkIds.MavParamTypeInt16),
+        ["SERVO2_FUNCTION"] = (34, MavlinkIds.MavParamTypeInt16),
+        ["SERVO3_FUNCTION"] = (35, MavlinkIds.MavParamTypeInt16),
+        ["SERVO4_FUNCTION"] = (36, MavlinkIds.MavParamTypeInt16),
+    };
 
     /// <summary>Settings of one simulated ESC, changed through the com.hobbywing.esc.Set* services.</summary>
     public sealed class SimEsc
@@ -73,6 +99,18 @@ public sealed class SimulatedAutopilot : Stream
     public HashSet<ushort> UnansweredServices { get; } = new();
     public List<ushort> Commands { get; } = new();
     public List<(ushort Type, byte[] Payload)> Requests { get; } = new();
+
+    /// <summary>MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN commands accepted (the simulator keeps running).</summary>
+    public int Reboots { get; private set; }
+
+    /// <summary>Current value of a flight controller parameter; null when this "firmware" has no such parameter.</summary>
+    public float? GetParam(string name)
+    {
+        lock (_params)
+        {
+            return _params.TryGetValue(name, out var p) ? p.Value : null;
+        }
+    }
 
     public void SendHeartbeat(bool armed)
     {
@@ -216,6 +254,30 @@ public sealed class SimulatedAutopilot : Stream
                 {
                     _forwarding = BitConverter.ToSingle(p.Bytes(0, 4)) >= 1;
                 }
+                else if (p.U16(28) == MavlinkIds.MavCmdPreflightRebootShutdown)
+                {
+                    Reboots++;
+                    var ack = new byte[3];
+                    BinaryPrimitives.WriteUInt16LittleEndian(ack, MavlinkIds.MavCmdPreflightRebootShutdown);
+                    Emit(MavlinkIds.CommandAck, ack);
+                }
+            }
+            else if (p.MessageId == MavlinkIds.ParamRequestRead)
+            {
+                SendParam(Encoding.ASCII.GetString(p.Bytes(4, 16)).TrimEnd('\0'));
+            }
+            else if (p.MessageId == MavlinkIds.ParamSet)
+            {
+                string name = Encoding.ASCII.GetString(p.Bytes(6, 16)).TrimEnd('\0');
+                lock (_params)
+                {
+                    // like ArduPilot: an unknown name is ignored, the stored type stays
+                    if (_params.TryGetValue(name, out var param))
+                    {
+                        _params[name] = (BinaryPrimitives.ReadSingleLittleEndian(p.Bytes(0, 4)), param.Type);
+                    }
+                }
+                SendParam(name);
             }
             else if (p.MessageId == MavlinkIds.CanFrame)
             {
@@ -226,6 +288,22 @@ public sealed class SimulatedAutopilot : Stream
                 }
             }
         }
+    }
+
+    /// <summary>PARAM_VALUE for a known parameter; ArduPilot stays silent about names it does not have.</summary>
+    private void SendParam(string name)
+    {
+        AutopilotParam param;
+        lock (_params)
+        {
+            if (!_params.TryGetValue(name, out var p))
+            {
+                return;
+            }
+            int index = _params.Keys.ToList().IndexOf(name);
+            param = new AutopilotParam(name, p.Value, p.Type, (ushort)_params.Count, (ushort)index);
+        }
+        Emit(MavlinkIds.ParamValue, MavlinkMessages.EncodeParamValue(param));
     }
 
     private void Handle(Transfer t)

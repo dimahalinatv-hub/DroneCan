@@ -688,19 +688,16 @@
     <value>ArduPilot setup for ESCs on CAN</value>
   </data>
   <data name="Help_Intro" xml:space="preserve">
-    <value>Connect the ESCs in a chain to the CAN1 (or CAN2) port of the flight controller and put a terminator on the last one. Then set the parameters below in Mission Planner (Config → Full Parameter List). The examples are for port CAN1 and driver 1.</value>
-  </data>
-  <data name="Help_ParamsSection" xml:space="preserve">
-    <value>Flight controller parameters</value>
+    <value>Connect the ESCs in a chain to the CAN1 (or CAN2) port of the flight controller and put a terminator on the last one. Connected to the flight controller, this window reads its parameters and changes them («Set» per parameter, «Apply recommended» for everything that differs). Without a connection it is a reference: set the same values in Mission Planner (Config → Full Parameter List). Recommended values are for a quadcopter, BetaFlight X Reversed, with four Hobbywing ESCs on DroneCAN.</value>
   </data>
   <data name="Help_Driver" xml:space="preserve">
-    <value>Driver 1 on port CAN1. For port CAN2: CAN_P2_DRIVER = 1 (and «FC CAN bus» = 2 in this app).</value>
+    <value>Which driver the CAN port uses: 1 = first driver, its settings are CAN_D1_* below. The port is the «FC CAN bus» of this app.</value>
   </data>
   <data name="Help_Bitrate" xml:space="preserve">
-    <value>Bus speed; must be the same as «CAN speed» of every ESC. Hobbywing ESCs come from the factory at 500000: for the first setup set 500000 here, change the ESCs to 1 Mbit/s, then set 1000000 back.</value>
+    <value>Bus speed; must be the same as «CAN speed» of every ESC. Hobbywing ESCs come from the factory at 500000. To change the speed of the bus: first set the new speed in every ESC («Edit» → CAN speed; the ESC drops off the bus), then here, then reboot the flight controller.</value>
   </data>
   <data name="Help_Protocol" xml:space="preserve">
-    <value>DroneCAN.</value>
+    <value>1 = DroneCAN.</value>
   </data>
   <data name="Help_EscBm" xml:space="preserve">
     <value>Outputs (SERVOn) sent to the ESCs over CAN, bit 0 = output 1: 15 = outputs 1–4, 63 = 1–6, 255 = 1–8.</value>
@@ -718,13 +715,10 @@
     <value>Node ID of the flight controller itself (10 by default). The ESCs and this app («App node ID») must use other IDs.</value>
   </data>
   <data name="Help_ServoFunction" xml:space="preserve">
-    <value>Motor1 = 33, Motor2 = 34, … on the motor outputs; FRAME_CLASS / FRAME_TYPE usually set them.</value>
+    <value>BetaFlight X Reversed: Motor1..4 (33..36) on outputs 1..4, so the ESC with throttle channel N drives motor N.</value>
   </data>
   <data name="Help_Notch" xml:space="preserve">
     <value>Optional, with INS_HNTCH_ENABLE = 1: harmonic notch filter that follows the RPM of the ESCs. Needs StatusMsg1 (RPM) from every ESC.</value>
-  </data>
-  <data name="Help_Reboot" xml:space="preserve">
-    <value>Reboot the flight controller after changing the CAN_* parameters.</value>
   </data>
   <data name="Help_EscSection" xml:space="preserve">
     <value>ESC settings (button «Edit» in this app)</value>
@@ -751,5 +745,167 @@
   </data>
   <data name="Help_CheckText" xml:space="preserve">
     <value>Props off! Mission Planner → Setup → Optional Hardware → Motor Test: every motor spins in its turn and in the right direction. RPM, voltage and current of every ESC appear on the Status tab of Mission Planner and in the «ArduPilot ESC telemetry» table of this app.</value>
+  </data>
+  <data name="Help_PortOptions" xml:space="preserve">
+    <value>Bit 0 «LogAllFrames»: log every CAN frame to the SD card. Usually 0.</value>
+  </data>
+  <data name="Help_SrvBm" xml:space="preserve">
+    <value>Outputs sent over DroneCAN as servos. Must not overlap ESC_BM; 0 when only ESCs are on CAN.</value>
+  </data>
+  <data name="Help_SrvRt" xml:space="preserve">
+    <value>Maximum rate (Hz) of the DroneCAN servo outputs.</value>
+  </data>
+  <data name="Help_NtfRt" xml:space="preserve">
+    <value>Rate (Hz) of the notify messages (LEDs, buzzer) to CAN devices.</value>
+  </data>
+  <data name="Help_Pool" xml:space="preserve">
+    <value>Memory (bytes) for DroneCAN; more for a busy bus. Leave the default unless ArduPilot reports a shortage.</value>
+  </data>
+  <data name="Help_LogLevel" xml:space="preserve">
+    <value>CAN driver debug messages. 0 in normal use.</value>
+  </data>
+  <data name="Help_FrameClass" xml:space="preserve">
+    <value>1 = Quad.</value>
+  </data>
+  <data name="Help_FrameType" xml:space="preserve">
+    <value>18 = BetaFlight X Reversed: BetaFlight motor order, every motor spinning the other way ("props out"). See the motor layout below.</value>
+  </data>
+  <data name="Ui_ReadFc" xml:space="preserve">
+    <value>Read</value>
+  </data>
+  <data name="Tip_ReadFc" xml:space="preserve">
+    <value>Read the parameters from the flight controller again</value>
+  </data>
+  <data name="Ui_RebootFc" xml:space="preserve">
+    <value>Reboot FC</value>
+  </data>
+  <data name="Tip_RebootFc" xml:space="preserve">
+    <value>Reboot the flight controller (only while disarmed); CAN parameters take effect after it</value>
+  </data>
+  <data name="Ui_ApplyRecommended" xml:space="preserve">
+    <value>Apply recommended</value>
+  </data>
+  <data name="Tip_ApplyRecommended" xml:space="preserve">
+    <value>Write the recommended value of every parameter that differs (one confirmation). CAN_Px_BITRATE has none.</value>
+  </data>
+  <data name="Ui_FcLegend" xml:space="preserve">
+    <value>Yellow = differs from the flight controller · Green = written · Dot: green = recommended value, amber = not · N/A = the flight controller has no such parameter (yet)</value>
+  </data>
+  <data name="Ui_FcParam" xml:space="preserve">
+    <value>Parameter</value>
+  </data>
+  <data name="Ui_FcNew" xml:space="preserve">
+    <value>New value</value>
+  </data>
+  <data name="Ui_FcNow" xml:space="preserve">
+    <value>FC now</value>
+  </data>
+  <data name="Ui_FcRecommended" xml:space="preserve">
+    <value>Recommended</value>
+  </data>
+  <data name="Fc_GroupCanPort" xml:space="preserve">
+    <value>CAN port</value>
+  </data>
+  <data name="Fc_GroupDroneCan" xml:space="preserve">
+    <value>DroneCAN driver</value>
+  </data>
+  <data name="Fc_GroupFrame" xml:space="preserve">
+    <value>Frame and motors</value>
+  </data>
+  <data name="Fc_Front" xml:space="preserve">
+    <value>▲ front</value>
+  </data>
+  <data name="Fc_Motor" xml:space="preserve">
+    <value>M{0} (SERVO{0}={1}) {2}</value>
+  </data>
+  <data name="Fc_MotorsText" xml:space="preserve">
+    <value>BetaFlight X Reversed from above. Give the ESC of motor N throttle channel N and the direction shown («Edit» → Direction). The real direction also depends on how the motor phases are wired: check every motor with Motor Test, props off, and change the ESC direction where it is wrong.</value>
+  </data>
+  <data name="Fc_NeedsReboot" xml:space="preserve">
+    <value>Takes effect after a reboot.</value>
+  </data>
+  <data name="Fc_NotConnected" xml:space="preserve">
+    <value>Not connected: the values are the recommended ones, nothing is read or written.</value>
+  </data>
+  <data name="Fc_WaitingHeartbeat" xml:space="preserve">
+    <value>Waiting for the flight controller…</value>
+  </data>
+  <data name="Fc_Reading" xml:space="preserve">
+    <value>Reading parameter {0} of {1}…</value>
+  </data>
+  <data name="Fc_ReadDone" xml:space="preserve">
+    <value>Flight controller: {0} parameters read</value>
+  </data>
+  <data name="Fc_ReadMissing" xml:space="preserve">
+    <value>Flight controller: {0} parameters read, {1} not present (CAN_Dn_* appear after CAN_Pn_DRIVER, CAN_Dn_PROTOCOL = 1 and a reboot)</value>
+  </data>
+  <data name="Fc_RebootNeeded" xml:space="preserve">
+    <value>Reboot the flight controller for the changes to take effect.</value>
+  </data>
+  <data name="Act_SetFcParam" xml:space="preserve">
+    <value>Set {0} = {1}</value>
+  </data>
+  <data name="Act_ApplyRecommendedFc" xml:space="preserve">
+    <value>Apply the recommended flight controller parameters</value>
+  </data>
+  <data name="Dlg_FcWriteTitle" xml:space="preserve">
+    <value>{0}?</value>
+  </data>
+  <data name="Warn_FcBitrate" xml:space="preserve">
+    <value>The flight controller changes its CAN speed after a reboot. ESCs running at another speed then drop off the bus: no throttle, no telemetry. Set the same speed in every ESC first («Edit» → CAN speed).</value>
+  </data>
+  <data name="Warn_FcDriver" xml:space="preserve">
+    <value>Driver / protocol: a wrong value switches DroneCAN off on this port after the reboot, together with the ESCs and this app's access to them.</value>
+  </data>
+  <data name="Warn_FcFrame" xml:space="preserve">
+    <value>Frame / motor outputs change which motor gets which throttle. Check every motor with Motor Test, props off.</value>
+  </data>
+  <data name="Warn_FcReboot" xml:space="preserve">
+    <value>Some of these take effect only after a reboot of the flight controller («Reboot FC»).</value>
+  </data>
+  <data name="Log_FcValueRange" xml:space="preserve">
+    <value>{0}: enter a number from {1} to {2}</value>
+  </data>
+  <data name="Log_FcAllRecommended" xml:space="preserve">
+    <value>Flight controller: every parameter already has the recommended value</value>
+  </data>
+  <data name="Log_FcNothing" xml:space="preserve">
+    <value>{0}: the flight controller already has these values</value>
+  </data>
+  <data name="Log_FcSet" xml:space="preserve">
+    <value>FC {0}: {1} → {2} — OK</value>
+  </data>
+  <data name="Log_FcMismatch" xml:space="preserve">
+    <value>FC {0}: wrote {1}, the flight controller holds {2}</value>
+  </data>
+  <data name="Log_FcNotFound" xml:space="preserve">
+    <value>FC {0}: no such parameter on the flight controller</value>
+  </data>
+  <data name="Log_FcNoResponse" xml:space="preserve">
+    <value>FC {0}: no response to the write</value>
+  </data>
+  <data name="Dlg_RebootTitle" xml:space="preserve">
+    <value>Reboot the flight controller?</value>
+  </data>
+  <data name="Dlg_Reboot" xml:space="preserve">
+    <value>The flight controller restarts and its USB port disappears for a few seconds: this app disconnects; connect again afterwards. CAN parameters (speed, driver, protocol, node ID) and the frame take effect after the reboot.</value>
+  </data>
+  <data name="Log_FcRebootSent" xml:space="preserve">
+    <value>Reboot command sent to the flight controller</value>
+  </data>
+  <data name="Log_FcRebootNoAck" xml:space="preserve">
+    <value>The flight controller did not confirm the reboot</value>
+  </data>
+  <data name="Log_FcRebootRejected" xml:space="preserve">
+    <value>The flight controller refused the reboot (result {0})</value>
+  </data>
+  <data name="Log_FcRebooting" xml:space="preserve">
+    <value>The flight controller is rebooting: disconnected. Connect again in a few seconds.</value>
+  </data>
+  <data name="Fc_NoBits" xml:space="preserve">
+    <value>none</value>
+  </data>
+  <data name="Fc_Outputs" xml:space="preserve">
+    <value>outputs {0}</value>
   </data>
 </root>

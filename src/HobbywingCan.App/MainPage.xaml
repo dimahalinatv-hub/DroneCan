@@ -13,23 +13,27 @@
              Title="{loc:Tr Ui_PageTitle}">
 
     <ContentPage.Resources>
-        <Style TargetType="Label">
+        <!-- replaces the app-wide Label style, so it sets the text color again: with the app theme differing from
+             Windows' (light app, dark Windows) the default text color would be the Windows one -->
+        <Style x:Key="BaseLabel" TargetType="Label">
+            <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}" />
             <Setter Property="FontSize" Value="13" />
             <Setter Property="VerticalOptions" Value="Center" />
             <Setter Property="LineBreakMode" Value="TailTruncation" />
         </Style>
+        <Style TargetType="Label" BasedOn="{StaticResource BaseLabel}" />
         <Style x:Key="Header" TargetType="Label">
             <Setter Property="FontSize" Value="12" />
             <Setter Property="FontAttributes" Value="Bold" />
             <Setter Property="VerticalOptions" Value="Center" />
             <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}" />
         </Style>
-        <Style x:Key="Section" TargetType="Label">
+        <Style x:Key="Section" TargetType="Label" BasedOn="{StaticResource BaseLabel}">
             <Setter Property="FontSize" Value="15" />
             <Setter Property="FontAttributes" Value="Bold" />
             <Setter Property="Margin" Value="0,8,0,4" />
         </Style>
-        <Style x:Key="Empty" TargetType="Label">
+        <Style x:Key="Empty" TargetType="Label" BasedOn="{StaticResource BaseLabel}">
             <Setter Property="FontSize" Value="13" />
             <Setter Property="Margin" Value="6" />
             <Setter Property="Opacity" Value="0.6" />
@@ -40,19 +44,52 @@
             <Setter Property="Padding" Value="6,4" />
             <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}" />
         </Style>
+        <!-- replaces the app-wide Button style too, so the colors are set here for the same reason as for labels -->
         <Style TargetType="Button">
             <Setter Property="Padding" Value="14,6" />
             <Setter Property="MinimumHeightRequest" Value="32" />
+            <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}" />
+            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}" />
+            <Setter Property="VisualStateManager.VisualStateGroups">
+                <VisualStateGroupList>
+                    <VisualStateGroup x:Name="CommonStates">
+                        <VisualState x:Name="Normal" />
+                        <VisualState x:Name="Disabled">
+                            <VisualState.Setters>
+                                <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}" />
+                            </VisualState.Setters>
+                        </VisualState>
+                        <VisualState x:Name="PointerOver" />
+                    </VisualStateGroup>
+                </VisualStateGroupList>
+            </Setter>
         </Style>
-        <Style x:Key="HelpText" TargetType="Label">
+        <Style x:Key="HelpText" TargetType="Label" BasedOn="{StaticResource BaseLabel}">
             <Setter Property="FontSize" Value="13" />
             <Setter Property="LineBreakMode" Value="WordWrap" />
         </Style>
-        <Style x:Key="HelpParam" TargetType="Label">
+        <Style x:Key="HelpParam" TargetType="Label" BasedOn="{StaticResource BaseLabel}">
             <Setter Property="FontSize" Value="13" />
             <Setter Property="FontFamily" Value="Consolas" />
             <Setter Property="VerticalOptions" Value="Start" />
         </Style>
+        <!-- one flight controller parameter of the ArduPilot popup -->
+        <DataTemplate x:Key="FcParamRow" x:DataType="vm:FcParamRowViewModel">
+            <Grid ColumnDefinitions="200,240,90,110,90" RowDefinitions="Auto,Auto" ColumnSpacing="8" Padding="6,2">
+                <BoxView Grid.RowSpan="2" Grid.ColumnSpan="5" Color="{Binding MarkColor}" CornerRadius="4" Margin="-4,-2" />
+                <Label Text="{Binding Name}" FontFamily="Consolas" />
+                <Picker Grid.Column="1" MinimumHeightRequest="32" ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedOption}"
+                        IsVisible="{Binding HasOptions}" />
+                <Entry Grid.Column="1" MinimumHeightRequest="32" Text="{Binding EditText}" Keyboard="Numeric" IsVisible="{Binding HasEntry}" />
+                <Label Grid.Column="2" Text="{Binding CurrentText}" FontFamily="Consolas" HorizontalTextAlignment="End" />
+                <Grid Grid.Column="3" ColumnDefinitions="*,Auto" ColumnSpacing="4">
+                    <Label Text="{Binding RecommendedText}" FontFamily="Consolas" HorizontalTextAlignment="End" />
+                    <BoxView Grid.Column="1" Color="{Binding RecommendedColor}" WidthRequest="8" HeightRequest="8" CornerRadius="4" />
+                </Grid>
+                <Button Grid.Column="4" Text="{loc:Tr Ui_Set}" Command="{Binding SetCommand}" HeightRequest="32" VerticalOptions="Center" />
+                <Label Grid.Row="1" Grid.ColumnSpan="5" Text="{Binding Note}" Style="{StaticResource HelpText}" FontSize="12" Opacity="0.75" />
+            </Grid>
+        </DataTemplate>
     </ContentPage.Resources>
 
     <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,4*" Padding="12" RowSpacing="4">
@@ -503,9 +540,10 @@
             </Border>
         </Grid>
 
-        <!-- ArduPilot setup popup: parameter names and values stay as ArduPilot spells them, only the notes are translated -->
+        <!-- ArduPilot setup popup: parameter names and values stay as ArduPilot spells them, only the notes are translated.
+             Connected, it reads the flight controller parameters and writes them (PARAM_SET); otherwise it is a reference. -->
         <Grid Grid.RowSpan="6" Margin="-12" ZIndex="10" BackgroundColor="#99000000" IsVisible="{Binding ShowArduPilotHelp}">
-            <Border WidthRequest="760" Margin="0,24" HorizontalOptions="Center" VerticalOptions="Center" Padding="12"
+            <Border WidthRequest="1000" Margin="0,24" HorizontalOptions="Center" VerticalOptions="Center" Padding="12"
                     StrokeThickness="1" Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"
                     BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}">
                 <Border.StrokeShape>
@@ -514,38 +552,63 @@
                 <ScrollView>
                     <!-- right padding: the scroll bar is drawn over the content -->
                     <VerticalStackLayout Spacing="6" Padding="0,0,18,0">
-                        <Grid ColumnDefinitions="*,Auto">
+                        <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="8">
                             <Label Text="{loc:Tr Help_Title}" Style="{StaticResource Section}" Margin="0" />
-                            <Button Grid.Column="1" Text="{loc:Tr Ui_Close}" Command="{Binding CloseArduPilotHelpCommand}"
+                            <ActivityIndicator Grid.Column="1" IsRunning="{Binding FcBusy}" HeightRequest="20" WidthRequest="20" />
+                            <Button Grid.Column="2" Text="{loc:Tr Ui_ReadFc}" Command="{Binding ReadFcParamsCommand}"
+                                    HeightRequest="32" WidthRequest="110" VerticalOptions="Center" ToolTipProperties.Text="{loc:Tr Tip_ReadFc}" />
+                            <Button Grid.Column="3" Text="{loc:Tr Ui_RebootFc}" Command="{Binding RebootFcCommand}"
+                                    HeightRequest="32" MinimumWidthRequest="110" VerticalOptions="Center" ToolTipProperties.Text="{loc:Tr Tip_RebootFc}" />
+                            <Button Grid.Column="4" Text="{loc:Tr Ui_Close}" Command="{Binding CloseArduPilotHelpCommand}"
                                     HeightRequest="32" WidthRequest="110" VerticalOptions="Center" />
                         </Grid>
                         <Label Text="{loc:Tr Help_Intro}" Style="{StaticResource HelpText}" />
 
-                        <Label Text="{loc:Tr Help_ParamsSection}" Style="{StaticResource Section}" />
-                        <Grid ColumnDefinitions="250,*" ColumnSpacing="12" RowSpacing="8"
-                              RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
-                            <Label Grid.Row="0" Text="CAN_P1_DRIVER = 1" Style="{StaticResource HelpParam}" />
-                            <Label Grid.Row="0" Grid.Column="1" Text="{loc:Tr Help_Driver}" Style="{StaticResource HelpText}" />
-                            <Label Grid.Row="1" Text="CAN_P1_BITRATE = 1000000" Style="{StaticResource HelpParam}" />
-                            <Label Grid.Row="1" Grid.Column="1" Text="{loc:Tr Help_Bitrate}" Style="{StaticResource HelpText}" />
-                            <Label Grid.Row="2" Text="CAN_D1_PROTOCOL = 1" Style="{StaticResource HelpParam}" />
-                            <Label Grid.Row="2" Grid.Column="1" Text="{loc:Tr Help_Protocol}" Style="{StaticResource HelpText}" />
-                            <Label Grid.Row="3" Text="CAN_D1_UC_ESC_BM = 15" Style="{StaticResource HelpParam}" />
-                            <Label Grid.Row="3" Grid.Column="1" Text="{loc:Tr Help_EscBm}" Style="{StaticResource HelpText}" />
-                            <Label Grid.Row="4" Text="CAN_D1_UC_OPTION + 128" Style="{StaticResource HelpParam}" />
-                            <Label Grid.Row="4" Grid.Column="1" Text="{loc:Tr Help_Option}" Style="{StaticResource HelpText}" />
-                            <Label Grid.Row="5" Text="CAN_D1_UC_ESC_OF = 0" Style="{StaticResource HelpParam}" />
-                            <Label Grid.Row="5" Grid.Column="1" Text="{loc:Tr Help_EscOf}" Style="{StaticResource HelpText}" />
-                            <Label Grid.Row="6" Text="CAN_D1_UC_ESC_RV = 0" Style="{StaticResource HelpParam}" />
-                            <Label Grid.Row="6" Grid.Column="1" Text="{loc:Tr Help_EscRv}" Style="{StaticResource HelpText}" />
-                            <Label Grid.Row="7" Text="CAN_D1_UC_NODE = 10" Style="{StaticResource HelpParam}" />
-                            <Label Grid.Row="7" Grid.Column="1" Text="{loc:Tr Help_Node}" Style="{StaticResource HelpText}" />
-                            <Label Grid.Row="8" Text="SERVOn_FUNCTION = 33…" Style="{StaticResource HelpParam}" />
-                            <Label Grid.Row="8" Grid.Column="1" Text="{loc:Tr Help_ServoFunction}" Style="{StaticResource HelpText}" />
-                            <Label Grid.Row="9" Text="INS_HNTCH_MODE = 3" Style="{StaticResource HelpParam}" />
-                            <Label Grid.Row="9" Grid.Column="1" Text="{loc:Tr Help_Notch}" Style="{StaticResource HelpText}" />
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                            <Label Text="{Binding FcStatus}" Style="{StaticResource HelpText}" VerticalOptions="Center" />
+                            <Button Grid.Column="1" Text="{loc:Tr Ui_ApplyRecommended}" Command="{Binding ApplyRecommendedFcCommand}"
+                                    HeightRequest="32" VerticalOptions="Center" ToolTipProperties.Text="{loc:Tr Tip_ApplyRecommended}" />
                         </Grid>
-                        <Label Text="{loc:Tr Help_Reboot}" Style="{StaticResource HelpText}" FontAttributes="Bold" />
+                        <Label Text="{loc:Tr Fc_RebootNeeded}" Style="{StaticResource HelpText}" FontAttributes="Bold" TextColor="#E0A000"
+                               IsVisible="{Binding FcRebootNeeded}" />
+                        <Label Style="{StaticResource Empty}" Margin="0" Text="{loc:Tr Ui_FcLegend}" />
+
+                        <Grid ColumnDefinitions="200,240,90,110,90" ColumnSpacing="8" Style="{StaticResource HeaderRow}">
+                            <Label Text="{loc:Tr Ui_FcParam}" Style="{StaticResource Header}" />
+                            <Label Grid.Column="1" Text="{loc:Tr Ui_FcNew}" Style="{StaticResource Header}" />
+                            <Label Grid.Column="2" Text="{loc:Tr Ui_FcNow}" Style="{StaticResource Header}" HorizontalTextAlignment="End" />
+                            <Label Grid.Column="3" Text="{loc:Tr Ui_FcRecommended}" Style="{StaticResource Header}" HorizontalTextAlignment="End" />
+                        </Grid>
+
+                        <Label Text="{loc:Tr Fc_GroupCanPort}" Style="{StaticResource Section}" />
+                        <VerticalStackLayout Spacing="4" BindableLayout.ItemsSource="{Binding FcCanPortRows}"
+                                             BindableLayout.ItemTemplate="{StaticResource FcParamRow}" />
+
+                        <Label Text="{loc:Tr Fc_GroupDroneCan}" Style="{StaticResource Section}" />
+                        <VerticalStackLayout Spacing="4" BindableLayout.ItemsSource="{Binding FcDroneCanRows}"
+                                             BindableLayout.ItemTemplate="{StaticResource FcParamRow}" />
+
+                        <Label Text="{loc:Tr Fc_GroupFrame}" Style="{StaticResource Section}" />
+                        <VerticalStackLayout Spacing="4" BindableLayout.ItemsSource="{Binding FcFrameRows}"
+                                             BindableLayout.ItemTemplate="{StaticResource FcParamRow}" />
+
+                        <!-- BetaFlight X Reversed from above, nose up -->
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16" Margin="0,6,0,0">
+                            <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="150,60,150" RowSpacing="6">
+                                <Label Grid.ColumnSpan="3" Text="{loc:Tr Fc_Front}" HorizontalTextAlignment="Center" FontAttributes="Bold" />
+                                <Label Grid.Row="1" Text="{Binding MotorFrontLeft}" FontFamily="Consolas" HorizontalTextAlignment="Center" />
+                                <Label Grid.Row="1" Grid.Column="2" Text="{Binding MotorFrontRight}" FontFamily="Consolas" HorizontalTextAlignment="Center" />
+                                <Label Grid.Row="2" Grid.Column="1" Text="✕" FontSize="28" HorizontalTextAlignment="Center" />
+                                <Label Grid.Row="3" Text="{Binding MotorRearLeft}" FontFamily="Consolas" HorizontalTextAlignment="Center" />
+                                <Label Grid.Row="3" Grid.Column="2" Text="{Binding MotorRearRight}" FontFamily="Consolas" HorizontalTextAlignment="Center" />
+                            </Grid>
+                            <Label Grid.Column="1" Text="{loc:Tr Fc_MotorsText}" Style="{StaticResource HelpText}" VerticalOptions="Center" />
+                        </Grid>
+
+                        <Grid ColumnDefinitions="200,*" ColumnSpacing="8" Margin="0,6,0,0">
+                            <Label Text="INS_HNTCH_MODE = 3" Style="{StaticResource HelpParam}" />
+                            <Label Grid.Column="1" Text="{loc:Tr Help_Notch}" Style="{StaticResource HelpText}" />
+                        </Grid>
 
                         <Label Text="{loc:Tr Help_EscSection}" Style="{StaticResource Section}" />
                         <Label Text="{loc:Tr Help_EscText}" Style="{StaticResource HelpText}" />

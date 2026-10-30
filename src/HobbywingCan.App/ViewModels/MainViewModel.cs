@@ -68,10 +68,16 @@ public sealed partial class MainViewModel : ObservableObject
         ReadConfigCommand = new Command(() => _autoReadNodeId = null, () => IsConnected && !IsReading && SelectedConfigNode != null);
         CopyReportCommand = new Command(async () => await CopyReportAsync(), () => _lastReport != null);
         ClearLogCommand = new Command(() => Log.Clear());
-        OpenArduPilotHelpCommand = new Command(() => ShowArduPilotHelp = true);
+        OpenArduPilotHelpCommand = new Command(() =>
+        {
+            ShowArduPilotHelp = true;
+            // what the flight controller holds may have changed since (Mission Planner, a reboot)
+            _fcReadDone = false;
+        });
         CloseArduPilotHelpCommand = new Command(() => ShowArduPilotHelp = false);
         InitSettings();
         InitPresets();
+        InitAutopilot();
         Instance.LanguageChanged += OnLanguageChanged;
 
         RefreshPorts();
@@ -85,6 +91,10 @@ public sealed partial class MainViewModel : ObservableObject
         if (args.Contains("--settings"))
         {
             ShowSettings = true;
+        }
+        if (args.Contains("--ardupilot"))
+        {
+            ShowArduPilotHelp = true;
         }
     }
 
@@ -106,7 +116,7 @@ public sealed partial class MainViewModel : ObservableObject
     public ICommand OpenArduPilotHelpCommand { get; }
     public ICommand CloseArduPilotHelpCommand { get; }
 
-    /// <summary>The popup with the ArduPilot parameters for Hobbywing ESCs on CAN.</summary>
+    /// <summary>The popup with the ArduPilot parameters for Hobbywing ESCs on CAN (read and written when connected).</summary>
     public bool ShowArduPilotHelp { get => _showArduPilotHelp; set => SetProperty(ref _showArduPilotHelp, value); }
 
     public IReadOnlyList<LanguageChoice> Languages => Instance.Languages;
@@ -137,7 +147,18 @@ public sealed partial class MainViewModel : ObservableObject
 
     public string? SelectedPort { get => _selectedPort; set => SetProperty(ref _selectedPort, value); }
     public int SelectedBaud { get => _selectedBaud; set => SetProperty(ref _selectedBaud, value); }
-    public int SelectedCanBus { get => _selectedCanBus; set => SetProperty(ref _selectedCanBus, value); }
+    public int SelectedCanBus
+    {
+        get => _selectedCanBus;
+        set
+        {
+            // only while disconnected; the popup shows CAN_P{bus}_* of the chosen bus
+            if (SetProperty(ref _selectedCanBus, value) && _fcRowsBus != 0)
+            {
+                BuildFcRows(value, 1);
+            }
+        }
+    }
     public string LocalNodeIdText { get => _localNodeIdText; set => SetProperty(ref _localNodeIdText, value); }
     public bool UseFilter { get => _useFilter; set => SetProperty(ref _useFilter, value); }
 
@@ -228,6 +249,7 @@ public sealed partial class MainViewModel : ObservableObject
             ((Command)c).ChangeCanExecute();
         }
         RefreshSettingsCommands();
+        RefreshFcCommands();
     }
 
     private void RefreshPorts()
@@ -312,6 +334,7 @@ public sealed partial class MainViewModel : ObservableObject
         _monitor = new EscMonitor(_node, _link) { PollEscIds = PollEscIds };
         _reader = new EscConfigReader(_node);
         _writer = new EscConfigWriter(_node);
+        OnFcConnected();
         _link.Start();
 
         EscRows.Clear();
@@ -357,6 +380,7 @@ public sealed partial class MainViewModel : ObservableObject
         _reader = null;
         _writer = null;
         IsConnected = false;
+        OnFcDisconnected();
         VehicleText = Tr("Ui_NotConnected");
         _disconnecting = false;
         AddLog(reason);
@@ -364,6 +388,11 @@ public sealed partial class MainViewModel : ObservableObject
 
     private void OnCommandAck(ushort command, byte result)
     {
+        if (command == MavlinkIds.MavCmdPreflightRebootShutdown)
+        {
+            Post(() => OnRebootAck(result));
+            return;
+        }
         if (command != MavlinkIds.MavCmdCanForward || result == _lastForwardAckResult)
         {
             return;
@@ -415,6 +444,7 @@ public sealed partial class MainViewModel : ObservableObject
             RefreshPresetCurrent();
         }
         AutoReadConfig();
+        AutoReadFcParams();
 
         foreach (var e in _monitor.Traffic)
         {
@@ -652,6 +682,7 @@ public sealed partial class MainViewModel : ObservableObject
         RefreshPresetCurrent();
         PresetCurrent.Changed();
         RefreshPresetChanges();
+        RelocalizeFc();
         Themes = BuildThemes();
         OnPropertyChanged(nameof(Themes));
         OnPropertyChanged(nameof(SelectedTheme));
