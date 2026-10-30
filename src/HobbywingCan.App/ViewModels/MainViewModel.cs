@@ -109,6 +109,24 @@ public sealed partial class MainViewModel : ObservableObject
         set => Instance.Language = value;
     }
 
+    // rebuilt in the new language by OnLanguageChanged()
+    public IReadOnlyList<ThemeChoice> Themes { get; private set; } = BuildThemes();
+
+    public ThemeChoice? SelectedTheme
+    {
+        get => Themes.FirstOrDefault(t => t.Theme == Application.Current?.UserAppTheme);
+        set
+        {
+            // the Picker sets null for a moment while it rebuilds
+            if (value == null || value.Theme == Application.Current?.UserAppTheme)
+            {
+                return;
+            }
+            AppThemes.Apply(value.Theme);
+            OnPropertyChanged();
+        }
+    }
+
     public string? SelectedPort { get => _selectedPort; set => SetProperty(ref _selectedPort, value); }
     public int SelectedBaud { get => _selectedBaud; set => SetProperty(ref _selectedBaud, value); }
     public int SelectedCanBus { get => _selectedCanBus; set => SetProperty(ref _selectedCanBus, value); }
@@ -626,7 +644,17 @@ public sealed partial class MainViewModel : ObservableObject
         RefreshPresetCurrent();
         PresetCurrent.Changed();
         RefreshPresetChanges();
+        Themes = BuildThemes();
+        OnPropertyChanged(nameof(Themes));
+        OnPropertyChanged(nameof(SelectedTheme));
     }
+
+    private static IReadOnlyList<ThemeChoice> BuildThemes() =>
+    [
+        new(AppTheme.Unspecified, Tr("Opt_ThemeSystem")),
+        new(AppTheme.Light, Tr("Opt_ThemeLight")),
+        new(AppTheme.Dark, Tr("Opt_ThemeDark")),
+    ];
 
     private void Post(Action action) => _dispatcher.Dispatch(action);
 }

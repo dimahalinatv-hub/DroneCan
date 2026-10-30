@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using HobbywingCan.App.Localization;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace HobbywingCan.App;
 
@@ -7,6 +8,7 @@ public partial class App : Application
 	public App()
 	{
 		InitializeComponent();
+		UserAppTheme = AppThemes.Saved;
 	}
 
 	protected override Window CreateWindow(IActivationState? activationState)

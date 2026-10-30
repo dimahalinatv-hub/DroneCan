@@ -57,6 +57,18 @@
   <data name="Tip_Language" xml:space="preserve">
     <value>Мова інтерфейсу</value>
   </data>
+  <data name="Tip_Theme" xml:space="preserve">
+    <value>Тема оформлення</value>
+  </data>
+  <data name="Opt_ThemeSystem" xml:space="preserve">
+    <value>Як у Windows</value>
+  </data>
+  <data name="Opt_ThemeLight" xml:space="preserve">
+    <value>Світла</value>
+  </data>
+  <data name="Opt_ThemeDark" xml:space="preserve">
+    <value>Темна</value>
+  </data>
   <data name="Ui_NotConnected" xml:space="preserve">
     <value>Не підключено</value>
   </data>

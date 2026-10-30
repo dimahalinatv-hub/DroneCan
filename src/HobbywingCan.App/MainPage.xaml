@@ -70,6 +70,8 @@
             <Button Text="{Binding ConnectButtonText}" Command="{Binding ConnectCommand}" WidthRequest="120" />
             <Picker ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedLanguage}" WidthRequest="140"
                     ToolTipProperties.Text="{loc:Tr Tip_Language}" />
+            <Picker ItemsSource="{Binding Themes}" SelectedItem="{Binding SelectedTheme}" WidthRequest="140"
+                    ToolTipProperties.Text="{loc:Tr Tip_Theme}" />
         </HorizontalStackLayout>
 
         <!-- Status -->
