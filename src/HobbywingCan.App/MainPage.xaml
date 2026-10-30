@@ -44,6 +44,15 @@
             <Setter Property="Padding" Value="14,6" />
             <Setter Property="MinimumHeightRequest" Value="32" />
         </Style>
+        <Style x:Key="HelpText" TargetType="Label">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="LineBreakMode" Value="WordWrap" />
+        </Style>
+        <Style x:Key="HelpParam" TargetType="Label">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontFamily" Value="Consolas" />
+            <Setter Property="VerticalOptions" Value="Start" />
+        </Style>
     </ContentPage.Resources>
 
     <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,4*" Padding="12" RowSpacing="4">
@@ -72,6 +81,8 @@
                     ToolTipProperties.Text="{loc:Tr Tip_Language}" />
             <Picker ItemsSource="{Binding Themes}" SelectedItem="{Binding SelectedTheme}" WidthRequest="140"
                     ToolTipProperties.Text="{loc:Tr Tip_Theme}" />
+            <Button Text="{loc:Tr Ui_ArduPilotHelp}" Command="{Binding OpenArduPilotHelpCommand}"
+                    ToolTipProperties.Text="{loc:Tr Tip_ArduPilotHelp}" />
         </HorizontalStackLayout>
 
         <!-- Status -->
@@ -487,6 +498,63 @@
                             <Button Grid.Column="2" Text="{loc:Tr Ui_Save}" Command="{Binding SavePresetCommand}"
                                     HeightRequest="32" WidthRequest="110" VerticalOptions="Center" />
                         </Grid>
+                    </VerticalStackLayout>
+                </ScrollView>
+            </Border>
+        </Grid>
+
+        <!-- ArduPilot setup popup: parameter names and values stay as ArduPilot spells them, only the notes are translated -->
+        <Grid Grid.RowSpan="6" Margin="-12" ZIndex="10" BackgroundColor="#99000000" IsVisible="{Binding ShowArduPilotHelp}">
+            <Border WidthRequest="760" Margin="0,24" HorizontalOptions="Center" VerticalOptions="Center" Padding="12"
+                    StrokeThickness="1" Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <ScrollView>
+                    <!-- right padding: the scroll bar is drawn over the content -->
+                    <VerticalStackLayout Spacing="6" Padding="0,0,18,0">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="{loc:Tr Help_Title}" Style="{StaticResource Section}" Margin="0" />
+                            <Button Grid.Column="1" Text="{loc:Tr Ui_Close}" Command="{Binding CloseArduPilotHelpCommand}"
+                                    HeightRequest="32" WidthRequest="110" VerticalOptions="Center" />
+                        </Grid>
+                        <Label Text="{loc:Tr Help_Intro}" Style="{StaticResource HelpText}" />
+
+                        <Label Text="{loc:Tr Help_ParamsSection}" Style="{StaticResource Section}" />
+                        <Grid ColumnDefinitions="250,*" ColumnSpacing="12" RowSpacing="8"
+                              RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+                            <Label Grid.Row="0" Text="CAN_P1_DRIVER = 1" Style="{StaticResource HelpParam}" />
+                            <Label Grid.Row="0" Grid.Column="1" Text="{loc:Tr Help_Driver}" Style="{StaticResource HelpText}" />
+                            <Label Grid.Row="1" Text="CAN_P1_BITRATE = 1000000" Style="{StaticResource HelpParam}" />
+                            <Label Grid.Row="1" Grid.Column="1" Text="{loc:Tr Help_Bitrate}" Style="{StaticResource HelpText}" />
+                            <Label Grid.Row="2" Text="CAN_D1_PROTOCOL = 1" Style="{StaticResource HelpParam}" />
+                            <Label Grid.Row="2" Grid.Column="1" Text="{loc:Tr Help_Protocol}" Style="{StaticResource HelpText}" />
+                            <Label Grid.Row="3" Text="CAN_D1_UC_ESC_BM = 15" Style="{StaticResource HelpParam}" />
+                            <Label Grid.Row="3" Grid.Column="1" Text="{loc:Tr Help_EscBm}" Style="{StaticResource HelpText}" />
+                            <Label Grid.Row="4" Text="CAN_D1_UC_OPTION + 128" Style="{StaticResource HelpParam}" />
+                            <Label Grid.Row="4" Grid.Column="1" Text="{loc:Tr Help_Option}" Style="{StaticResource HelpText}" />
+                            <Label Grid.Row="5" Text="CAN_D1_UC_ESC_OF = 0" Style="{StaticResource HelpParam}" />
+                            <Label Grid.Row="5" Grid.Column="1" Text="{loc:Tr Help_EscOf}" Style="{StaticResource HelpText}" />
+                            <Label Grid.Row="6" Text="CAN_D1_UC_ESC_RV = 0" Style="{StaticResource HelpParam}" />
+                            <Label Grid.Row="6" Grid.Column="1" Text="{loc:Tr Help_EscRv}" Style="{StaticResource HelpText}" />
+                            <Label Grid.Row="7" Text="CAN_D1_UC_NODE = 10" Style="{StaticResource HelpParam}" />
+                            <Label Grid.Row="7" Grid.Column="1" Text="{loc:Tr Help_Node}" Style="{StaticResource HelpText}" />
+                            <Label Grid.Row="8" Text="SERVOn_FUNCTION = 33…" Style="{StaticResource HelpParam}" />
+                            <Label Grid.Row="8" Grid.Column="1" Text="{loc:Tr Help_ServoFunction}" Style="{StaticResource HelpText}" />
+                            <Label Grid.Row="9" Text="INS_HNTCH_MODE = 3" Style="{StaticResource HelpParam}" />
+                            <Label Grid.Row="9" Grid.Column="1" Text="{loc:Tr Help_Notch}" Style="{StaticResource HelpText}" />
+                        </Grid>
+                        <Label Text="{loc:Tr Help_Reboot}" Style="{StaticResource HelpText}" FontAttributes="Bold" />
+
+                        <Label Text="{loc:Tr Help_EscSection}" Style="{StaticResource Section}" />
+                        <Label Text="{loc:Tr Help_EscText}" Style="{StaticResource HelpText}" />
+
+                        <Label Text="{loc:Tr Help_AppSection}" Style="{StaticResource Section}" />
+                        <Label Text="{loc:Tr Help_AppText}" Style="{StaticResource HelpText}" />
+
+                        <Label Text="{loc:Tr Help_CheckSection}" Style="{StaticResource Section}" />
+                        <Label Text="{loc:Tr Help_CheckText}" Style="{StaticResource HelpText}" />
                     </VerticalStackLayout>
                 </ScrollView>
             </Border>

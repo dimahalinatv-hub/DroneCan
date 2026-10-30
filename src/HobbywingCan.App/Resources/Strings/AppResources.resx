@@ -678,4 +678,78 @@
   <data name="Log_PresetNothing" xml:space="preserve">
     <value>Preset "{0}": nothing to write</value>
   </data>
+  <data name="Ui_ArduPilotHelp" xml:space="preserve">
+    <value>ArduPilot…</value>
+  </data>
+  <data name="Tip_ArduPilotHelp" xml:space="preserve">
+    <value>How to set up ArduPilot for Hobbywing ESCs on CAN</value>
+  </data>
+  <data name="Help_Title" xml:space="preserve">
+    <value>ArduPilot setup for ESCs on CAN</value>
+  </data>
+  <data name="Help_Intro" xml:space="preserve">
+    <value>Connect the ESCs in a chain to the CAN1 (or CAN2) port of the flight controller and put a terminator on the last one. Then set the parameters below in Mission Planner (Config → Full Parameter List). The examples are for port CAN1 and driver 1.</value>
+  </data>
+  <data name="Help_ParamsSection" xml:space="preserve">
+    <value>Flight controller parameters</value>
+  </data>
+  <data name="Help_Driver" xml:space="preserve">
+    <value>Driver 1 on port CAN1. For port CAN2: CAN_P2_DRIVER = 1 (and «FC CAN bus» = 2 in this app).</value>
+  </data>
+  <data name="Help_Bitrate" xml:space="preserve">
+    <value>Bus speed; must be the same as «CAN speed» of every ESC. Hobbywing ESCs come from the factory at 500000: for the first setup set 500000 here, change the ESCs to 1 Mbit/s, then set 1000000 back.</value>
+  </data>
+  <data name="Help_Protocol" xml:space="preserve">
+    <value>DroneCAN.</value>
+  </data>
+  <data name="Help_EscBm" xml:space="preserve">
+    <value>Outputs (SERVOn) sent to the ESCs over CAN, bit 0 = output 1: 15 = outputs 1–4, 63 = 1–6, 255 = 1–8.</value>
+  </data>
+  <data name="Help_Option" xml:space="preserve">
+    <value>Bit 7 «HobbyWingESC»: ArduPilot takes RPM, voltage, current and temperature from the Hobbywing messages (StatusMsg1/2) and asks the ESCs for their throttle channels. Add 128 to the current value.</value>
+  </data>
+  <data name="Help_EscOf" xml:space="preserve">
+    <value>Only when the motors do not start from output 1: e.g. motors on outputs 5–8 → 4 (ESC_BM = 240), and the ESC on output 5 gets throttle channel 1.</value>
+  </data>
+  <data name="Help_EscRv" xml:space="preserve">
+    <value>Only for reversible (3D) ESCs, a bitmask like ESC_BM. Usually 0.</value>
+  </data>
+  <data name="Help_Node" xml:space="preserve">
+    <value>Node ID of the flight controller itself (10 by default). The ESCs and this app («App node ID») must use other IDs.</value>
+  </data>
+  <data name="Help_ServoFunction" xml:space="preserve">
+    <value>Motor1 = 33, Motor2 = 34, … on the motor outputs; FRAME_CLASS / FRAME_TYPE usually set them.</value>
+  </data>
+  <data name="Help_Notch" xml:space="preserve">
+    <value>Optional, with INS_HNTCH_ENABLE = 1: harmonic notch filter that follows the RPM of the ESCs. Needs StatusMsg1 (RPM) from every ESC.</value>
+  </data>
+  <data name="Help_Reboot" xml:space="preserve">
+    <value>Reboot the flight controller after changing the CAN_* parameters.</value>
+  </data>
+  <data name="Help_EscSection" xml:space="preserve">
+    <value>ESC settings (button «Edit» in this app)</value>
+  </data>
+  <data name="Help_EscText" xml:space="preserve">
+    <value>• CAN speed = CAN_P1_BITRATE.
+• Throttle source = CAN: in PWM mode the ESC ignores the throttle from ArduPilot.
+• Throttle channel = number of the output (SERVOn) of this motor, minus CAN_D1_UC_ESC_OF.
+• Node ID: unique on the bus, usually the same as the throttle channel.
+• StatusMsg1 rate (RPM) higher than StatusMsg2 rate.
+• From the factory every ESC has node ID 1 and throttle channel 1. Set them up one at a time with only one ESC on CAN: X8 G2 applies a new node ID / throttle channel to every ESC on the bus.</value>
+  </data>
+  <data name="Help_AppSection" xml:space="preserve">
+    <value>For this app</value>
+  </data>
+  <data name="Help_AppText" xml:space="preserve">
+    <value>• ArduPilot 4.3 or newer (MAV_CMD_CAN_FORWARD).
+• «FC CAN bus» = number of the CAN port the ESCs are on (1 = CAN_P1).
+• «App node ID» is free on the bus.
+• Connect over USB: a 57600 telemetry radio is too slow for CAN forwarding.</value>
+  </data>
+  <data name="Help_CheckSection" xml:space="preserve">
+    <value>Check</value>
+  </data>
+  <data name="Help_CheckText" xml:space="preserve">
+    <value>Props off! Mission Planner → Setup → Optional Hardware → Motor Test: every motor spins in its turn and in the right direction. RPM, voltage and current of every ESC appear on the Status tab of Mission Planner and in the «ArduPilot ESC telemetry» table of this app.</value>
+  </data>
 </root>

@@ -678,4 +678,78 @@
   <data name="Log_PresetNothing" xml:space="preserve">
     <value>Пресет «{0}»: нічого записувати</value>
   </data>
+  <data name="Ui_ArduPilotHelp" xml:space="preserve">
+    <value>ArduPilot…</value>
+  </data>
+  <data name="Tip_ArduPilotHelp" xml:space="preserve">
+    <value>Як налаштувати ArduPilot для ESC Hobbywing по CAN</value>
+  </data>
+  <data name="Help_Title" xml:space="preserve">
+    <value>Налаштування ArduPilot для ESC по CAN</value>
+  </data>
+  <data name="Help_Intro" xml:space="preserve">
+    <value>Під'єднайте ESC ланцюжком до порту CAN1 (або CAN2) польотника, на останній ESC поставте термінатор. Потім задайте параметри нижче в Mission Planner (Config → Full Parameter List). Приклади — для порту CAN1 і драйвера 1.</value>
+  </data>
+  <data name="Help_ParamsSection" xml:space="preserve">
+    <value>Параметри польотника</value>
+  </data>
+  <data name="Help_Driver" xml:space="preserve">
+    <value>Драйвер 1 на порту CAN1. Для порту CAN2: CAN_P2_DRIVER = 1 (і «Шина CAN FC» = 2 у цій програмі).</value>
+  </data>
+  <data name="Help_Bitrate" xml:space="preserve">
+    <value>Швидкість шини; має збігатися зі «Швидкістю CAN» кожного ESC. З заводу Hobbywing ESC працюють на 500000: для першого налаштування задайте тут 500000, переведіть ESC на 1 Мбіт/с і поверніть 1000000.</value>
+  </data>
+  <data name="Help_Protocol" xml:space="preserve">
+    <value>DroneCAN.</value>
+  </data>
+  <data name="Help_EscBm" xml:space="preserve">
+    <value>Які виходи (SERVOn) передаються на ESC по CAN, біт 0 = вихід 1: 15 = виходи 1–4, 63 = 1–6, 255 = 1–8.</value>
+  </data>
+  <data name="Help_Option" xml:space="preserve">
+    <value>Біт 7 «HobbyWingESC»: ArduPilot бере оберти, напругу, струм і температуру з повідомлень Hobbywing (StatusMsg1/2) і запитує в ESC їхні канали газу. Додайте 128 до поточного значення.</value>
+  </data>
+  <data name="Help_EscOf" xml:space="preserve">
+    <value>Лише якщо мотори починаються не з виходу 1: напр. мотори на виходах 5–8 → 4 (ESC_BM = 240), і ESC на виході 5 отримує канал газу 1.</value>
+  </data>
+  <data name="Help_EscRv" xml:space="preserve">
+    <value>Лише для реверсивних (3D) ESC, бітова маска як ESC_BM. Зазвичай 0.</value>
+  </data>
+  <data name="Help_Node" xml:space="preserve">
+    <value>ID вузла самого польотника (типово 10). ESC і ця програма («ID вузла програми») мають використовувати інші ID.</value>
+  </data>
+  <data name="Help_ServoFunction" xml:space="preserve">
+    <value>Motor1 = 33, Motor2 = 34, … на виходах моторів; зазвичай їх задають FRAME_CLASS / FRAME_TYPE.</value>
+  </data>
+  <data name="Help_Notch" xml:space="preserve">
+    <value>За бажанням, разом з INS_HNTCH_ENABLE = 1: гармонічний notch-фільтр, що йде за обертами ESC. Потрібен StatusMsg1 (оберти) від кожного ESC.</value>
+  </data>
+  <data name="Help_Reboot" xml:space="preserve">
+    <value>Після зміни параметрів CAN_* перезавантажте польотник.</value>
+  </data>
+  <data name="Help_EscSection" xml:space="preserve">
+    <value>Налаштування ESC (кнопка «Змінити» у цій програмі)</value>
+  </data>
+  <data name="Help_EscText" xml:space="preserve">
+    <value>• Швидкість CAN = CAN_P1_BITRATE.
+• Джерело газу = CAN: у режимі PWM ESC ігнорує газ від ArduPilot.
+• Канал газу = номер виходу (SERVOn) цього мотора мінус CAN_D1_UC_ESC_OF.
+• ID вузла: унікальний на шині, зазвичай такий самий, як канал газу.
+• Частота Msg1 (оберти) вища за частоту Msg2.
+• З заводу всі ESC мають ID вузла 1 і канал газу 1. Налаштовуйте їх по одному, коли на CAN лише один ESC: X8 G2 застосовує новий ID вузла / канал газу до кожного ESC на шині.</value>
+  </data>
+  <data name="Help_AppSection" xml:space="preserve">
+    <value>Для цієї програми</value>
+  </data>
+  <data name="Help_AppText" xml:space="preserve">
+    <value>• ArduPilot 4.3 або новіший (MAV_CMD_CAN_FORWARD).
+• «Шина CAN FC» = номер порту CAN, до якого під'єднано ESC (1 = CAN_P1).
+• «ID вузла програми» вільний на шині.
+• Під'єднуйтеся по USB: телеметричного радіо 57600 не вистачить для пересилання CAN.</value>
+  </data>
+  <data name="Help_CheckSection" xml:space="preserve">
+    <value>Перевірка</value>
+  </data>
+  <data name="Help_CheckText" xml:space="preserve">
+    <value>Зніміть пропелери! Mission Planner → Setup → Optional Hardware → Motor Test: кожен мотор крутиться по черзі й у правильний бік. Оберти, напруга і струм кожного ESC видно на вкладці Status у Mission Planner і в таблиці «Телеметрія ESC від ArduPilot» цієї програми.</value>
+  </data>
 </root>

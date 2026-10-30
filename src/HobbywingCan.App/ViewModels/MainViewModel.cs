@@ -54,6 +54,7 @@ public sealed partial class MainViewModel : ObservableObject
     private bool _includeParameters = true;
     private bool _isReading;
     private string _configProgress = "";
+    private bool _showArduPilotHelp;
 
     public MainViewModel(IDispatcher dispatcher)
     {
@@ -67,6 +68,8 @@ public sealed partial class MainViewModel : ObservableObject
         ReadConfigCommand = new Command(() => _autoReadNodeId = null, () => IsConnected && !IsReading && SelectedConfigNode != null);
         CopyReportCommand = new Command(async () => await CopyReportAsync(), () => _lastReport != null);
         ClearLogCommand = new Command(() => Log.Clear());
+        OpenArduPilotHelpCommand = new Command(() => ShowArduPilotHelp = true);
+        CloseArduPilotHelpCommand = new Command(() => ShowArduPilotHelp = false);
         InitSettings();
         InitPresets();
         Instance.LanguageChanged += OnLanguageChanged;
@@ -100,6 +103,11 @@ public sealed partial class MainViewModel : ObservableObject
     public ICommand ReadConfigCommand { get; }
     public ICommand CopyReportCommand { get; }
     public ICommand ClearLogCommand { get; }
+    public ICommand OpenArduPilotHelpCommand { get; }
+    public ICommand CloseArduPilotHelpCommand { get; }
+
+    /// <summary>The popup with the ArduPilot parameters for Hobbywing ESCs on CAN.</summary>
+    public bool ShowArduPilotHelp { get => _showArduPilotHelp; set => SetProperty(ref _showArduPilotHelp, value); }
 
     public IReadOnlyList<LanguageChoice> Languages => Instance.Languages;
 
